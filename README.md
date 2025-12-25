@@ -27,6 +27,18 @@ npm run start
 
 Once the UI is built, start the backend and visit `http://localhost:8080`. The backend serves the UI bundle from `ui/dist`, and the UI makes same-origin API calls (no separate UI server needed).
 
+### systemd (systemctl)
+Copy `codex-docker-orchestrator.service` to `/etc/systemd/system/` and update the `WorkingDirectory` path if needed, then:
+```
+sudo systemctl daemon-reload
+sudo systemctl enable --now codex-docker-orchestrator
+```
+
+To update after pulling new changes:
+```
+git fetch origin && git reset --hard origin/main && (cd ui && npm install && npm run build) && sudo systemctl restart codex-docker-orchestrator
+```
+
 ### UI (dev)
 ```
 cd ui

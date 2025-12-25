@@ -8,6 +8,9 @@ A local backend + UI that manages Codex tasks executed via `codex-docker`. It cr
 
 ## Quick start
 
+## Dependencies
+- It uses "codex-docker" command from "https://github.com/AndreiMarhatau/codex-docker.git" repo, check it out on how to install it and set to be available everywhere.
+
 ### Prepare UI (backend will automatically serve it if you build it)
 ```
 cd ui

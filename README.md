@@ -2,27 +2,31 @@
 
 A local backend + UI that manages Codex tasks executed via `codex-docker`. It creates isolated worktrees per task, stores resume tokens, and lets you resume or push later.
 
+## Why this exists
+- **Problem:** Codex Web consumes 5 times more than Codex CLI or Codex in VS Code locally. But you super want to hand off tasks to it being in a cafe with only your phone in your pocket.
+- **Solution:** Run Codex CLI backed by slick (ish) UI in the same container that Codex Web uses, which is ephemeral and disposable. Leave your laptop on, make it reachable from outside (remember IP + open ports, or use Tailscale) and give it what you want to do. I run it in my Raspberry PI 5 16Gb which is enough for all my tasks.
+
 ## Quick start
+
+### Prepare UI (backend will automatically serve it if you build it)
+```
+cd ui
+npm install
+npm run build
+```
 
 ### Backend
 ```
-cd codex-docker-orchestrator/backend
+cd backend
 npm install
 npm run start
-```
-
-### UI (served by backend)
-```
-cd codex-docker-orchestrator/ui
-npm install
-npm run build
 ```
 
 Once the UI is built, start the backend and visit `http://localhost:8080`. The backend serves the UI bundle from `ui/dist`, and the UI makes same-origin API calls (no separate UI server needed).
 
 ### UI (dev)
 ```
-cd codex-docker-orchestrator/ui
+cd ui
 npm install
 npm run dev
 ```
@@ -34,18 +38,6 @@ VITE_API_BASE_URL=http://192.168.1.x:8080 npm run dev
 
 You can also set the variable in a `.env` file in `ui/` (for example, `VITE_API_BASE_URL=http://192.168.1.x:8080`) or pass it at build time.
 
-## Environment variables
-- `ORCH_HOME`: overrides the default storage path (`~/.codex-orchestrator`).
-- `ORCH_PORT`: backend port (default `8080`).
-- `ORCH_AGENTS_FILE`: optional path to a Codex agents file to append for orchestrated runs (defaults to `codex-docker-orchestrator/ORCHESTRATOR_AGENTS.md` if present).
-- `ORCH_HOME` is automatically mounted into the container so task worktrees can resolve their git metadata.
-- `ORCH_GITHUB_TOKEN`: optional token for PR creation.
-- `ORCH_GITHUB_REPO`: optional `owner/repo` for PR creation.
-
 ## Scripts
 - Backend tests: `npm -C backend test`
 - UI tests: `npm -C ui test`
-
-## Files
-- `LEARNINGS.md`: verified Codex CLI behavior for resume tokens.
-- `STRATEGY.md`: full lifecycle strategy for envs/tasks/resume/cleanup.

@@ -1,0 +1,13 @@
+[Unit]
+Description=Codex Docker Orchestrator
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/codex-docker-orchestrator
+ExecStart=/usr/bin/env npm -C backend run start
+Restart=on-failure
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

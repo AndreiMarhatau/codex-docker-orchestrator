@@ -34,6 +34,16 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now codex-docker-orchestrator
 ```
 
+To update after pulling new changes:
+```
+git fetch origin
+git reset --hard origin/main
+cd ui
+npm install
+npm run build
+sudo systemctl restart codex-docker-orchestrator
+```
+
 ### UI (dev)
 ```
 cd ui

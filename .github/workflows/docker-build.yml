@@ -40,5 +40,3 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          build-args: |
-            CODEX_DOCKER_REF=v0.0.1

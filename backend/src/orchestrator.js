@@ -19,13 +19,14 @@ const {
 const DEFAULT_ORCH_HOME = path.join(os.homedir(), '.codex-orchestrator');
 const DEFAULT_IMAGE_NAME = 'ghcr.io/andreimarhatau/codex-docker:latest';
 const DEFAULT_ORCH_AGENTS_FILE = path.join(__dirname, '..', '..', 'ORCHESTRATOR_AGENTS.md');
+const DEFAULT_HOST_DOCKER_AGENTS_FILE = path.join(
+  __dirname,
+  '..',
+  '..',
+  'ORCHESTRATOR_AGENTS_HOST_DOCKER.md'
+);
 const COMMIT_SHA_REGEX = /^[0-9a-f]{7,40}$/i;
 const DEFAULT_GIT_CREDENTIAL_HELPER = '!/usr/bin/gh auth git-credential';
-const HOST_DOCKER_SOCKET_INSTRUCTION = [
-  '## Host Docker Socket',
-  '- The host Docker socket is mounted, so Docker commands act on the host.',
-  '- Treat this as root-equivalent access; avoid destructive actions unless requested.'
-].join('\n');
 
 function invalidImageError(message) {
   const error = new Error(message);
@@ -229,6 +230,10 @@ class Orchestrator {
     this.imageName = options.imageName || process.env.IMAGE_NAME || DEFAULT_IMAGE_NAME;
     this.orchAgentsFile =
       options.orchAgentsFile || process.env.ORCH_AGENTS_FILE || DEFAULT_ORCH_AGENTS_FILE;
+    this.hostDockerAgentsFile =
+      options.hostDockerAgentsFile ||
+      process.env.ORCH_HOST_DOCKER_AGENTS_FILE ||
+      DEFAULT_HOST_DOCKER_AGENTS_FILE;
     this.getUid =
       options.getUid ||
       (() => (typeof process.getuid === 'function' ? process.getuid() : null));
@@ -674,6 +679,10 @@ class Orchestrator {
   buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket }) {
     const baseFile =
       this.orchAgentsFile && fs.existsSync(this.orchAgentsFile) ? this.orchAgentsFile : null;
+    const hostDockerFile =
+      this.hostDockerAgentsFile && fs.existsSync(this.hostDockerAgentsFile)
+        ? this.hostDockerAgentsFile
+        : null;
     if (!useHostDockerSocket) {
       return baseFile;
     }
@@ -684,7 +693,12 @@ class Orchestrator {
         sections.push(baseContent);
       }
     }
-    sections.push(HOST_DOCKER_SOCKET_INSTRUCTION);
+    if (hostDockerFile) {
+      const hostDockerContent = fs.readFileSync(hostDockerFile, 'utf8').trimEnd();
+      if (hostDockerContent) {
+        sections.push(hostDockerContent);
+      }
+    }
     const combined = `${sections.join('\n\n')}\n`;
     const targetPath = path.join(this.taskLogsDir(taskId), `${runLabel}.agents.md`);
     fs.writeFileSync(targetPath, combined, 'utf8');

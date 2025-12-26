@@ -1,0 +1,6 @@
+backend/node_modules
+ui/node_modules
+ui/dist
+.git
+.DS_Store
+npm-debug.log

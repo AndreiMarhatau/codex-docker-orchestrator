@@ -61,3 +61,33 @@ You can also set the variable in a `.env` file in `ui/` (for example, `VITE_API_
 ## Scripts
 - Backend tests: `npm -C backend test`
 - UI tests: `npm -C ui test`
+
+## Docker (host-path)
+This runs the orchestrator in a container while using the host Docker engine. It keeps `codex-docker`
+working and reuses your host Codex + GitHub credentials.
+
+### Prereqs on the host
+- `codex-docker` repo checked out and executable.
+- Docker Engine running.
+- GitHub auth already set up on the host (for HTTPS pushes), for example:
+  - `gh auth login` (device/browser flow, stores token in `~/.config/gh`)
+
+### One-time env setup
+```
+export HOST_HOME="$HOME"
+export CODEX_DOCKER_DIR="$HOME/codex-docker"
+export UID="$(id -u)"
+export GID="$(id -g)"
+export DOCKER_GID="$(stat -c %g /var/run/docker.sock)"
+```
+
+### Build and run
+```
+docker compose up --build
+```
+
+### Why this works
+- The orchestrator uses `docker` and `codex-docker` from inside the container.
+- We mount your host home at the same absolute path, so `codex-docker` can bind-mount paths correctly.
+- Codex credentials are reused by mounting your host `~/.codex` via the home mount.
+- Git HTTPS auth is reused by mounting your host `~/.gitconfig` and `~/.config/gh` via the home mount.

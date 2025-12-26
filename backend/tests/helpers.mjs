@@ -18,44 +18,67 @@ export function createMockExec({
   const calls = [];
   const threadId = '019b341f-04d9-73b3-8263-2c05ca63d690';
 
+  const normalizeGitArgs = (args) => {
+    const normalized = [];
+    for (let i = 0; i < args.length; i += 1) {
+      const arg = args[i];
+      const next = args[i + 1];
+      if (arg === '-c' && typeof next === 'string' && next.startsWith('credential.helper=')) {
+        i += 1;
+        continue;
+      }
+      normalized.push(arg);
+    }
+    return normalized;
+  };
+
   const exec = async (command, args, options = {}) => {
     calls.push({ command, args, options });
 
     if (command === 'git') {
-      if (args[0] === 'clone' && args[1] === '--bare') {
-        const target = args[3];
+      const normalizedArgs = normalizeGitArgs(args);
+      if (normalizedArgs[0] === 'clone' && normalizedArgs[1] === '--bare') {
+        const target = normalizedArgs[3];
         await fs.mkdir(target, { recursive: true });
         return { stdout: '', stderr: '', code: 0 };
       }
-      if (args[0] === '--git-dir' && args[2] === 'config' && args[3] === 'remote.origin.fetch') {
+      if (
+        normalizedArgs[0] === '--git-dir' &&
+        normalizedArgs[2] === 'config' &&
+        normalizedArgs[3] === 'remote.origin.fetch'
+      ) {
         return { stdout: '', stderr: '', code: 0 };
       }
-      if (args[0] === '--git-dir' && args[2] === 'show-ref') {
-        const ref = args[4];
+      if (normalizedArgs[0] === '--git-dir' && normalizedArgs[2] === 'show-ref') {
+        const ref = normalizedArgs[4];
         const branch = ref.replace('refs/remotes/origin/', '').replace('refs/heads/', '');
         if (branches.includes(branch)) {
           return { stdout: ref, stderr: '', code: 0 };
         }
         return { stdout: '', stderr: 'not found', code: 1 };
       }
-      if (args[0] === '--git-dir' && args[2] === 'fetch') {
+      if (normalizedArgs[0] === '--git-dir' && normalizedArgs[2] === 'fetch') {
         return { stdout: '', stderr: '', code: 0 };
       }
-      if (args[0] === '--git-dir' && args[2] === 'rev-parse') {
+      if (normalizedArgs[0] === '--git-dir' && normalizedArgs[2] === 'rev-parse') {
         return { stdout: `${baseSha}\n`, stderr: '', code: 0 };
       }
-      if (args[0] === '--git-dir' && args[2] === 'worktree' && args[3] === 'add') {
-        const worktreePath = args[4];
+      if (
+        normalizedArgs[0] === '--git-dir' &&
+        normalizedArgs[2] === 'worktree' &&
+        normalizedArgs[3] === 'add'
+      ) {
+        const worktreePath = normalizedArgs[4];
         await fs.mkdir(worktreePath, { recursive: true });
         return { stdout: '', stderr: '', code: 0 };
       }
-      if (args[0] === '-C' && args[2] === 'checkout') {
+      if (normalizedArgs[0] === '-C' && normalizedArgs[2] === 'checkout') {
         return { stdout: '', stderr: '', code: 0 };
       }
-      if (args[0] === '-C' && args[2] === 'diff' && args[3] === '--quiet') {
+      if (normalizedArgs[0] === '-C' && normalizedArgs[2] === 'diff' && normalizedArgs[3] === '--quiet') {
         return { stdout: '', stderr: '', code: diffHasChanges ? 1 : 0 };
       }
-      if (args[0] === '-C' && args[2] === 'diff') {
+      if (normalizedArgs[0] === '-C' && normalizedArgs[2] === 'diff') {
         const diff = [
           'diff --git a/README.md b/README.md',
           'index 0000000..1111111 100644',
@@ -68,25 +91,33 @@ export function createMockExec({
         ].join('\n');
         return { stdout: diff, stderr: '', code: 0 };
       }
-      if (args[0] === '-C' && args[2] === 'status' && args[3] === '--porcelain') {
+      if (
+        normalizedArgs[0] === '-C' &&
+        normalizedArgs[2] === 'status' &&
+        normalizedArgs[3] === '--porcelain'
+      ) {
         return { stdout: statusPorcelain, stderr: '', code: 0 };
       }
-      if (args[0] === '-C' && args[2] === 'rev-parse' && args[3] === 'HEAD') {
+      if (normalizedArgs[0] === '-C' && normalizedArgs[2] === 'rev-parse' && normalizedArgs[3] === 'HEAD') {
         return { stdout: `${headSha}\n`, stderr: '', code: 0 };
       }
-      if (args[0] === '-C' && args[2] === 'ls-remote' && args[3] === '--heads') {
-        const branch = args[5] || 'unknown';
+      if (normalizedArgs[0] === '-C' && normalizedArgs[2] === 'ls-remote' && normalizedArgs[3] === '--heads') {
+        const branch = normalizedArgs[5] || 'unknown';
         if (!remoteHeadSha) {
           return { stdout: '', stderr: '', code: 0 };
         }
         return { stdout: `${remoteHeadSha}\trefs/heads/${branch}\n`, stderr: '', code: 0 };
       }
-      if (args[0] === '--git-dir' && args[2] === 'worktree' && args[3] === 'remove') {
-        const worktreePath = args[5];
+      if (
+        normalizedArgs[0] === '--git-dir' &&
+        normalizedArgs[2] === 'worktree' &&
+        normalizedArgs[3] === 'remove'
+      ) {
+        const worktreePath = normalizedArgs[5];
         await fs.rm(worktreePath, { recursive: true, force: true });
         return { stdout: '', stderr: '', code: 0 };
       }
-      if (args[0] === '-C' && args.includes('push')) {
+      if (normalizedArgs[0] === '-C' && normalizedArgs.includes('push')) {
         return { stdout: '', stderr: '', code: 0 };
       }
     }

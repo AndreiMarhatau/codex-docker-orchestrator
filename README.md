@@ -77,7 +77,7 @@ export HOST_HOME="$HOME" \
   ORCH_IMAGE="ghcr.io/andreimarhatau/codex-docker-orchestrator:latest" \
   UID="$(id -u)" \
   GID="$(id -g)" \
-  DOCKER_SOCK="${DOCKER_SOCK:-/var/run/docker.sock}" \
+  DOCKER_SOCK="${DOCKER_SOCK:-$([ -S "$HOME/.docker/run/docker.sock" ] && echo "$HOME/.docker/run/docker.sock" || echo "/var/run/docker.sock")}" \
   DOCKER_GID="$(stat -c %g "$DOCKER_SOCK" 2>/dev/null || stat -f %g "$DOCKER_SOCK")"
 ```
 If you skip these, defaults are used (`/root` home and `0:0` user), but you will not reuse host auth

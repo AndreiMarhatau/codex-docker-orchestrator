@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+host_home="${HOST_HOME:-$HOME}"
+orch_image="${ORCH_IMAGE:-ghcr.io/andreimarhatau/codex-docker-orchestrator:latest}"
+
+docker_sock="${DOCKER_SOCK:-/var/run/docker.sock}"
+if [[ ! -S "${docker_sock}" && -S "${HOME}/.docker/run/docker.sock" ]]; then
+  docker_sock="${HOME}/.docker/run/docker.sock"
+fi
+
+if [[ ! -S "${docker_sock}" ]]; then
+  echo "Docker socket not found at ${docker_sock}" >&2
+  echo "Set DOCKER_SOCK to your Docker Desktop socket path." >&2
+  exit 1
+fi
+
+uid_value="$(id -u)"
+gid_value="$(id -g)"
+docker_gid="${DOCKER_GID:-}"
+if [[ -z "${docker_gid}" ]]; then
+  docker_gid="$(stat -c %g "${docker_sock}" 2>/dev/null || stat -f %g "${docker_sock}")"
+fi
+
+exec env \
+  HOST_HOME="${host_home}" \
+  ORCH_IMAGE="${orch_image}" \
+  UID="${uid_value}" \
+  GID="${gid_value}" \
+  DOCKER_SOCK="${docker_sock}" \
+  DOCKER_GID="${docker_gid}" \
+  docker compose up

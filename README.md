@@ -71,7 +71,14 @@ working and reuses your host Codex + GitHub credentials.
 - GitHub auth already set up on the host (for HTTPS pushes), for example:
   - `gh auth login` (device/browser flow, stores token in `~/.config/gh`)
 
-### One-time env setup
+### One-command run
+```
+./bin/orch-up
+```
+This script detects the Docker socket (macOS + Linux), sets the needed env vars, and runs
+`docker compose up`.
+
+### Manual env setup
 ```
 export HOST_HOME="$HOME" \
   ORCH_IMAGE="ghcr.io/andreimarhatau/codex-docker-orchestrator:latest" \

@@ -71,6 +71,7 @@ working and reuses your host Codex + GitHub credentials.
 - GitHub auth already set up on the host (for HTTPS pushes), for example:
   - `gh auth login` (device/browser flow, stores token in `~/.config/gh`)
   - The orchestrator image includes `gh`, so it can reuse the host login.
+  - The container forces git to use `gh auth git-credential` so host configs pointing to other paths don't break.
 
 ### One-command run
 ```

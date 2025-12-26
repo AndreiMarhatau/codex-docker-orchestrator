@@ -76,7 +76,8 @@ working and reuses your host Codex + GitHub credentials.
 ./bin/orch-up
 ```
 This script detects the Docker socket (macOS + Linux), sets the needed env vars, and runs
-`docker compose up`.
+`docker compose up`. It also sets `TMPDIR` to a host-mounted path so `codex-docker` can mount
+the generated `AGENTS.override.md` file.
 On macOS it runs the container as root by default to avoid Docker socket permission errors.
 Set `ORCH_FORCE_ROOT=0` if you want to run as your host user instead.
 
@@ -87,7 +88,8 @@ export HOST_HOME="$HOME" \
   UID="$(id -u)" \
   GID="$(id -g)" \
   DOCKER_SOCK="${DOCKER_SOCK:-/var/run/docker.sock}" \
-  DOCKER_GID="$(stat -c %g "$DOCKER_SOCK" 2>/dev/null || stat -f %g "$DOCKER_SOCK")"
+  DOCKER_GID="$(stat -c %g "$DOCKER_SOCK" 2>/dev/null || stat -f %g "$DOCKER_SOCK")" \
+  TMPDIR="$HOME/.codex-orchestrator/tmp"
 ```
 If you skip these, defaults are used (`/root` home and `0:0` user), but you will not reuse host auth
 unless you mount the correct host home. If you set a non-root `UID/GID`, also set `DOCKER_GID` so

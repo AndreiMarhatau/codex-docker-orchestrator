@@ -3,6 +3,7 @@ set -euo pipefail
 
 host_home="${HOST_HOME:-$HOME}"
 orch_image="${ORCH_IMAGE:-ghcr.io/andreimarhatau/codex-docker-orchestrator:latest}"
+tmp_dir="${TMPDIR:-${host_home}/.codex-orchestrator/tmp}"
 
 docker_sock="${DOCKER_SOCK:-/var/run/docker.sock}"
 if [[ ! -S "${docker_sock}" && -S "${HOME}/.docker/run/docker.sock" ]]; then
@@ -14,6 +15,8 @@ if [[ ! -S "${docker_sock}" ]]; then
   echo "Set DOCKER_SOCK to your Docker Desktop socket path." >&2
   exit 1
 fi
+
+mkdir -p "${tmp_dir}"
 
 uid_value="$(id -u)"
 gid_value="$(id -g)"
@@ -35,4 +38,5 @@ exec env \
   GID="${gid_value}" \
   DOCKER_SOCK="${docker_sock}" \
   DOCKER_GID="${docker_gid}" \
+  TMPDIR="${tmp_dir}" \
   docker compose up

@@ -77,12 +77,17 @@ export HOST_HOME="$HOME" \
   ORCH_IMAGE="ghcr.io/andreimarhatau/codex-docker-orchestrator:latest" \
   UID="$(id -u)" \
   GID="$(id -g)" \
-  DOCKER_GID="$(stat -c %g /var/run/docker.sock)"
+  DOCKER_SOCK="${DOCKER_SOCK:-/var/run/docker.sock}" \
+  DOCKER_GID="$(stat -c %g "$DOCKER_SOCK" 2>/dev/null || stat -f %g "$DOCKER_SOCK")"
 ```
 If you skip these, defaults are used (`/root` home and `0:0` user), but you will not reuse host auth
 unless you mount the correct host home. If you set a non-root `UID/GID`, also set `DOCKER_GID` so
 the container can access `/var/run/docker.sock` (it defaults to `0`, which only works for root).
 You can also copy `.env.example` to `.env` and fill in your values.
+On macOS with Docker Desktop, the socket is usually at `$HOME/.docker/run/docker.sock`:
+```
+export DOCKER_SOCK="$HOME/.docker/run/docker.sock"
+```
 
 ### Build and run
 ```

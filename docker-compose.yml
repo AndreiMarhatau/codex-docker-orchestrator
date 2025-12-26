@@ -8,8 +8,9 @@ services:
     environment:
       HOME: "${HOST_HOME:-/root}"
       ORCH_HOME: "${HOST_HOME:-/root}/.codex-orchestrator"
+      DOCKER_HOST: "unix:///var/run/docker.sock"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
       - ${HOST_HOME:-/root}:${HOST_HOME:-/root}
     user: "${UID:-0}:${GID:-0}"
     group_add:

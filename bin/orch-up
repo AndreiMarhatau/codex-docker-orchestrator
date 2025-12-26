@@ -39,4 +39,4 @@ exec env \
   DOCKER_SOCK="${docker_sock}" \
   DOCKER_GID="${docker_gid}" \
   ORCH_TMPDIR="${tmp_dir}" \
-  docker compose up
+  docker compose up "$@"

@@ -1,4 +1,6 @@
 # Host Docker Socket
 
 - The host Docker socket is mounted, so Docker commands act on the host.
-- Treat this as root-equivalent access; avoid destructive actions unless requested.
+- You may use Docker commands as needed to complete the task.
+- Before finishing, ensure no containers, images, volumes, or networks are left dangling from your work.
+- Do not touch or break existing Docker resources unless the user explicitly asks you to.

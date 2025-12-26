@@ -9,7 +9,7 @@ services:
       HOME: "${HOST_HOME:-/root}"
       ORCH_HOME: "${HOST_HOME:-/root}/.codex-orchestrator"
       DOCKER_HOST: "unix:///var/run/docker.sock"
-      TMPDIR: "${TMPDIR:-/tmp}"
+      TMPDIR: "${ORCH_TMPDIR:-/tmp}"
     volumes:
       - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
       - ${HOST_HOME:-/root}:${HOST_HOME:-/root}

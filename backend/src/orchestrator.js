@@ -19,6 +19,12 @@ const {
 const DEFAULT_ORCH_HOME = path.join(os.homedir(), '.codex-orchestrator');
 const DEFAULT_IMAGE_NAME = 'ghcr.io/andreimarhatau/codex-docker:latest';
 const DEFAULT_ORCH_AGENTS_FILE = path.join(__dirname, '..', '..', 'ORCHESTRATOR_AGENTS.md');
+const DEFAULT_HOST_DOCKER_AGENTS_FILE = path.join(
+  __dirname,
+  '..',
+  '..',
+  'ORCHESTRATOR_AGENTS_HOST_DOCKER.md'
+);
 const COMMIT_SHA_REGEX = /^[0-9a-f]{7,40}$/i;
 const DEFAULT_GIT_CREDENTIAL_HELPER = '!/usr/bin/gh auth git-credential';
 
@@ -224,6 +230,10 @@ class Orchestrator {
     this.imageName = options.imageName || process.env.IMAGE_NAME || DEFAULT_IMAGE_NAME;
     this.orchAgentsFile =
       options.orchAgentsFile || process.env.ORCH_AGENTS_FILE || DEFAULT_ORCH_AGENTS_FILE;
+    this.hostDockerAgentsFile =
+      options.hostDockerAgentsFile ||
+      process.env.ORCH_HOST_DOCKER_AGENTS_FILE ||
+      DEFAULT_HOST_DOCKER_AGENTS_FILE;
     this.getUid =
       options.getUid ||
       (() => (typeof process.getuid === 'function' ? process.getuid() : null));
@@ -666,15 +676,45 @@ class Orchestrator {
     await writeJson(this.taskMetaPath(taskId), meta);
   }
 
-  startCodexRun({ taskId, runLabel, prompt, cwd, args, mountPaths = [] }) {
+  buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket }) {
+    const baseFile =
+      this.orchAgentsFile && fs.existsSync(this.orchAgentsFile) ? this.orchAgentsFile : null;
+    const hostDockerFile =
+      this.hostDockerAgentsFile && fs.existsSync(this.hostDockerAgentsFile)
+        ? this.hostDockerAgentsFile
+        : null;
+    if (!useHostDockerSocket) {
+      return baseFile;
+    }
+    const sections = [];
+    if (baseFile) {
+      const baseContent = fs.readFileSync(baseFile, 'utf8').trimEnd();
+      if (baseContent) {
+        sections.push(baseContent);
+      }
+    }
+    if (hostDockerFile) {
+      const hostDockerContent = fs.readFileSync(hostDockerFile, 'utf8').trimEnd();
+      if (hostDockerContent) {
+        sections.push(hostDockerContent);
+      }
+    }
+    const combined = `${sections.join('\n\n')}\n`;
+    const targetPath = path.join(this.taskLogsDir(taskId), `${runLabel}.agents.md`);
+    fs.writeFileSync(targetPath, combined, 'utf8');
+    return targetPath;
+  }
+
+  startCodexRun({ taskId, runLabel, prompt, cwd, args, mountPaths = [], useHostDockerSocket }) {
     const logFile = `${runLabel}.jsonl`;
     const logPath = path.join(this.taskLogsDir(taskId), logFile);
     const stderrPath = path.join(this.taskLogsDir(taskId), `${runLabel}.stderr`);
     const logStream = fs.createWriteStream(logPath, { flags: 'a' });
     const stderrStream = fs.createWriteStream(stderrPath, { flags: 'a' });
     const env = { ...process.env };
-    if (this.orchAgentsFile && fs.existsSync(this.orchAgentsFile)) {
-      env.CODEX_AGENTS_APPEND_FILE = this.orchAgentsFile;
+    const agentsAppendFile = this.buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket });
+    if (agentsAppendFile) {
+      env.CODEX_AGENTS_APPEND_FILE = agentsAppendFile;
     }
     const artifactsDir = this.runArtifactsDir(taskId, runLabel);
     env.CODEX_ARTIFACTS_DIR = artifactsDir;
@@ -885,7 +925,8 @@ class Orchestrator {
         env.mirrorPath,
         ...resolvedImagePaths,
         ...(dockerSocketPath ? [dockerSocketPath] : [])
-      ]
+      ],
+      useHostDockerSocket: shouldUseHostDockerSocket
     });
     return meta;
   }
@@ -947,7 +988,8 @@ class Orchestrator {
       mountPaths: [
         env.mirrorPath,
         ...(dockerSocketPath ? [dockerSocketPath] : [])
-      ]
+      ],
+      useHostDockerSocket: shouldUseHostDockerSocket
     });
     return meta;
   }

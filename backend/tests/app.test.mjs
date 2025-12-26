@@ -48,10 +48,18 @@ describe('API', () => {
 
     const taskRes = await request(app)
       .post('/api/tasks')
-      .send({ envId, ref: 'main', prompt: 'Do work' })
+      .send({
+        envId,
+        ref: 'main',
+        prompt: 'Do work',
+        model: 'gpt-5.1-codex-max',
+        reasoningEffort: 'high'
+      })
       .expect(201);
 
     expect(taskRes.body.status).toBe('running');
+    expect(taskRes.body.model).toBe('gpt-5.1-codex-max');
+    expect(taskRes.body.reasoningEffort).toBe('high');
 
     const diffRes = await request(app).get(`/api/tasks/${taskRes.body.taskId}/diff`).expect(200);
     expect(diffRes.body.available).toBe(true);

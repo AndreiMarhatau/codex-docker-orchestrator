@@ -101,6 +101,28 @@ function parseLogEntries(content) {
   });
 }
 
+function normalizeOptionalString(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function buildCodexArgs({ prompt, model, reasoningEffort, imageArgs = [], resumeThreadId }) {
+  const args = ['exec', '--dangerously-bypass-approvals-and-sandbox', '--json'];
+  if (model) {
+    args.push('--model', model);
+  }
+  if (reasoningEffort) {
+    args.push('-c', `model_reasoning_effort=${reasoningEffort}`);
+  }
+  if (resumeThreadId) {
+    args.push('resume', resumeThreadId, prompt);
+    return args;
+  }
+  args.push(...imageArgs, prompt);
+  return args;
+}
+
 const MAX_DIFF_LINES = 400;
 
 function normalizeDiffPath(aPath, bPath) {
@@ -753,11 +775,13 @@ class Orchestrator {
     return resolved;
   }
 
-  async createTask({ envId, ref, prompt, imagePaths }) {
+  async createTask({ envId, ref, prompt, imagePaths, model, reasoningEffort }) {
     await this.init();
     const env = await this.readEnv(envId);
     await this.ensureOwnership(env.mirrorPath);
     const resolvedImagePaths = await this.resolveImagePaths(imagePaths);
+    const normalizedModel = normalizeOptionalString(model);
+    const normalizedReasoningEffort = normalizeOptionalString(reasoningEffort);
     const taskId = crypto.randomUUID();
     const taskDir = this.taskDir(taskId);
     const logsDir = this.taskLogsDir(taskId);
@@ -795,6 +819,8 @@ class Orchestrator {
       baseSha,
       branchName,
       worktreePath,
+      model: normalizedModel,
+      reasoningEffort: normalizedReasoningEffort,
       threadId: null,
       error: null,
       status: 'running',
@@ -806,6 +832,8 @@ class Orchestrator {
         {
           runId: runLabel,
           prompt,
+          model: normalizedModel,
+          reasoningEffort: normalizedReasoningEffort,
           logFile,
           startedAt: now,
           finishedAt: null,
@@ -817,18 +845,24 @@ class Orchestrator {
 
     await writeJson(this.taskMetaPath(taskId), meta);
     const imageArgs = resolvedImagePaths.flatMap((imagePath) => ['--image', imagePath]);
+    const args = buildCodexArgs({
+      prompt,
+      model: normalizedModel,
+      reasoningEffort: normalizedReasoningEffort,
+      imageArgs
+    });
     this.startCodexRun({
       taskId,
       runLabel,
       prompt,
       cwd: worktreePath,
-      args: ['exec', '--dangerously-bypass-approvals-and-sandbox', '--json', ...imageArgs, prompt],
+      args,
       mountPaths: [env.mirrorPath, ...resolvedImagePaths]
     });
     return meta;
   }
 
-  async resumeTask(taskId, prompt) {
+  async resumeTask(taskId, prompt, options = {}) {
     await this.init();
     const meta = await readJson(this.taskMetaPath(taskId));
     if (!meta.threadId) {
@@ -842,9 +876,16 @@ class Orchestrator {
     meta.updatedAt = this.now();
     meta.status = 'running';
     meta.lastPrompt = prompt;
+    const runModel =
+      normalizeOptionalString(options.model) ?? normalizeOptionalString(meta.model);
+    const runReasoningEffort =
+      normalizeOptionalString(options.reasoningEffort) ??
+      normalizeOptionalString(meta.reasoningEffort);
     meta.runs.push({
       runId: runLabel,
       prompt,
+      model: runModel,
+      reasoningEffort: runReasoningEffort,
       logFile,
       startedAt: this.now(),
       finishedAt: null,
@@ -854,12 +895,18 @@ class Orchestrator {
 
     await ensureDir(this.runArtifactsDir(taskId, runLabel));
     await writeJson(this.taskMetaPath(taskId), meta);
+    const args = buildCodexArgs({
+      prompt,
+      model: runModel,
+      reasoningEffort: runReasoningEffort,
+      resumeThreadId: meta.threadId
+    });
     this.startCodexRun({
       taskId,
       runLabel,
       prompt,
       cwd: meta.worktreePath,
-      args: ['exec', '--dangerously-bypass-approvals-and-sandbox', '--json', 'resume', meta.threadId, prompt],
+      args,
       mountPaths: [env.mirrorPath]
     });
     return meta;

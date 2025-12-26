@@ -71,20 +71,28 @@ working and reuses your host Codex + GitHub credentials.
 - GitHub auth already set up on the host (for HTTPS pushes), for example:
   - `gh auth login` (device/browser flow, stores token in `~/.config/gh`)
 
-### One-time env setup
+### One-command run
+```
+./bin/orch-up
+```
+This script detects the Docker socket (macOS + Linux), sets the needed env vars, and runs
+`docker compose up`.
+
+### Manual env setup
 ```
 export HOST_HOME="$HOME" \
   ORCH_IMAGE="ghcr.io/andreimarhatau/codex-docker-orchestrator:latest" \
   UID="$(id -u)" \
   GID="$(id -g)" \
-  DOCKER_SOCK="${DOCKER_SOCK:-$([ -S "$HOME/.docker/run/docker.sock" ] && echo "$HOME/.docker/run/docker.sock" || echo "/var/run/docker.sock")}" \
+  DOCKER_SOCK="${DOCKER_SOCK:-/var/run/docker.sock}" \
   DOCKER_GID="$(stat -c %g "$DOCKER_SOCK" 2>/dev/null || stat -f %g "$DOCKER_SOCK")"
 ```
 If you skip these, defaults are used (`/root` home and `0:0` user), but you will not reuse host auth
 unless you mount the correct host home. If you set a non-root `UID/GID`, also set `DOCKER_GID` so
 the container can access `/var/run/docker.sock` (it defaults to `0`, which only works for root).
 You can also copy `.env.example` to `.env` and fill in your values.
-On macOS with Docker Desktop, the socket is usually at `$HOME/.docker/run/docker.sock`:
+On macOS with Docker Desktop, `/var/run/docker.sock` is a symlink to `$HOME/.docker/run/docker.sock`,
+so the default works. If you prefer the real path:
 ```
 export DOCKER_SOCK="$HOME/.docker/run/docker.sock"
 ```

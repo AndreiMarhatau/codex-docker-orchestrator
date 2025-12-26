@@ -3,7 +3,7 @@ set -euo pipefail
 
 host_home="${HOST_HOME:-$HOME}"
 orch_image="${ORCH_IMAGE:-ghcr.io/andreimarhatau/codex-docker-orchestrator:latest}"
-tmp_dir="${TMPDIR:-${host_home}/.codex-orchestrator/tmp}"
+tmp_dir="${ORCH_TMPDIR:-${host_home}/.codex-orchestrator/tmp}"
 
 docker_sock="${DOCKER_SOCK:-/var/run/docker.sock}"
 if [[ ! -S "${docker_sock}" && -S "${HOME}/.docker/run/docker.sock" ]]; then
@@ -38,5 +38,5 @@ exec env \
   GID="${gid_value}" \
   DOCKER_SOCK="${docker_sock}" \
   DOCKER_GID="${docker_gid}" \
-  TMPDIR="${tmp_dir}" \
+  ORCH_TMPDIR="${tmp_dir}" \
   docker compose up

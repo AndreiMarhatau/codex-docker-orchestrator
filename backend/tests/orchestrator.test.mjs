@@ -44,23 +44,46 @@ describe('Orchestrator', () => {
     const env = await orchestrator.createEnv({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' });
     expect(env.repoUrl).toBe('git@example.com:repo.git');
 
-    const task = await orchestrator.createTask({ envId: env.envId, ref: 'main', prompt: 'Do work' });
+    const task = await orchestrator.createTask({
+      envId: env.envId,
+      ref: 'main',
+      prompt: 'Do work',
+      model: 'gpt-5.2-codex',
+      reasoningEffort: 'medium'
+    });
     expect(task.status).toBe('running');
     expect(task.branchName).toContain('codex/');
+    expect(task.model).toBe('gpt-5.2-codex');
+    expect(task.reasoningEffort).toBe('medium');
 
     const completed = await waitForTaskStatus(orchestrator, task.taskId, 'completed');
     expect(completed.threadId).toBe(spawn.threadId);
     expect(completed.initialPrompt).toBe('Do work');
 
-    const resumed = await orchestrator.resumeTask(task.taskId, 'Continue');
+    const resumed = await orchestrator.resumeTask(task.taskId, 'Continue', {
+      model: 'gpt-5.2-codex',
+      reasoningEffort: 'xhigh'
+    });
     expect(resumed.status).toBe('running');
     const resumedCompleted = await waitForTaskStatus(orchestrator, task.taskId, 'completed');
     expect(resumed.runs).toHaveLength(2);
     expect(resumedCompleted.lastPrompt).toBe('Continue');
+    expect(resumedCompleted.model).toBe('gpt-5.2-codex');
+    expect(resumedCompleted.reasoningEffort).toBe('medium');
 
     const metaPath = path.join(orchHome, 'tasks', task.taskId, 'meta.json');
     const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
     expect(meta.runs).toHaveLength(2);
+    expect(meta.runs[0].model).toBe('gpt-5.2-codex');
+    expect(meta.runs[0].reasoningEffort).toBe('medium');
+    expect(meta.runs[1].model).toBe('gpt-5.2-codex');
+    expect(meta.runs[1].reasoningEffort).toBe('xhigh');
+    expect(spawn.calls[0].args).toEqual(
+      expect.arrayContaining(['--model', 'gpt-5.2-codex', '-c', 'model_reasoning_effort=medium'])
+    );
+    expect(spawn.calls[1].args).toEqual(
+      expect.arrayContaining(['--model', 'gpt-5.2-codex', '-c', 'model_reasoning_effort=xhigh'])
+    );
   });
 
   it('attempts to fix ownership before deleting a task', async () => {

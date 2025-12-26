@@ -1,17 +1,20 @@
 services:
   orchestrator:
-    build: .
+    build:
+      context: .
+      args:
+        CODEX_DOCKER_REF: "${CODEX_DOCKER_REF:-main}"
+        CODEX_DOCKER_CACHEBUST: "${CODEX_DOCKER_CACHEBUST:-1}"
     container_name: codex-orchestrator
+    image: codex-orchestrator:latest
     ports:
       - "8080:8080"
     environment:
       HOME: "${HOST_HOME}"
       ORCH_HOME: "${HOST_HOME}/.codex-orchestrator"
-      PATH: "${CODEX_DOCKER_DIR}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${HOST_HOME}:${HOST_HOME}
-      - ${CODEX_DOCKER_DIR}:${CODEX_DOCKER_DIR}:ro
     user: "${UID}:${GID}"
     group_add:
       - "${DOCKER_GID}"

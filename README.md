@@ -9,7 +9,7 @@ A local backend + UI that manages Codex tasks executed via `codex-docker`. It cr
 ## Quick start
 
 ## Dependencies
-- It uses "codex-docker" command from "https://github.com/AndreiMarhatau/codex-docker.git" repo, check it out on how to install it and set to be available everywhere.
+- The orchestrator uses the `codex-docker` helper to run Codex inside Docker.
 
 ### Prepare UI (backend will automatically serve it if you build it)
 ```
@@ -67,7 +67,6 @@ This runs the orchestrator in a container while using the host Docker engine. It
 working and reuses your host Codex + GitHub credentials.
 
 ### Prereqs on the host
-- `codex-docker` repo checked out and executable.
 - Docker Engine running.
 - GitHub auth already set up on the host (for HTTPS pushes), for example:
   - `gh auth login` (device/browser flow, stores token in `~/.config/gh`)
@@ -75,7 +74,6 @@ working and reuses your host Codex + GitHub credentials.
 ### One-time env setup
 ```
 export HOST_HOME="$HOME"
-export CODEX_DOCKER_DIR="$HOME/codex-docker"
 export UID="$(id -u)"
 export GID="$(id -g)"
 export DOCKER_GID="$(stat -c %g /var/run/docker.sock)"
@@ -91,3 +89,8 @@ docker compose up --build
 - We mount your host home at the same absolute path, so `codex-docker` can bind-mount paths correctly.
 - Codex credentials are reused by mounting your host `~/.codex` via the home mount.
 - Git HTTPS auth is reused by mounting your host `~/.gitconfig` and `~/.config/gh` via the home mount.
+
+### Notes
+- `codex-docker` is baked into the image. To update it, rebuild with either `docker compose build --no-cache`
+  or `CODEX_DOCKER_CACHEBUST=$(date +%s) docker compose build`.
+- To pin a specific `codex-docker` branch or tag, set `CODEX_DOCKER_REF` before building.

@@ -21,6 +21,11 @@ const DEFAULT_IMAGE_NAME = 'ghcr.io/andreimarhatau/codex-docker:latest';
 const DEFAULT_ORCH_AGENTS_FILE = path.join(__dirname, '..', '..', 'ORCHESTRATOR_AGENTS.md');
 const COMMIT_SHA_REGEX = /^[0-9a-f]{7,40}$/i;
 const DEFAULT_GIT_CREDENTIAL_HELPER = '!/usr/bin/gh auth git-credential';
+const HOST_DOCKER_SOCKET_INSTRUCTION = [
+  '## Host Docker Socket',
+  '- The host Docker socket is mounted, so Docker commands act on the host.',
+  '- Treat this as root-equivalent access; avoid destructive actions unless requested.'
+].join('\n');
 
 function invalidImageError(message) {
   const error = new Error(message);
@@ -666,15 +671,36 @@ class Orchestrator {
     await writeJson(this.taskMetaPath(taskId), meta);
   }
 
-  startCodexRun({ taskId, runLabel, prompt, cwd, args, mountPaths = [] }) {
+  buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket }) {
+    const baseFile =
+      this.orchAgentsFile && fs.existsSync(this.orchAgentsFile) ? this.orchAgentsFile : null;
+    if (!useHostDockerSocket) {
+      return baseFile;
+    }
+    const sections = [];
+    if (baseFile) {
+      const baseContent = fs.readFileSync(baseFile, 'utf8').trimEnd();
+      if (baseContent) {
+        sections.push(baseContent);
+      }
+    }
+    sections.push(HOST_DOCKER_SOCKET_INSTRUCTION);
+    const combined = `${sections.join('\n\n')}\n`;
+    const targetPath = path.join(this.taskLogsDir(taskId), `${runLabel}.agents.md`);
+    fs.writeFileSync(targetPath, combined, 'utf8');
+    return targetPath;
+  }
+
+  startCodexRun({ taskId, runLabel, prompt, cwd, args, mountPaths = [], useHostDockerSocket }) {
     const logFile = `${runLabel}.jsonl`;
     const logPath = path.join(this.taskLogsDir(taskId), logFile);
     const stderrPath = path.join(this.taskLogsDir(taskId), `${runLabel}.stderr`);
     const logStream = fs.createWriteStream(logPath, { flags: 'a' });
     const stderrStream = fs.createWriteStream(stderrPath, { flags: 'a' });
     const env = { ...process.env };
-    if (this.orchAgentsFile && fs.existsSync(this.orchAgentsFile)) {
-      env.CODEX_AGENTS_APPEND_FILE = this.orchAgentsFile;
+    const agentsAppendFile = this.buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket });
+    if (agentsAppendFile) {
+      env.CODEX_AGENTS_APPEND_FILE = agentsAppendFile;
     }
     const artifactsDir = this.runArtifactsDir(taskId, runLabel);
     env.CODEX_ARTIFACTS_DIR = artifactsDir;
@@ -885,7 +911,8 @@ class Orchestrator {
         env.mirrorPath,
         ...resolvedImagePaths,
         ...(dockerSocketPath ? [dockerSocketPath] : [])
-      ]
+      ],
+      useHostDockerSocket: shouldUseHostDockerSocket
     });
     return meta;
   }
@@ -947,7 +974,8 @@ class Orchestrator {
       mountPaths: [
         env.mirrorPath,
         ...(dockerSocketPath ? [dockerSocketPath] : [])
-      ]
+      ],
+      useHostDockerSocket: shouldUseHostDockerSocket
     });
     return meta;
   }

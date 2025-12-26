@@ -191,6 +191,10 @@ describe('Orchestrator', () => {
       const createCall = spawn.calls.find((call) => call.command === 'codex-docker');
       const createMounts = createCall.options?.env?.CODEX_MOUNT_PATHS || '';
       expect(createMounts.split(':')).toContain(socketPath);
+      const createAgentsFile = createCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
+      expect(createAgentsFile).toBeTruthy();
+      const createAgentsContent = await fs.readFile(createAgentsFile, 'utf8');
+      expect(createAgentsContent).toContain('Host Docker Socket');
 
       await orchestrator.resumeTask(task.taskId, 'Continue', { useHostDockerSocket: false });
       await waitForTaskStatus(orchestrator, task.taskId, 'completed');
@@ -199,6 +203,10 @@ describe('Orchestrator', () => {
       const resumeCall = resumeCalls[1];
       const resumeMounts = resumeCall.options?.env?.CODEX_MOUNT_PATHS || '';
       expect(resumeMounts.split(':')).not.toContain(socketPath);
+      const resumeAgentsFile = resumeCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
+      expect(resumeAgentsFile).toBeTruthy();
+      const resumeAgentsContent = await fs.readFile(resumeAgentsFile, 'utf8');
+      expect(resumeAgentsContent).not.toContain('Host Docker Socket');
 
       const metaPath = path.join(orchHome, 'tasks', task.taskId, 'meta.json');
       const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));

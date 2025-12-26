@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   docker-build:
@@ -40,5 +41,3 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          build-args: |
-            CODEX_DOCKER_CACHEBUST=${{ github.run_id }}

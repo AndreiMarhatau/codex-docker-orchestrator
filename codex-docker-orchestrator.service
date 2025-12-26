@@ -1,13 +1,19 @@
 [Unit]
-Description=Codex Docker Orchestrator
-After=network.target
+Description=Codex Orchestrator (update + backend)
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/codex-docker-orchestrator
-ExecStart=/usr/bin/env npm -C backend run start
-Restart=on-failure
-Environment=NODE_ENV=production
+User=your-user
+WorkingDirectory=/home/your-user
+Environment=CODEX_DOCKER_DIR=/home/your-user/codex-docker
+Environment=ORCH_DIR=/home/your-user/codex-docker-orchestrator
+Environment=NODE_BIN=/home/your-user/.linuxbrew/bin
+Environment=PATH=/home/your-user/.linuxbrew/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/bin/bash -c 'set -euo pipefail; cd ${CODEX_DOCKER_DIR}; git reset --hard; git clean -fd; git pull; cd ${ORCH_DIR}; git reset --hard; git clean -fd; git pull; cd ui; npm ci; npm run build; cd ../backend; npm ci; exec node src/server.js'
+Restart=always
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target

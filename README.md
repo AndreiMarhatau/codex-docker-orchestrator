@@ -70,6 +70,7 @@ working and reuses your host Codex + GitHub credentials.
 - Docker Engine running.
 - GitHub auth already set up on the host (for HTTPS pushes), for example:
   - `gh auth login` (device/browser flow, stores token in `~/.config/gh`)
+  - The orchestrator image includes `gh`, so it can reuse the host login.
 
 ### One-command run
 ```

@@ -73,12 +73,16 @@ working and reuses your host Codex + GitHub credentials.
 
 ### One-time env setup
 ```
-export HOST_HOME="$HOME"
-export ORCH_IMAGE="ghcr.io/andreimarhatau/codex-docker-orchestrator:latest"
-export UID="$(id -u)"
-export GID="$(id -g)"
-export DOCKER_GID="$(stat -c %g /var/run/docker.sock)"
+export HOST_HOME="$HOME" \
+  ORCH_IMAGE="ghcr.io/andreimarhatau/codex-docker-orchestrator:latest" \
+  UID="$(id -u)" \
+  GID="$(id -g)" \
+  DOCKER_GID="$(stat -c %g /var/run/docker.sock)"
 ```
+If you skip these, defaults are used (`/root` home and `0:0` user), but you will not reuse host auth
+unless you mount the correct host home. If you set a non-root `UID/GID`, also set `DOCKER_GID` so
+the container can access `/var/run/docker.sock` (it defaults to `0`, which only works for root).
+You can also copy `.env.example` to `.env` and fill in your values.
 
 ### Build and run
 ```

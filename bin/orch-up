@@ -22,6 +22,12 @@ if [[ -z "${docker_gid}" ]]; then
   docker_gid="$(stat -c %g "${docker_sock}" 2>/dev/null || stat -f %g "${docker_sock}")"
 fi
 
+if [[ "$(uname -s)" == "Darwin" && -z "${ORCH_FORCE_ROOT:-}" ]]; then
+  uid_value="0"
+  gid_value="0"
+  docker_gid="0"
+fi
+
 exec env \
   HOST_HOME="${host_home}" \
   ORCH_IMAGE="${orch_image}" \

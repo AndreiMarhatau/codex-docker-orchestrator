@@ -77,6 +77,8 @@ working and reuses your host Codex + GitHub credentials.
 ```
 This script detects the Docker socket (macOS + Linux), sets the needed env vars, and runs
 `docker compose up`.
+On macOS it runs the container as root by default to avoid Docker socket permission errors.
+Set `ORCH_FORCE_ROOT=0` if you want to run as your host user instead.
 
 ### Manual env setup
 ```

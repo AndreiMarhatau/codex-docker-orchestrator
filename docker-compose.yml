@@ -10,7 +10,9 @@ services:
       ORCH_HOME: "${HOST_HOME:-/root}/.codex-orchestrator"
       DOCKER_HOST: "unix:///var/run/docker.sock"
       TMPDIR: "${ORCH_TMPDIR:-/tmp}"
-      GIT_CONFIG_PARAMETERS: "${GIT_CONFIG_PARAMETERS:-credential.helper=!/usr/bin/gh\\ auth\\ git-credential}"
+      GIT_CONFIG_COUNT: "${GIT_CONFIG_COUNT:-1}"
+      GIT_CONFIG_KEY_0: "${GIT_CONFIG_KEY_0:-credential.helper}"
+      GIT_CONFIG_VALUE_0: '${GIT_CONFIG_VALUE_0:-!/usr/bin/gh auth git-credential}'
     volumes:
       - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
       - ${HOST_HOME:-/root}:${HOST_HOME:-/root}

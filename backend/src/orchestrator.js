@@ -247,6 +247,26 @@ class Orchestrator {
     return ['-c', 'credential.helper=', '-c', `credential.helper=${helper}`, ...args];
   }
 
+  dockerSocketPath() {
+    if (process.env.DOCKER_SOCK) return process.env.DOCKER_SOCK;
+    const dockerHost = process.env.DOCKER_HOST || '';
+    if (dockerHost.startsWith('unix://')) {
+      return dockerHost.slice('unix://'.length);
+    }
+    return '/var/run/docker.sock';
+  }
+
+  requireDockerSocket() {
+    const socketPath = this.dockerSocketPath();
+    if (!socketPath) {
+      throw new Error('Docker socket path is not configured.');
+    }
+    if (!fs.existsSync(socketPath)) {
+      throw new Error(`Docker socket not found at ${socketPath}.`);
+    }
+    return socketPath;
+  }
+
   envsDir() {
     return path.join(this.orchHome, 'envs');
   }
@@ -775,13 +795,15 @@ class Orchestrator {
     return resolved;
   }
 
-  async createTask({ envId, ref, prompt, imagePaths, model, reasoningEffort }) {
+  async createTask({ envId, ref, prompt, imagePaths, model, reasoningEffort, useHostDockerSocket }) {
     await this.init();
     const env = await this.readEnv(envId);
     await this.ensureOwnership(env.mirrorPath);
     const resolvedImagePaths = await this.resolveImagePaths(imagePaths);
     const normalizedModel = normalizeOptionalString(model);
     const normalizedReasoningEffort = normalizeOptionalString(reasoningEffort);
+    const shouldUseHostDockerSocket = Boolean(useHostDockerSocket);
+    const dockerSocketPath = shouldUseHostDockerSocket ? this.requireDockerSocket() : null;
     const taskId = crypto.randomUUID();
     const taskDir = this.taskDir(taskId);
     const logsDir = this.taskLogsDir(taskId);
@@ -821,6 +843,7 @@ class Orchestrator {
       worktreePath,
       model: normalizedModel,
       reasoningEffort: normalizedReasoningEffort,
+      useHostDockerSocket: shouldUseHostDockerSocket,
       threadId: null,
       error: null,
       status: 'running',
@@ -838,7 +861,8 @@ class Orchestrator {
           startedAt: now,
           finishedAt: null,
           status: 'running',
-          exitCode: null
+          exitCode: null,
+          useHostDockerSocket: shouldUseHostDockerSocket
         }
       ]
     };
@@ -857,7 +881,11 @@ class Orchestrator {
       prompt,
       cwd: worktreePath,
       args,
-      mountPaths: [env.mirrorPath, ...resolvedImagePaths]
+      mountPaths: [
+        env.mirrorPath,
+        ...resolvedImagePaths,
+        ...(dockerSocketPath ? [dockerSocketPath] : [])
+      ]
     });
     return meta;
   }
@@ -868,6 +896,11 @@ class Orchestrator {
     if (!meta.threadId) {
       throw new Error('Cannot resume task without a thread_id. Rerun the task to generate one.');
     }
+    const hasDockerSocketOverride = typeof options.useHostDockerSocket === 'boolean';
+    const shouldUseHostDockerSocket = hasDockerSocketOverride
+      ? options.useHostDockerSocket
+      : Boolean(meta.useHostDockerSocket);
+    const dockerSocketPath = shouldUseHostDockerSocket ? this.requireDockerSocket() : null;
     const env = await this.readEnv(meta.envId);
     await this.ensureOwnership(env.mirrorPath);
     const runsCount = meta.runs.length + 1;
@@ -876,6 +909,9 @@ class Orchestrator {
     meta.updatedAt = this.now();
     meta.status = 'running';
     meta.lastPrompt = prompt;
+    if (hasDockerSocketOverride) {
+      meta.useHostDockerSocket = shouldUseHostDockerSocket;
+    }
     const runModel =
       normalizeOptionalString(options.model) ?? normalizeOptionalString(meta.model);
     const runReasoningEffort =
@@ -890,7 +926,8 @@ class Orchestrator {
       startedAt: this.now(),
       finishedAt: null,
       status: 'running',
-      exitCode: null
+      exitCode: null,
+      useHostDockerSocket: shouldUseHostDockerSocket
     });
 
     await ensureDir(this.runArtifactsDir(taskId, runLabel));
@@ -907,7 +944,10 @@ class Orchestrator {
       prompt,
       cwd: meta.worktreePath,
       args,
-      mountPaths: [env.mirrorPath]
+      mountPaths: [
+        env.mirrorPath,
+        ...(dockerSocketPath ? [dockerSocketPath] : [])
+      ]
     });
     return meta;
   }

@@ -162,4 +162,53 @@ describe('Orchestrator', () => {
     expect(mountRw.split(':')).toContain(orchestrator.mirrorDir(env.envId));
     expect(runCall.options?.env?.CODEX_MOUNT_PATHS_RO).toBeUndefined();
   });
+
+  it('mounts docker socket when enabled and skips when disabled', async () => {
+    const orchHome = await createTempDir();
+    const exec = createMockExec({ branches: ['main'] });
+    const spawn = createMockSpawn();
+    const socketDir = await createTempDir();
+    const socketPath = path.join(socketDir, 'docker.sock');
+    await fs.writeFile(socketPath, '');
+    const originalDockerSock = process.env.DOCKER_SOCK;
+    process.env.DOCKER_SOCK = socketPath;
+    try {
+      const orchestrator = new Orchestrator({
+        orchHome,
+        exec,
+        spawn
+      });
+
+      const env = await orchestrator.createEnv({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' });
+      const task = await orchestrator.createTask({
+        envId: env.envId,
+        ref: 'main',
+        prompt: 'Do work',
+        useHostDockerSocket: true
+      });
+      await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+
+      const createCall = spawn.calls.find((call) => call.command === 'codex-docker');
+      const createMounts = createCall.options?.env?.CODEX_MOUNT_PATHS || '';
+      expect(createMounts.split(':')).toContain(socketPath);
+
+      await orchestrator.resumeTask(task.taskId, 'Continue', { useHostDockerSocket: false });
+      await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+
+      const resumeCalls = spawn.calls.filter((call) => call.command === 'codex-docker');
+      const resumeCall = resumeCalls[1];
+      const resumeMounts = resumeCall.options?.env?.CODEX_MOUNT_PATHS || '';
+      expect(resumeMounts.split(':')).not.toContain(socketPath);
+
+      const metaPath = path.join(orchHome, 'tasks', task.taskId, 'meta.json');
+      const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
+      expect(meta.useHostDockerSocket).toBe(false);
+    } finally {
+      if (originalDockerSock === undefined) {
+        delete process.env.DOCKER_SOCK;
+      } else {
+        process.env.DOCKER_SOCK = originalDockerSock;
+      }
+    }
+  });
 });

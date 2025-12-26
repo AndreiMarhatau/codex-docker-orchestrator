@@ -5,7 +5,9 @@ import {
   Card,
   CardContent,
   Chip,
+  Checkbox,
   Divider,
+  FormControlLabel,
   IconButton,
   MenuItem,
   Stack,
@@ -26,6 +28,7 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import HourglassTopIcon from '@mui/icons-material/HourglassTop';
 import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { apiRequest, apiUrl } from './api.js';
 
 const emptyEnvForm = { repoUrl: '', defaultBranch: 'main' };
@@ -58,7 +61,8 @@ const emptyTaskForm = {
   modelChoice: '',
   customModel: '',
   reasoningEffort: '',
-  customReasoningEffort: ''
+  customReasoningEffort: '',
+  useHostDockerSocket: false
 };
 const emptyResumeConfig = {
   modelChoice: '',
@@ -330,6 +334,8 @@ function App() {
   const [taskDetail, setTaskDetail] = useState(null);
   const [taskDiff, setTaskDiff] = useState(null);
   const [revealedDiffs, setRevealedDiffs] = useState({});
+  const [resumeUseHostDockerSocket, setResumeUseHostDockerSocket] = useState(false);
+  const [resumeDockerTouched, setResumeDockerTouched] = useState(false);
   const [imageInfo, setImageInfo] = useState(null);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageUpdating, setImageUpdating] = useState(false);
@@ -342,6 +348,7 @@ function App() {
   const [now, setNow] = useState(() => Date.now());
   const taskImageInputRef = useRef(null);
   const logStreamRef = useRef(null);
+  const resumeDefaultsTaskIdRef = useRef('');
 
   const revealDiff = (path) => {
     setRevealedDiffs((prev) => ({ ...prev, [path]: true }));
@@ -444,6 +451,27 @@ function App() {
     if (activeTab !== 2) return;
     refreshImageInfo().catch(() => {});
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!selectedTaskId) {
+      resumeDefaultsTaskIdRef.current = '';
+      setResumeUseHostDockerSocket(false);
+      setResumeDockerTouched(false);
+      return;
+    }
+    if (resumeDefaultsTaskIdRef.current === selectedTaskId) return;
+    const selectedTask = tasks.find((task) => task.taskId === selectedTaskId);
+    if (!selectedTask) return;
+    resumeDefaultsTaskIdRef.current = selectedTaskId;
+    setResumeUseHostDockerSocket(selectedTask.useHostDockerSocket === true);
+    setResumeDockerTouched(false);
+  }, [selectedTaskId, tasks]);
+
+  useEffect(() => {
+    if (!taskDetail || resumeDockerTouched) return;
+    if (resumeDefaultsTaskIdRef.current !== taskDetail.taskId) return;
+    setResumeUseHostDockerSocket(taskDetail.useHostDockerSocket === true);
+  }, [taskDetail, resumeDockerTouched]);
 
   useEffect(() => {
     if (!selectedTaskId) {
@@ -605,7 +633,8 @@ function App() {
           prompt: taskForm.prompt,
           imagePaths,
           model: modelValue || undefined,
-          reasoningEffort: reasoningEffortValue || undefined
+          reasoningEffort: reasoningEffortValue || undefined,
+          useHostDockerSocket: taskForm.useHostDockerSocket
         })
       });
       setTaskForm(emptyTaskForm);
@@ -666,11 +695,13 @@ function App() {
         body: JSON.stringify({
           prompt: resumePrompt,
           model: modelValue || undefined,
-          reasoningEffort: reasoningEffortValue || undefined
+          reasoningEffort: reasoningEffortValue || undefined,
+          useHostDockerSocket: resumeUseHostDockerSocket
         })
       });
       setResumePrompt('');
       setResumeConfig(emptyResumeConfig);
+      setResumeDockerTouched(false);
       await refreshAll();
       await refreshTaskDetail(selectedTaskId);
     } catch (err) {
@@ -976,6 +1007,25 @@ function App() {
                   <Typography color="text.secondary" variant="body2">
                     Effort options are filtered by model support. Leave blank to use the model default.
                   </Typography>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={taskForm.useHostDockerSocket}
+                          onChange={(event) =>
+                            setTaskForm((prev) => ({
+                              ...prev,
+                              useHostDockerSocket: event.target.checked
+                            }))
+                          }
+                        />
+                      }
+                      label="Use host Docker socket"
+                    />
+                    <Tooltip title="Grants root-equivalent access to the host via Docker. Enable only if you trust the task.">
+                      <WarningAmberIcon color="warning" fontSize="small" />
+                    </Tooltip>
+                  </Stack>
                   <Stack spacing={1}>
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center">
                       <Button
@@ -1568,6 +1618,23 @@ function App() {
                               value={resumePrompt}
                               onChange={(event) => setResumePrompt(event.target.value)}
                             />
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    checked={resumeUseHostDockerSocket}
+                                    onChange={(event) => {
+                                      setResumeUseHostDockerSocket(event.target.checked);
+                                      setResumeDockerTouched(true);
+                                    }}
+                                  />
+                                }
+                                label="Use host Docker socket for this run"
+                              />
+                              <Tooltip title="Grants root-equivalent access to the host via Docker. Disable if you do not trust the task.">
+                                <WarningAmberIcon color="warning" fontSize="small" />
+                              </Tooltip>
+                            </Stack>
                             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                               <Button
                                 variant="contained"

@@ -71,7 +71,8 @@ working and reuses your host Codex + GitHub credentials.
 - GitHub auth already set up on the host (for HTTPS pushes), for example:
   - `gh auth login` (device/browser flow, stores token in `~/.config/gh`)
   - The orchestrator image includes `gh`, so it can reuse the host login.
-  - The image configures git to use `gh auth git-credential` so host configs pointing to other helpers don't break.
+  - The image clears any host credential helpers and forces `gh auth git-credential` so host configs
+    pointing to other helpers don't break.
   - On macOS, `gh` stores tokens in the Keychain; the runner exports `GH_TOKEN` from `gh auth token`
     so the container can authenticate without needing Keychain access.
 

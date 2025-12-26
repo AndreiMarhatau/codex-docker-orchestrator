@@ -101,6 +101,28 @@ function parseLogEntries(content) {
   });
 }
 
+function normalizeOptionalString(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function buildCodexArgs({ prompt, model, reasoningEffort, imageArgs = [], resumeThreadId }) {
+  const args = ['exec', '--dangerously-bypass-approvals-and-sandbox', '--json'];
+  if (model) {
+    args.push('--model', model);
+  }
+  if (reasoningEffort) {
+    args.push('-c', `model_reasoning_effort=${reasoningEffort}`);
+  }
+  if (resumeThreadId) {
+    args.push('resume', resumeThreadId, prompt);
+    return args;
+  }
+  args.push(...imageArgs, prompt);
+  return args;
+}
+
 const MAX_DIFF_LINES = 400;
 
 function normalizeDiffPath(aPath, bPath) {
@@ -773,11 +795,13 @@ class Orchestrator {
     return resolved;
   }
 
-  async createTask({ envId, ref, prompt, imagePaths, useHostDockerSocket }) {
+  async createTask({ envId, ref, prompt, imagePaths, model, reasoningEffort, useHostDockerSocket }) {
     await this.init();
     const env = await this.readEnv(envId);
     await this.ensureOwnership(env.mirrorPath);
     const resolvedImagePaths = await this.resolveImagePaths(imagePaths);
+    const normalizedModel = normalizeOptionalString(model);
+    const normalizedReasoningEffort = normalizeOptionalString(reasoningEffort);
     const shouldUseHostDockerSocket = Boolean(useHostDockerSocket);
     const dockerSocketPath = shouldUseHostDockerSocket ? this.requireDockerSocket() : null;
     const taskId = crypto.randomUUID();
@@ -817,6 +841,8 @@ class Orchestrator {
       baseSha,
       branchName,
       worktreePath,
+      model: normalizedModel,
+      reasoningEffort: normalizedReasoningEffort,
       useHostDockerSocket: shouldUseHostDockerSocket,
       threadId: null,
       error: null,
@@ -829,6 +855,8 @@ class Orchestrator {
         {
           runId: runLabel,
           prompt,
+          model: normalizedModel,
+          reasoningEffort: normalizedReasoningEffort,
           logFile,
           startedAt: now,
           finishedAt: null,
@@ -841,12 +869,18 @@ class Orchestrator {
 
     await writeJson(this.taskMetaPath(taskId), meta);
     const imageArgs = resolvedImagePaths.flatMap((imagePath) => ['--image', imagePath]);
+    const args = buildCodexArgs({
+      prompt,
+      model: normalizedModel,
+      reasoningEffort: normalizedReasoningEffort,
+      imageArgs
+    });
     this.startCodexRun({
       taskId,
       runLabel,
       prompt,
       cwd: worktreePath,
-      args: ['exec', '--dangerously-bypass-approvals-and-sandbox', '--json', ...imageArgs, prompt],
+      args,
       mountPaths: [
         env.mirrorPath,
         ...resolvedImagePaths,
@@ -878,9 +912,16 @@ class Orchestrator {
     if (hasDockerSocketOverride) {
       meta.useHostDockerSocket = shouldUseHostDockerSocket;
     }
+    const runModel =
+      normalizeOptionalString(options.model) ?? normalizeOptionalString(meta.model);
+    const runReasoningEffort =
+      normalizeOptionalString(options.reasoningEffort) ??
+      normalizeOptionalString(meta.reasoningEffort);
     meta.runs.push({
       runId: runLabel,
       prompt,
+      model: runModel,
+      reasoningEffort: runReasoningEffort,
       logFile,
       startedAt: this.now(),
       finishedAt: null,
@@ -891,12 +932,18 @@ class Orchestrator {
 
     await ensureDir(this.runArtifactsDir(taskId, runLabel));
     await writeJson(this.taskMetaPath(taskId), meta);
+    const args = buildCodexArgs({
+      prompt,
+      model: runModel,
+      reasoningEffort: runReasoningEffort,
+      resumeThreadId: meta.threadId
+    });
     this.startCodexRun({
       taskId,
       runLabel,
       prompt,
       cwd: meta.worktreePath,
-      args: ['exec', '--dangerously-bypass-approvals-and-sandbox', '--json', 'resume', meta.threadId, prompt],
+      args,
       mountPaths: [
         env.mirrorPath,
         ...(dockerSocketPath ? [dockerSocketPath] : [])

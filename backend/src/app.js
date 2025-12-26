@@ -129,7 +129,7 @@ function createApp({ orchestrator = new Orchestrator() } = {}) {
   }));
 
   app.post('/api/tasks', asyncHandler(async (req, res) => {
-    const { envId, ref, prompt, imagePaths, useHostDockerSocket } = req.body;
+    const { envId, ref, prompt, imagePaths, model, reasoningEffort, useHostDockerSocket } = req.body;
     if (!envId || !prompt) {
       return res.status(400).send('envId and prompt are required');
     }
@@ -142,6 +142,8 @@ function createApp({ orchestrator = new Orchestrator() } = {}) {
         ref,
         prompt,
         imagePaths,
+        model,
+        reasoningEffort,
         useHostDockerSocket
       });
       res.status(201).json(task);
@@ -238,14 +240,18 @@ function createApp({ orchestrator = new Orchestrator() } = {}) {
   }));
 
   app.post('/api/tasks/:taskId/resume', asyncHandler(async (req, res) => {
-    const { prompt, useHostDockerSocket } = req.body;
+    const { prompt, model, reasoningEffort, useHostDockerSocket } = req.body;
     if (!prompt) {
       return res.status(400).send('prompt is required');
     }
     if (useHostDockerSocket !== undefined && typeof useHostDockerSocket !== 'boolean') {
       return res.status(400).send('useHostDockerSocket must be a boolean');
     }
-    const task = await orchestrator.resumeTask(req.params.taskId, prompt, { useHostDockerSocket });
+    const task = await orchestrator.resumeTask(req.params.taskId, prompt, {
+      model,
+      reasoningEffort,
+      useHostDockerSocket
+    });
     res.json(task);
   }));
 

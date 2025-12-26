@@ -32,7 +32,44 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { apiRequest, apiUrl } from './api.js';
 
 const emptyEnvForm = { repoUrl: '', defaultBranch: 'main' };
-const emptyTaskForm = { envId: '', ref: '', prompt: '', useHostDockerSocket: false };
+const MODEL_CUSTOM_VALUE = 'custom';
+const MODEL_OPTIONS = [
+  { value: '', label: 'Default (Codex decides)' },
+  { value: 'gpt-5.1-codex-mini', label: 'gpt-5.1-codex-mini' },
+  { value: 'gpt-5.1-codex-max', label: 'gpt-5.1-codex-max' },
+  { value: 'gpt-5.2', label: 'gpt-5.2' },
+  { value: 'gpt-5.2-codex', label: 'gpt-5.2-codex' },
+  { value: MODEL_CUSTOM_VALUE, label: 'Custom model...' }
+];
+const MODEL_EFFORTS = {
+  'gpt-5.1-codex-mini': ['low', 'medium', 'high'],
+  'gpt-5.1-codex-max': ['low', 'medium', 'high', 'xhigh'],
+  'gpt-5.2': ['none', 'low', 'medium', 'high', 'xhigh'],
+  'gpt-5.2-codex': ['low', 'medium', 'high', 'xhigh']
+};
+const EFFORT_LABELS = {
+  none: 'none (disable reasoning)',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  xhigh: 'xhigh'
+};
+const emptyTaskForm = {
+  envId: '',
+  ref: '',
+  prompt: '',
+  modelChoice: '',
+  customModel: '',
+  reasoningEffort: '',
+  customReasoningEffort: '',
+  useHostDockerSocket: false
+};
+const emptyResumeConfig = {
+  modelChoice: '',
+  customModel: '',
+  reasoningEffort: '',
+  customReasoningEffort: ''
+};
 const MAX_TASK_IMAGES = 5;
 
 const STATUS_CONFIG = {
@@ -85,6 +122,33 @@ function formatTimestamp(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
+}
+
+function getEffortOptionsForModel(model) {
+  return MODEL_EFFORTS[model] || [];
+}
+
+function resolveModelValue(modelChoice, customModel) {
+  if (modelChoice === MODEL_CUSTOM_VALUE) {
+    return customModel.trim();
+  }
+  return modelChoice;
+}
+
+function resolveReasoningEffortValue({ modelChoice, reasoningEffort, customReasoningEffort }) {
+  if (!modelChoice) return '';
+  if (modelChoice === MODEL_CUSTOM_VALUE) {
+    return customReasoningEffort.trim();
+  }
+  return reasoningEffort;
+}
+
+function formatModelDisplay(value) {
+  return value ? value : 'default';
+}
+
+function formatEffortDisplay(value) {
+  return value ? value : 'default';
 }
 
 function formatDuration(ms) {
@@ -266,6 +330,7 @@ function App() {
   const [envForm, setEnvForm] = useState(emptyEnvForm);
   const [taskForm, setTaskForm] = useState(emptyTaskForm);
   const [resumePrompt, setResumePrompt] = useState('');
+  const [resumeConfig, setResumeConfig] = useState(emptyResumeConfig);
   const [taskDetail, setTaskDetail] = useState(null);
   const [taskDiff, setTaskDiff] = useState(null);
   const [revealedDiffs, setRevealedDiffs] = useState({});
@@ -413,6 +478,7 @@ function App() {
       setTaskDetail(null);
       setTaskDiff(null);
       setRevealedDiffs({});
+      setResumeConfig(emptyResumeConfig);
       return;
     }
     refreshTaskDetail(selectedTaskId).catch((err) => setError(err.message));
@@ -496,6 +562,40 @@ function App() {
     }
   }
 
+  function handleTaskModelChoiceChange(value) {
+    setTaskForm((prev) => {
+      const next = { ...prev, modelChoice: value };
+      if (!value) {
+        next.reasoningEffort = '';
+        return next;
+      }
+      if (value !== MODEL_CUSTOM_VALUE) {
+        const supportedEfforts = getEffortOptionsForModel(value);
+        if (next.reasoningEffort && !supportedEfforts.includes(next.reasoningEffort)) {
+          next.reasoningEffort = '';
+        }
+      }
+      return next;
+    });
+  }
+
+  function handleResumeModelChoiceChange(value) {
+    setResumeConfig((prev) => {
+      const next = { ...prev, modelChoice: value };
+      if (!value) {
+        next.reasoningEffort = '';
+        return next;
+      }
+      if (value !== MODEL_CUSTOM_VALUE) {
+        const supportedEfforts = getEffortOptionsForModel(value);
+        if (next.reasoningEffort && !supportedEfforts.includes(next.reasoningEffort)) {
+          next.reasoningEffort = '';
+        }
+      }
+      return next;
+    });
+  }
+
   async function handleCreateTask() {
     setError('');
     setTaskImageError('');
@@ -523,9 +623,19 @@ function App() {
           setTaskImageUploading(false);
         }
       }
+      const modelValue = resolveModelValue(taskForm.modelChoice, taskForm.customModel);
+      const reasoningEffortValue = resolveReasoningEffortValue(taskForm);
       await apiRequest('/api/tasks', {
         method: 'POST',
-        body: JSON.stringify({ ...taskForm, imagePaths })
+        body: JSON.stringify({
+          envId: taskForm.envId,
+          ref: taskForm.ref,
+          prompt: taskForm.prompt,
+          imagePaths,
+          model: modelValue || undefined,
+          reasoningEffort: reasoningEffortValue || undefined,
+          useHostDockerSocket: taskForm.useHostDockerSocket
+        })
       });
       setTaskForm(emptyTaskForm);
       setTaskImages([]);
@@ -578,14 +688,19 @@ function App() {
     setError('');
     setLoading(true);
     try {
+      const modelValue = resolveModelValue(resumeConfig.modelChoice, resumeConfig.customModel);
+      const reasoningEffortValue = resolveReasoningEffortValue(resumeConfig);
       await apiRequest(`/api/tasks/${selectedTaskId}/resume`, {
         method: 'POST',
         body: JSON.stringify({
           prompt: resumePrompt,
+          model: modelValue || undefined,
+          reasoningEffort: reasoningEffortValue || undefined,
           useHostDockerSocket: resumeUseHostDockerSocket
         })
       });
       setResumePrompt('');
+      setResumeConfig(emptyResumeConfig);
       setResumeDockerTouched(false);
       await refreshAll();
       await refreshTaskDetail(selectedTaskId);
@@ -830,6 +945,68 @@ function App() {
                       setTaskForm((prev) => ({ ...prev, prompt: event.target.value }))
                     }
                   />
+                  <TextField
+                    select
+                    label="Model"
+                    fullWidth
+                    value={taskForm.modelChoice}
+                    onChange={(event) => handleTaskModelChoiceChange(event.target.value)}
+                  >
+                    {MODEL_OPTIONS.map((option) => (
+                      <MenuItem key={option.value || 'default'} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  {taskForm.modelChoice === MODEL_CUSTOM_VALUE && (
+                    <TextField
+                      label="Custom model"
+                      fullWidth
+                      value={taskForm.customModel}
+                      onChange={(event) =>
+                        setTaskForm((prev) => ({ ...prev, customModel: event.target.value }))
+                      }
+                    />
+                  )}
+                  {taskForm.modelChoice &&
+                    taskForm.modelChoice !== MODEL_CUSTOM_VALUE && (
+                      <TextField
+                        select
+                        label="Reasoning effort"
+                        fullWidth
+                        value={taskForm.reasoningEffort}
+                        onChange={(event) =>
+                          setTaskForm((prev) => ({
+                            ...prev,
+                            reasoningEffort: event.target.value
+                          }))
+                        }
+                      >
+                        <MenuItem value="">Default (model default)</MenuItem>
+                        {getEffortOptionsForModel(taskForm.modelChoice).map((effort) => (
+                          <MenuItem key={effort} value={effort}>
+                            {EFFORT_LABELS[effort] || effort}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  {taskForm.modelChoice === MODEL_CUSTOM_VALUE && (
+                    <TextField
+                      label="Custom reasoning effort"
+                      fullWidth
+                      value={taskForm.customReasoningEffort}
+                      onChange={(event) =>
+                        setTaskForm((prev) => ({
+                          ...prev,
+                          customReasoningEffort: event.target.value
+                        }))
+                      }
+                      placeholder="none | low | medium | high | xhigh"
+                    />
+                  )}
+                  <Typography color="text.secondary" variant="body2">
+                    Effort options are filtered by model support. Leave blank to use the model default.
+                  </Typography>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <FormControlLabel
                       control={
@@ -957,6 +1134,18 @@ function App() {
                                     <Stack direction="row" spacing={1} alignItems="center">
                                       <StatusIcon status={task.status} />
                                       <Chip size="small" label={task.ref} />
+                                      {(task.model || task.reasoningEffort) && (
+                                        <Chip
+                                          size="small"
+                                          label={`model: ${formatModelDisplay(task.model)}`}
+                                        />
+                                      )}
+                                      {(task.model || task.reasoningEffort) && (
+                                        <Chip
+                                          size="small"
+                                          label={`effort: ${formatEffortDisplay(task.reasoningEffort)}`}
+                                        />
+                                      )}
                                       <Chip size="small" label={`created ${formatTimestamp(task.createdAt)}`} />
                                       {(task.status === 'running' || task.status === 'stopping') && (() => {
                                         const latestRun = getLatestRun(task);
@@ -1055,6 +1244,11 @@ function App() {
                             <Stack direction="row" spacing={1} alignItems="center">
                               <StatusIcon status={taskDetail.status} />
                               <Chip label={`ref: ${taskDetail.ref}`} size="small" />
+                              <Chip label={`model: ${formatModelDisplay(taskDetail.model)}`} size="small" />
+                              <Chip
+                                label={`effort: ${formatEffortDisplay(taskDetail.reasoningEffort)}`}
+                                size="small"
+                              />
                               <Chip label={`thread: ${taskDetail.threadId || 'pending'}`} size="small" />
                               {(taskDetail.status === 'running' || taskDetail.status === 'stopping') && (() => {
                                 const latestRun = getLatestRun(taskDetail);
@@ -1164,6 +1358,23 @@ function App() {
                                         <span>Request</span>
                                         <span className="log-meta">{run.runId}</span>
                                       </summary>
+                                      {(run.model || run.reasoningEffort) && (
+                                        <Stack
+                                          direction="row"
+                                          spacing={1}
+                                          alignItems="center"
+                                          sx={{ mt: 1 }}
+                                        >
+                                          <Chip
+                                            size="small"
+                                            label={`model: ${formatModelDisplay(run.model)}`}
+                                          />
+                                          <Chip
+                                            size="small"
+                                            label={`effort: ${formatEffortDisplay(run.reasoningEffort)}`}
+                                          />
+                                        </Stack>
+                                      )}
                                       <Box className="log-box">
                                         <pre>{run.prompt || 'unknown'}</pre>
                                       </Box>
@@ -1321,6 +1532,82 @@ function App() {
                               })}
                               {(taskDetail.runLogs || []).length === 0 && (
                                 <Typography color="text.secondary">No logs yet.</Typography>
+                              )}
+                            </Stack>
+                            <Stack spacing={1}>
+                              <Typography variant="subtitle2">Run overrides</Typography>
+                              <Typography color="text.secondary" variant="body2">
+                                Default: model {formatModelDisplay(taskDetail.model)} · effort{' '}
+                                {formatEffortDisplay(taskDetail.reasoningEffort)}
+                              </Typography>
+                              <TextField
+                                select
+                                label="Model override"
+                                fullWidth
+                                value={resumeConfig.modelChoice}
+                                onChange={(event) =>
+                                  handleResumeModelChoiceChange(event.target.value)
+                                }
+                              >
+                                {MODEL_OPTIONS.map((option) => (
+                                  <MenuItem
+                                    key={option.value || 'default'}
+                                    value={option.value}
+                                  >
+                                    {option.value === '' ? 'Use task default' : option.label}
+                                  </MenuItem>
+                                ))}
+                              </TextField>
+                              {resumeConfig.modelChoice === MODEL_CUSTOM_VALUE && (
+                                <TextField
+                                  label="Custom model"
+                                  fullWidth
+                                  value={resumeConfig.customModel}
+                                  onChange={(event) =>
+                                    setResumeConfig((prev) => ({
+                                      ...prev,
+                                      customModel: event.target.value
+                                    }))
+                                  }
+                                />
+                              )}
+                              {resumeConfig.modelChoice &&
+                                resumeConfig.modelChoice !== MODEL_CUSTOM_VALUE && (
+                                  <TextField
+                                    select
+                                    label="Reasoning effort"
+                                    fullWidth
+                                    value={resumeConfig.reasoningEffort}
+                                    onChange={(event) =>
+                                      setResumeConfig((prev) => ({
+                                        ...prev,
+                                        reasoningEffort: event.target.value
+                                      }))
+                                    }
+                                  >
+                                    <MenuItem value="">Use task default</MenuItem>
+                                    {getEffortOptionsForModel(resumeConfig.modelChoice).map(
+                                      (effort) => (
+                                        <MenuItem key={effort} value={effort}>
+                                          {EFFORT_LABELS[effort] || effort}
+                                        </MenuItem>
+                                      )
+                                    )}
+                                  </TextField>
+                                )}
+                              {resumeConfig.modelChoice === MODEL_CUSTOM_VALUE && (
+                                <TextField
+                                  label="Custom reasoning effort"
+                                  fullWidth
+                                  value={resumeConfig.customReasoningEffort}
+                                  onChange={(event) =>
+                                    setResumeConfig((prev) => ({
+                                      ...prev,
+                                      customReasoningEffort: event.target.value
+                                    }))
+                                  }
+                                  placeholder="none | low | medium | high | xhigh"
+                                />
                               )}
                             </Stack>
                             <TextField

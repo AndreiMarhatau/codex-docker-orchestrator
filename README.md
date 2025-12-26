@@ -79,6 +79,9 @@ export UID="$(id -u)"
 export GID="$(id -g)"
 export DOCKER_GID="$(stat -c %g /var/run/docker.sock)"
 ```
+If you skip these, defaults are used (`/root` home and `0:0` user), but you will not reuse host auth
+unless you mount the correct host home. If you set a non-root `UID/GID`, also set `DOCKER_GID` so
+the container can access `/var/run/docker.sock` (it defaults to `0`, which only works for root).
 
 ### Build and run
 ```

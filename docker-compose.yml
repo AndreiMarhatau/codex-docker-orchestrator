@@ -6,11 +6,11 @@ services:
     ports:
       - "8080:8080"
     environment:
-      HOME: "${HOST_HOME}"
-      ORCH_HOME: "${HOST_HOME}/.codex-orchestrator"
+      HOME: "${HOST_HOME:-/root}"
+      ORCH_HOME: "${HOST_HOME:-/root}/.codex-orchestrator"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${HOST_HOME}:${HOST_HOME}
-    user: "${UID}:${GID}"
+      - ${HOST_HOME:-/root}:${HOST_HOME:-/root}
+    user: "${UID:-0}:${GID:-0}"
     group_add:
-      - "${DOCKER_GID}"
+      - "${DOCKER_GID:-0}"

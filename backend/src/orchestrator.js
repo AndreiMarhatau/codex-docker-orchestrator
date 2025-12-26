@@ -20,6 +20,7 @@ const DEFAULT_ORCH_HOME = path.join(os.homedir(), '.codex-orchestrator');
 const DEFAULT_IMAGE_NAME = 'ghcr.io/andreimarhatau/codex-docker:latest';
 const DEFAULT_ORCH_AGENTS_FILE = path.join(__dirname, '..', '..', 'ORCHESTRATOR_AGENTS.md');
 const COMMIT_SHA_REGEX = /^[0-9a-f]{7,40}$/i;
+const DEFAULT_GIT_CREDENTIAL_HELPER = '!/usr/bin/gh auth git-credential';
 
 function invalidImageError(message) {
   const error = new Error(message);
@@ -187,7 +188,14 @@ async function listArtifacts(rootDir) {
 class Orchestrator {
   constructor(options = {}) {
     this.orchHome = options.orchHome || process.env.ORCH_HOME || DEFAULT_ORCH_HOME;
-    this.exec = options.exec || runCommand;
+    const baseExec = options.exec || runCommand;
+    this.exec = (command, args, execOptions = {}) => {
+      if (command === 'git') {
+        const gitArgs = this.withGitCredentialHelper(args);
+        return baseExec(command, gitArgs, execOptions);
+      }
+      return baseExec(command, args, execOptions);
+    };
     this.spawn = options.spawn || spawn;
     this.now = options.now || (() => new Date().toISOString());
     this.fetch = options.fetch || global.fetch;
@@ -201,6 +209,20 @@ class Orchestrator {
       options.getGid ||
       (() => (typeof process.getgid === 'function' ? process.getgid() : null));
     this.running = new Map();
+  }
+
+  gitCredentialHelper() {
+    const helper =
+      process.env.ORCH_GIT_CREDENTIAL_HELPER ||
+      process.env.GIT_CONFIG_VALUE_1 ||
+      DEFAULT_GIT_CREDENTIAL_HELPER;
+    return helper || null;
+  }
+
+  withGitCredentialHelper(args = []) {
+    const helper = this.gitCredentialHelper();
+    if (!helper) return args;
+    return ['-c', 'credential.helper=', '-c', `credential.helper=${helper}`, ...args];
   }
 
   envsDir() {

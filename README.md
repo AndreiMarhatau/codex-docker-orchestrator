@@ -77,7 +77,7 @@ export HOST_HOME="$HOME" \
   ORCH_IMAGE="ghcr.io/andreimarhatau/codex-docker-orchestrator:latest" \
   UID="$(id -u)" \
   GID="$(id -g)" \
-  DOCKER_GID="$(stat -c %g /var/run/docker.sock)"
+  DOCKER_GID="$(stat -c %g /var/run/docker.sock 2>/dev/null || stat -f %g /var/run/docker.sock)"
 ```
 If you skip these, defaults are used (`/root` home and `0:0` user), but you will not reuse host auth
 unless you mount the correct host home. If you set a non-root `UID/GID`, also set `DOCKER_GID` so

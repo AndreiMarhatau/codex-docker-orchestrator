@@ -225,6 +225,26 @@ class Orchestrator {
     return ['-c', 'credential.helper=', '-c', `credential.helper=${helper}`, ...args];
   }
 
+  dockerSocketPath() {
+    if (process.env.DOCKER_SOCK) return process.env.DOCKER_SOCK;
+    const dockerHost = process.env.DOCKER_HOST || '';
+    if (dockerHost.startsWith('unix://')) {
+      return dockerHost.slice('unix://'.length);
+    }
+    return '/var/run/docker.sock';
+  }
+
+  requireDockerSocket() {
+    const socketPath = this.dockerSocketPath();
+    if (!socketPath) {
+      throw new Error('Docker socket path is not configured.');
+    }
+    if (!fs.existsSync(socketPath)) {
+      throw new Error(`Docker socket not found at ${socketPath}.`);
+    }
+    return socketPath;
+  }
+
   envsDir() {
     return path.join(this.orchHome, 'envs');
   }
@@ -753,11 +773,13 @@ class Orchestrator {
     return resolved;
   }
 
-  async createTask({ envId, ref, prompt, imagePaths }) {
+  async createTask({ envId, ref, prompt, imagePaths, useHostDockerSocket }) {
     await this.init();
     const env = await this.readEnv(envId);
     await this.ensureOwnership(env.mirrorPath);
     const resolvedImagePaths = await this.resolveImagePaths(imagePaths);
+    const shouldUseHostDockerSocket = Boolean(useHostDockerSocket);
+    const dockerSocketPath = shouldUseHostDockerSocket ? this.requireDockerSocket() : null;
     const taskId = crypto.randomUUID();
     const taskDir = this.taskDir(taskId);
     const logsDir = this.taskLogsDir(taskId);
@@ -795,6 +817,7 @@ class Orchestrator {
       baseSha,
       branchName,
       worktreePath,
+      useHostDockerSocket: shouldUseHostDockerSocket,
       threadId: null,
       error: null,
       status: 'running',
@@ -810,7 +833,8 @@ class Orchestrator {
           startedAt: now,
           finishedAt: null,
           status: 'running',
-          exitCode: null
+          exitCode: null,
+          useHostDockerSocket: shouldUseHostDockerSocket
         }
       ]
     };
@@ -823,17 +847,26 @@ class Orchestrator {
       prompt,
       cwd: worktreePath,
       args: ['exec', '--dangerously-bypass-approvals-and-sandbox', '--json', ...imageArgs, prompt],
-      mountPaths: [env.mirrorPath, ...resolvedImagePaths]
+      mountPaths: [
+        env.mirrorPath,
+        ...resolvedImagePaths,
+        ...(dockerSocketPath ? [dockerSocketPath] : [])
+      ]
     });
     return meta;
   }
 
-  async resumeTask(taskId, prompt) {
+  async resumeTask(taskId, prompt, options = {}) {
     await this.init();
     const meta = await readJson(this.taskMetaPath(taskId));
     if (!meta.threadId) {
       throw new Error('Cannot resume task without a thread_id. Rerun the task to generate one.');
     }
+    const hasDockerSocketOverride = typeof options.useHostDockerSocket === 'boolean';
+    const shouldUseHostDockerSocket = hasDockerSocketOverride
+      ? options.useHostDockerSocket
+      : Boolean(meta.useHostDockerSocket);
+    const dockerSocketPath = shouldUseHostDockerSocket ? this.requireDockerSocket() : null;
     const env = await this.readEnv(meta.envId);
     await this.ensureOwnership(env.mirrorPath);
     const runsCount = meta.runs.length + 1;
@@ -842,6 +875,9 @@ class Orchestrator {
     meta.updatedAt = this.now();
     meta.status = 'running';
     meta.lastPrompt = prompt;
+    if (hasDockerSocketOverride) {
+      meta.useHostDockerSocket = shouldUseHostDockerSocket;
+    }
     meta.runs.push({
       runId: runLabel,
       prompt,
@@ -849,7 +885,8 @@ class Orchestrator {
       startedAt: this.now(),
       finishedAt: null,
       status: 'running',
-      exitCode: null
+      exitCode: null,
+      useHostDockerSocket: shouldUseHostDockerSocket
     });
 
     await ensureDir(this.runArtifactsDir(taskId, runLabel));
@@ -860,7 +897,10 @@ class Orchestrator {
       prompt,
       cwd: meta.worktreePath,
       args: ['exec', '--dangerously-bypass-approvals-and-sandbox', '--json', 'resume', meta.threadId, prompt],
-      mountPaths: [env.mirrorPath]
+      mountPaths: [
+        env.mirrorPath,
+        ...(dockerSocketPath ? [dockerSocketPath] : [])
+      ]
     });
     return meta;
   }

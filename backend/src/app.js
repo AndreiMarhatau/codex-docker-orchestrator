@@ -129,12 +129,21 @@ function createApp({ orchestrator = new Orchestrator() } = {}) {
   }));
 
   app.post('/api/tasks', asyncHandler(async (req, res) => {
-    const { envId, ref, prompt, imagePaths } = req.body;
+    const { envId, ref, prompt, imagePaths, useHostDockerSocket } = req.body;
     if (!envId || !prompt) {
       return res.status(400).send('envId and prompt are required');
     }
+    if (useHostDockerSocket !== undefined && typeof useHostDockerSocket !== 'boolean') {
+      return res.status(400).send('useHostDockerSocket must be a boolean');
+    }
     try {
-      const task = await orchestrator.createTask({ envId, ref, prompt, imagePaths });
+      const task = await orchestrator.createTask({
+        envId,
+        ref,
+        prompt,
+        imagePaths,
+        useHostDockerSocket
+      });
       res.status(201).json(task);
     } catch (error) {
       if (error.code === 'INVALID_IMAGE') {
@@ -229,11 +238,14 @@ function createApp({ orchestrator = new Orchestrator() } = {}) {
   }));
 
   app.post('/api/tasks/:taskId/resume', asyncHandler(async (req, res) => {
-    const { prompt } = req.body;
+    const { prompt, useHostDockerSocket } = req.body;
     if (!prompt) {
       return res.status(400).send('prompt is required');
     }
-    const task = await orchestrator.resumeTask(req.params.taskId, prompt);
+    if (useHostDockerSocket !== undefined && typeof useHostDockerSocket !== 'boolean') {
+      return res.status(400).send('useHostDockerSocket must be a boolean');
+    }
+    const task = await orchestrator.resumeTask(req.params.taskId, prompt, { useHostDockerSocket });
     res.json(task);
   }));
 

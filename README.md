@@ -94,7 +94,6 @@ If the image is private, run `docker login ghcr.io` first.
 - Git HTTPS auth is reused by mounting your host `~/.gitconfig` and `~/.config/gh` via the home mount.
 
 ### Notes
-- `codex-docker` is baked into the image. To update it in a rebuild, pass a new cachebust value to force
-  a fresh clone layer (otherwise Docker may reuse a cached layer).
-  - Example: `docker build --build-arg CODEX_DOCKER_CACHEBUST=$(date +%s) .`
-- To pin a specific `codex-docker` branch or tag, set `CODEX_DOCKER_REF` during build.
+- `codex-docker` is baked into the image at a tagged release by default (`v0.0.1`).
+- To pin a different release or a branch, set `CODEX_DOCKER_REF` during build.
+- The CI workflow builds with a tagged `codex-docker` release; bump it there when you cut a new release.

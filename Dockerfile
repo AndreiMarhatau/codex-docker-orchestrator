@@ -9,10 +9,8 @@ RUN apt-get update \
 
 WORKDIR /app
 
-ARG CODEX_DOCKER_REF=main
-ARG CODEX_DOCKER_CACHEBUST=1
-RUN echo "codex-docker cachebust=${CODEX_DOCKER_CACHEBUST}" >/tmp/codex-docker-cachebust \
-  && git clone --depth 1 --branch "${CODEX_DOCKER_REF}" \
+ARG CODEX_DOCKER_REF=v0.0.1
+RUN git clone --depth 1 --branch "${CODEX_DOCKER_REF}" \
     https://github.com/AndreiMarhatau/codex-docker.git /opt/codex-docker \
   && ln -s /opt/codex-docker/codex-docker /usr/local/bin/codex-docker
 

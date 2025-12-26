@@ -18,6 +18,8 @@ RUN apt-get update \
     gh \
   && rm -rf /var/lib/apt/lists/*
 
+RUN git config --system credential.helper "!/usr/bin/gh auth git-credential"
+
 WORKDIR /app
 
 ARG CODEX_DOCKER_REF=latest

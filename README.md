@@ -9,7 +9,7 @@ A local backend + UI that manages Codex tasks executed via `codex-docker`. It cr
 ## Quick start
 
 ## Dependencies
-- It uses "codex-docker" command from "https://github.com/AndreiMarhatau/codex-docker.git" repo, check it out on how to install it and set to be available everywhere.
+- The orchestrator uses the `codex-docker` helper to run Codex inside Docker.
 
 ### Prepare UI (backend will automatically serve it if you build it)
 ```
@@ -61,3 +61,40 @@ You can also set the variable in a `.env` file in `ui/` (for example, `VITE_API_
 ## Scripts
 - Backend tests: `npm -C backend test`
 - UI tests: `npm -C ui test`
+
+## Docker (host-path)
+This runs the orchestrator in a container while using the host Docker engine. It keeps `codex-docker`
+working and reuses your host Codex + GitHub credentials.
+
+### Prereqs on the host
+- Docker Engine running.
+- GitHub auth already set up on the host (for HTTPS pushes), for example:
+  - `gh auth login` (device/browser flow, stores token in `~/.config/gh`)
+
+### One-time env setup
+```
+export HOST_HOME="$HOME"
+export ORCH_IMAGE="ghcr.io/andreimarhatau/codex-docker-orchestrator:latest"
+export UID="$(id -u)"
+export GID="$(id -g)"
+export DOCKER_GID="$(stat -c %g /var/run/docker.sock)"
+```
+
+### Build and run
+```
+docker compose up
+```
+The compose file pulls the published image on each start (`pull_policy: always`).
+If the image is private, run `docker login ghcr.io` first.
+
+### Why this works
+- The orchestrator uses `docker` and `codex-docker` from inside the container.
+- We mount your host home at the same absolute path, so `codex-docker` can bind-mount paths correctly.
+- Codex credentials are reused by mounting your host `~/.codex` via the home mount.
+- Git HTTPS auth is reused by mounting your host `~/.gitconfig` and `~/.config/gh` via the home mount.
+
+### Notes
+- `codex-docker` is baked into the image. To update it in a rebuild, pass a new cachebust value to force
+  a fresh clone layer (otherwise Docker may reuse a cached layer).
+  - Example: `docker build --build-arg CODEX_DOCKER_CACHEBUST=$(date +%s) .`
+- To pin a specific `codex-docker` branch or tag, set `CODEX_DOCKER_REF` during build.

@@ -1,0 +1,16 @@
+services:
+  orchestrator:
+    image: "${ORCH_IMAGE:-ghcr.io/andreimarhatau/codex-docker-orchestrator:latest}"
+    pull_policy: always
+    container_name: codex-orchestrator
+    ports:
+      - "8080:8080"
+    environment:
+      HOME: "${HOST_HOME}"
+      ORCH_HOME: "${HOST_HOME}/.codex-orchestrator"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${HOST_HOME}:${HOST_HOME}
+    user: "${UID}:${GID}"
+    group_add:
+      - "${DOCKER_GID}"

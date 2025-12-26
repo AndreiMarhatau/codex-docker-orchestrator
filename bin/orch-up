@@ -50,4 +50,4 @@ exec env \
   GIT_CONFIG_KEY_1="credential.helper" \
   GIT_CONFIG_VALUE_1="!/usr/bin/gh auth git-credential" \
   GH_TOKEN="${gh_token}" \
-  docker compose up
+  docker compose up "$@"

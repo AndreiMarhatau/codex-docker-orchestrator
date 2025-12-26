@@ -31,6 +31,11 @@ if [[ "$(uname -s)" == "Darwin" && -z "${ORCH_FORCE_ROOT:-}" ]]; then
   docker_gid="0"
 fi
 
+gh_token="${GH_TOKEN:-}"
+if [[ -z "${gh_token}" ]] && command -v gh >/dev/null 2>&1; then
+  gh_token="$(gh auth token -h github.com 2>/dev/null || true)"
+fi
+
 exec env \
   HOST_HOME="${host_home}" \
   ORCH_IMAGE="${orch_image}" \
@@ -42,4 +47,5 @@ exec env \
   GIT_CONFIG_COUNT="1" \
   GIT_CONFIG_KEY_0="credential.helper" \
   GIT_CONFIG_VALUE_0="!/usr/bin/gh auth git-credential" \
+  GH_TOKEN="${gh_token}" \
   docker compose up

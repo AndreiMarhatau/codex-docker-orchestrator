@@ -44,8 +44,10 @@ exec env \
   DOCKER_SOCK="${docker_sock}" \
   DOCKER_GID="${docker_gid}" \
   ORCH_TMPDIR="${tmp_dir}" \
-  GIT_CONFIG_COUNT="1" \
+  GIT_CONFIG_COUNT="2" \
   GIT_CONFIG_KEY_0="credential.helper" \
-  GIT_CONFIG_VALUE_0="!/usr/bin/gh auth git-credential" \
+  GIT_CONFIG_VALUE_0="" \
+  GIT_CONFIG_KEY_1="credential.helper" \
+  GIT_CONFIG_VALUE_1="!/usr/bin/gh auth git-credential" \
   GH_TOKEN="${gh_token}" \
   docker compose up

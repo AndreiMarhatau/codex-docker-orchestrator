@@ -5,10 +5,13 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=andrei
-WorkingDirectory=/home/andrei
-Environment=ORCH_PORT=8080
-ExecStart=/bin/bash -c 'set -euo pipefail; export PATH=/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:/bin; cd /home/andrei/codex-docker; git reset --hard; git clean -fd; git pull; cd /home/andrei/codex-docker-orchestrator; git reset --hard; git clean -fd; git pull; cd ui; npm ci; npm run build; cd ../backend; npm ci; exec node src/server.js'
+User=your-user
+WorkingDirectory=/home/your-user
+Environment=CODEX_DOCKER_DIR=/home/your-user/codex-docker
+Environment=ORCH_DIR=/home/your-user/codex-docker-orchestrator
+Environment=NODE_BIN=/home/your-user/.linuxbrew/bin
+Environment=PATH=/home/your-user/.linuxbrew/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/bin/bash -c 'set -euo pipefail; cd ${CODEX_DOCKER_DIR}; git reset --hard; git clean -fd; git pull; cd ${ORCH_DIR}; git reset --hard; git clean -fd; git pull; cd ui; npm ci; npm run build; cd ../backend; npm ci; exec node src/server.js'
 Restart=always
 RestartSec=3
 

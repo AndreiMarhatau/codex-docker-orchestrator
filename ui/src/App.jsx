@@ -156,6 +156,36 @@ function formatEffortDisplay(value) {
   return value ? value : 'default';
 }
 
+function formatRepoDisplay(repoUrl) {
+  if (!repoUrl) return '';
+  const trimmed = repoUrl.trim();
+  if (!trimmed) return '';
+  const cleaned = trimmed.replace(/\.git$/i, '');
+  const pickFromPath = (path) => {
+    const parts = path.split('/').filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
+    }
+    return parts[0] || '';
+  };
+  if (cleaned.includes('://')) {
+    try {
+      const url = new URL(cleaned);
+      const display = pickFromPath(url.pathname);
+      return display || url.hostname;
+    } catch (err) {
+      return cleaned;
+    }
+  }
+  const sshMatch = cleaned.match(/^[^@]+@[^:]+:(.+)$/);
+  if (sshMatch) {
+    const display = pickFromPath(sshMatch[1]);
+    return display || cleaned;
+  }
+  const display = pickFromPath(cleaned);
+  return display || cleaned;
+}
+
 function formatDuration(ms) {
   if (!Number.isFinite(ms) || ms <= 0) return '0:00';
   const totalSeconds = Math.floor(ms / 1000);
@@ -815,71 +845,25 @@ function App() {
 
   return (
     <Box className="app-shell">
-      <Card className="hero-card fade-in">
-        <CardContent>
-          <Stack spacing={3}>
-            <Stack
-              direction={{ xs: 'column', lg: 'row' }}
-              spacing={3}
-              alignItems={{ xs: 'flex-start', lg: 'center' }}
-              justifyContent="space-between"
-            >
-              <Stack spacing={2} sx={{ maxWidth: 640 }}>
-                <Box component="span" className="hero-pill">
-                  Orchestrator
-                </Box>
-                <Typography variant="h3">Codex Docker Orchestrator</Typography>
-                <Typography color="text.secondary" variant="subtitle1">
-                  Launch isolated repo environments, orchestrate Codex tasks, and steer runs from one
-                  command center.
-                </Typography>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Box
-                      component="span"
-                      className={`status-dot ${hasActiveRuns ? '' : 'is-idle'}`}
-                    />
-                    <Typography variant="subtitle2">
-                      {hasActiveRuns ? 'Runs in progress' : 'No active runs'}
-                    </Typography>
-                  </Stack>
-                  <Button variant="outlined" size="small" onClick={refreshAll} disabled={loading}>
-                    Sync now
-                  </Button>
-                </Stack>
-              </Stack>
-              <Box sx={{ width: '100%', maxWidth: 520 }}>
-                <Box className="hero-stats">
-                  <Box className="stat-card">
-                    <Typography className="stat-label">Environments</Typography>
-                    <Typography className="stat-value">{envs.length}</Typography>
-                  </Box>
-                  <Box className="stat-card">
-                    <Typography className="stat-label">Total tasks</Typography>
-                    <Typography className="stat-value">{taskStats.total}</Typography>
-                  </Box>
-                  <Box className="stat-card">
-                    <Typography className="stat-label">Active runs</Typography>
-                    <Typography className="stat-value">{taskStats.running}</Typography>
-                  </Box>
-                  <Box className="stat-card">
-                    <Typography className="stat-label">Failures</Typography>
-                    <Typography className="stat-value">{taskStats.failed}</Typography>
-                  </Box>
-                </Box>
-              </Box>
-            </Stack>
-          </Stack>
-        </CardContent>
-      </Card>
-
       <Tabs
         value={activeTab}
         onChange={(event, value) => setActiveTab(value)}
         textColor="primary"
         indicatorColor="primary"
         aria-label="Orchestrator sections"
-        sx={{ alignSelf: 'flex-start' }}
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
+        sx={{
+          alignSelf: 'flex-start',
+          maxWidth: '100%',
+          '.MuiTabs-flexContainer': {
+            gap: 1
+          },
+          '.MuiTab-root': {
+            minWidth: 'auto'
+          }
+        }}
       >
         <Tab icon={<FolderOpenOutlinedIcon />} iconPosition="start" label="Environments" />
         <Tab icon={<ListAltOutlinedIcon />} iconPosition="start" label="Tasks" />
@@ -888,6 +872,42 @@ function App() {
 
       {activeTab === 0 && (
         <Box className="section-shell fade-in">
+          <Card className="panel-card">
+            <CardContent>
+              <Stack
+                direction={{ xs: 'column', md: 'row' }}
+                spacing={2}
+                alignItems={{ xs: 'flex-start', md: 'center' }}
+                justifyContent="space-between"
+              >
+                <Stack spacing={1}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <FolderOpenOutlinedIcon color="primary" />
+                    <Typography variant="h6" className="panel-title">
+                      Environments
+                    </Typography>
+                  </Stack>
+                  <Typography color="text.secondary">
+                    Create and manage repo sources for Codex runs.
+                  </Typography>
+                  <Stack direction="row" spacing={1} flexWrap="wrap">
+                    <Chip label={`${envs.length} environments`} size="small" />
+                    <Chip
+                      label={`Selected: ${
+                        selectedEnv ? formatRepoDisplay(selectedEnv.repoUrl) : 'none'
+                      }`}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </Stack>
+                </Stack>
+                <Button variant="outlined" size="small" onClick={refreshAll} disabled={loading}>
+                  Sync now
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+
           <Card className="panel-card">
             <CardContent>
               <Stack spacing={2}>
@@ -943,7 +963,11 @@ function App() {
                     >
                       <CardContent>
                         <Stack spacing={0.5}>
-                          <Typography fontWeight={600}>{env.repoUrl}</Typography>
+                          <Tooltip title={env.repoUrl || ''}>
+                            <Typography fontWeight={600}>
+                              {formatRepoDisplay(env.repoUrl) || env.repoUrl}
+                            </Typography>
+                          </Tooltip>
                           <Typography color="text.secondary" className="mono">
                             {env.envId}
                           </Typography>
@@ -980,11 +1004,48 @@ function App() {
         <Box className="section-shell fade-in">
           <Card className="panel-card">
             <CardContent>
+              <Stack
+                direction={{ xs: 'column', md: 'row' }}
+                spacing={2}
+                alignItems={{ xs: 'flex-start', md: 'center' }}
+                justifyContent="space-between"
+              >
+                <Stack spacing={1}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <BoltOutlinedIcon color="primary" />
+                    <Typography variant="h6" className="panel-title">
+                      Tasks
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Box
+                      component="span"
+                      className={`status-dot ${hasActiveRuns ? '' : 'is-idle'}`}
+                    />
+                    <Typography variant="subtitle2">
+                      {hasActiveRuns ? 'Runs in progress' : 'No active runs'}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1} flexWrap="wrap">
+                    <Chip label={`${taskStats.total} total`} size="small" />
+                    <Chip label={`${taskStats.running} running`} size="small" />
+                    <Chip label={`${taskStats.failed} failed`} size="small" />
+                  </Stack>
+                </Stack>
+                <Button variant="outlined" size="small" onClick={refreshAll} disabled={loading}>
+                  Sync now
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+
+          <Card className="panel-card">
+            <CardContent>
               <Stack spacing={2}>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <BoltOutlinedIcon color="primary" />
                   <Typography variant="h6" className="panel-title">
-                    Tasks
+                    Task filters
                   </Typography>
                 </Stack>
                 <Stack
@@ -1004,7 +1065,7 @@ function App() {
                       <MenuItem value="">All environments</MenuItem>
                       {envs.map((env) => (
                         <MenuItem key={env.envId} value={env.envId}>
-                          {env.repoUrl}
+                          {formatRepoDisplay(env.repoUrl) || env.repoUrl}
                         </MenuItem>
                       ))}
                     </TextField>
@@ -1035,7 +1096,7 @@ function App() {
                     >
                       {envs.map((env) => (
                         <MenuItem key={env.envId} value={env.envId}>
-                          {env.repoUrl}
+                          {formatRepoDisplay(env.repoUrl) || env.repoUrl}
                         </MenuItem>
                       ))}
                     </TextField>
@@ -1233,7 +1294,11 @@ function App() {
                             <Typography fontWeight={600}>{task.branchName}</Typography>
                             <StatusIcon status={task.status} />
                           </Stack>
-                          <Typography color="text.secondary">{task.repoUrl}</Typography>
+                          <Tooltip title={task.repoUrl || ''}>
+                            <Typography color="text.secondary">
+                              {formatRepoDisplay(task.repoUrl) || task.repoUrl}
+                            </Typography>
+                          </Tooltip>
                           <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
                             <Chip size="small" label={task.ref} />
                             {(task.model || task.reasoningEffort) && (
@@ -1351,7 +1416,11 @@ function App() {
                   <Stack spacing={2}>
                     <Stack spacing={0.5}>
                       <Typography fontWeight={600}>{taskDetail.branchName}</Typography>
-                      <Typography color="text.secondary">{taskDetail.repoUrl}</Typography>
+                      <Tooltip title={taskDetail.repoUrl || ''}>
+                        <Typography color="text.secondary">
+                          {formatRepoDisplay(taskDetail.repoUrl) || taskDetail.repoUrl}
+                        </Typography>
+                      </Tooltip>
                       <Typography className="mono">{taskDetail.taskId}</Typography>
                     </Stack>
                     <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
@@ -1395,7 +1464,7 @@ function App() {
                       )}
                     </Stack>
                     <Stack spacing={2}>
-                      <Box component="details" className="log-entry" open>
+                      <Box component="details" className="log-entry">
                         <summary className="log-summary">
                           <span>Diff</span>
                           <span className="log-meta">

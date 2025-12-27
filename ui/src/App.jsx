@@ -881,43 +881,39 @@ function App() {
         <Box className="section-shell fade-in">
           <Card className="panel-card">
             <CardContent>
-              <Stack
-                direction={{ xs: 'column', md: 'row' }}
-                spacing={2}
-                alignItems={{ xs: 'flex-start', md: 'center' }}
-                justifyContent="space-between"
-              >
-                <Stack spacing={1}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <FolderOpenOutlinedIcon color="primary" />
-                    <Typography variant="h6" className="panel-title">
-                      Environments
-                    </Typography>
-                  </Stack>
-                  <Typography color="text.secondary">
-                    Create and manage repo sources for Codex runs.
-                  </Typography>
-                  <Stack direction="row" spacing={1} flexWrap="wrap">
-                    <Chip label={`${envs.length} environments`} size="small" />
-                    <Chip
-                      label={`Selected: ${
-                        selectedEnv ? formatRepoDisplay(selectedEnv.repoUrl) : 'none'
-                      }`}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </Stack>
-                </Stack>
-                <Button variant="outlined" size="small" onClick={refreshAll} disabled={loading}>
-                  Sync now
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-
-          <Card className="panel-card">
-            <CardContent>
               <Stack spacing={3}>
+                <Stack
+                  direction={{ xs: 'column', md: 'row' }}
+                  spacing={2}
+                  alignItems={{ xs: 'flex-start', md: 'center' }}
+                  justifyContent="space-between"
+                >
+                  <Stack spacing={1}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <FolderOpenOutlinedIcon color="primary" />
+                      <Typography variant="h6" className="panel-title">
+                        Environments
+                      </Typography>
+                    </Stack>
+                    <Typography color="text.secondary">
+                      Create and manage repo sources for Codex runs.
+                    </Typography>
+                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                      <Chip label={`${envs.length} environments`} size="small" />
+                      <Chip
+                        label={`Selected: ${
+                          selectedEnv ? formatRepoDisplay(selectedEnv.repoUrl) : 'none'
+                        }`}
+                        size="small"
+                        variant="outlined"
+                      />
+                    </Stack>
+                  </Stack>
+                  <Button variant="outlined" size="small" onClick={refreshAll} disabled={loading}>
+                    Sync now
+                  </Button>
+                </Stack>
+                <Divider />
                 <Stack spacing={2}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <FolderOpenOutlinedIcon color="primary" />
@@ -1007,395 +1003,437 @@ function App() {
 
       {activeTab === 1 && (
         <Box className="section-shell fade-in">
-          <Card className="panel-card">
-            <CardContent>
-              <Stack
-                direction={{ xs: 'column', md: 'row' }}
-                spacing={2}
-                alignItems={{ xs: 'flex-start', md: 'center' }}
-                justifyContent="space-between"
-              >
-                <Stack spacing={1}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <BoltOutlinedIcon color="primary" />
-                    <Typography variant="h6" className="panel-title">
-                      Tasks
-                    </Typography>
+          {!selectedTaskId && (
+            <Card className="panel-card">
+              <CardContent>
+                <Stack
+                  direction={{ xs: 'column', md: 'row' }}
+                  spacing={2}
+                  alignItems={{ xs: 'flex-start', md: 'center' }}
+                  justifyContent="space-between"
+                >
+                  <Stack spacing={1}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <BoltOutlinedIcon color="primary" />
+                      <Typography variant="h6" className="panel-title">
+                        Tasks
+                      </Typography>
+                    </Stack>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Box
+                        component="span"
+                        className={`status-dot ${hasActiveRuns ? '' : 'is-idle'}`}
+                      />
+                      <Typography variant="subtitle2">
+                        {hasActiveRuns ? 'Runs in progress' : 'No active runs'}
+                      </Typography>
+                    </Stack>
+                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                      <Chip label={`${taskStats.total} total`} size="small" />
+                      <Chip label={`${taskStats.running} running`} size="small" />
+                      <Chip label={`${taskStats.failed} failed`} size="small" />
+                    </Stack>
                   </Stack>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Box
-                      component="span"
-                      className={`status-dot ${hasActiveRuns ? '' : 'is-idle'}`}
-                    />
-                    <Typography variant="subtitle2">
-                      {hasActiveRuns ? 'Runs in progress' : 'No active runs'}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" spacing={1} flexWrap="wrap">
-                    <Chip label={`${taskStats.total} total`} size="small" />
-                    <Chip label={`${taskStats.running} running`} size="small" />
-                    <Chip label={`${taskStats.failed} failed`} size="small" />
-                  </Stack>
+                  <Button variant="outlined" size="small" onClick={refreshAll} disabled={loading}>
+                    Sync now
+                  </Button>
                 </Stack>
-                <Button variant="outlined" size="small" onClick={refreshAll} disabled={loading}>
-                  Sync now
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="panel-card">
             <CardContent>
               <Stack spacing={3}>
-                <Stack spacing={2}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <BoltOutlinedIcon color="primary" />
-                    <Typography variant="h6" className="panel-title">
-                      Task filters
-                    </Typography>
-                  </Stack>
-                  <Stack
-                    direction={{ xs: 'column', md: 'row' }}
-                    spacing={2}
-                    alignItems={{ xs: 'flex-start', md: 'center' }}
-                    justifyContent="space-between"
-                  >
-                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                      <TextField
-                        select
+                {!selectedTaskId && (
+                  <Stack spacing={2}>
+                    <Stack
+                      direction={{ xs: 'column', md: 'row' }}
+                      spacing={2}
+                      alignItems={{ xs: 'flex-start', md: 'center' }}
+                      justifyContent="space-between"
+                    >
+                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                        <TextField
+                          select
+                          size="small"
+                          label="Filter"
+                          value={taskFilterEnvId}
+                          onChange={(event) => setTaskFilterEnvId(event.target.value)}
+                          sx={{ minWidth: 220 }}
+                        >
+                          <MenuItem value="">All environments</MenuItem>
+                          {envs.map((env) => (
+                            <MenuItem key={env.envId} value={env.envId}>
+                              {formatRepoDisplay(env.repoUrl) || env.repoUrl}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                        <Button size="small" variant="outlined" onClick={refreshAll}>
+                          Refresh
+                        </Button>
+                      </Stack>
+                      <Button
                         size="small"
-                        label="Filter"
-                        value={taskFilterEnvId}
-                        onChange={(event) => setTaskFilterEnvId(event.target.value)}
-                        sx={{ minWidth: 220 }}
+                        variant={showTaskForm ? 'outlined' : 'contained'}
+                        onClick={() => setShowTaskForm((prev) => !prev)}
                       >
-                        <MenuItem value="">All environments</MenuItem>
-                        {envs.map((env) => (
-                          <MenuItem key={env.envId} value={env.envId}>
-                            {formatRepoDisplay(env.repoUrl) || env.repoUrl}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                      <Button size="small" variant="outlined" onClick={refreshAll}>
-                        Refresh
+                        {showTaskForm ? 'Hide new task' : 'New task'}
                       </Button>
                     </Stack>
-                    <Button
-                      size="small"
-                      variant={showTaskForm ? 'outlined' : 'contained'}
-                      onClick={() => setShowTaskForm((prev) => !prev)}
-                    >
-                      {showTaskForm ? 'Hide new task' : 'New task'}
-                    </Button>
-                  </Stack>
-                  <Collapse in={showTaskForm} unmountOnExit>
-                    <Stack spacing={2} sx={{ mt: 2 }}>
-                      <Divider />
-                      <Typography variant="subtitle2">New task</Typography>
-                      <TextField
-                        select
-                        label="Environment"
-                        value={taskForm.envId}
-                        onChange={(event) =>
-                          setTaskForm((prev) => ({ ...prev, envId: event.target.value }))
-                        }
-                        fullWidth
-                      >
-                        {envs.map((env) => (
-                          <MenuItem key={env.envId} value={env.envId}>
-                            {formatRepoDisplay(env.repoUrl) || env.repoUrl}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                      <TextField
-                        label="Branch / tag / ref"
-                        fullWidth
-                        value={taskForm.ref}
-                        onChange={(event) =>
-                          setTaskForm((prev) => ({ ...prev, ref: event.target.value }))
-                        }
-                        placeholder={selectedEnv?.defaultBranch || 'main'}
-                      />
-                      <TextField
-                        label="Task prompt"
-                        fullWidth
-                        multiline
-                        minRows={3}
-                        value={taskForm.prompt}
-                        onChange={(event) =>
-                          setTaskForm((prev) => ({ ...prev, prompt: event.target.value }))
-                        }
-                      />
-                      <Divider />
-                      <Typography variant="subtitle2">Model & effort</Typography>
-                      <TextField
-                        select
-                        label="Model"
-                        fullWidth
-                        value={taskForm.modelChoice}
-                        onChange={(event) => handleTaskModelChoiceChange(event.target.value)}
-                      >
-                        {MODEL_OPTIONS.map((option) => (
-                          <MenuItem key={option.value || 'default'} value={option.value}>
-                            {option.label}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                      {taskForm.modelChoice === MODEL_CUSTOM_VALUE && (
+                    <Collapse in={showTaskForm} unmountOnExit>
+                      <Stack spacing={2} sx={{ mt: 2 }}>
+                        <Divider />
+                        <Typography variant="subtitle2">New task</Typography>
                         <TextField
-                          label="Custom model"
-                          fullWidth
-                          value={taskForm.customModel}
+                          select
+                          label="Environment"
+                          value={taskForm.envId}
                           onChange={(event) =>
-                            setTaskForm((prev) => ({ ...prev, customModel: event.target.value }))
+                            setTaskForm((prev) => ({ ...prev, envId: event.target.value }))
+                          }
+                          fullWidth
+                        >
+                          {envs.map((env) => (
+                            <MenuItem key={env.envId} value={env.envId}>
+                              {formatRepoDisplay(env.repoUrl) || env.repoUrl}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                        <TextField
+                          label="Branch / tag / ref"
+                          fullWidth
+                          value={taskForm.ref}
+                          onChange={(event) =>
+                            setTaskForm((prev) => ({ ...prev, ref: event.target.value }))
+                          }
+                          placeholder={selectedEnv?.defaultBranch || 'main'}
+                        />
+                        <TextField
+                          label="Task prompt"
+                          fullWidth
+                          multiline
+                          minRows={3}
+                          value={taskForm.prompt}
+                          onChange={(event) =>
+                            setTaskForm((prev) => ({ ...prev, prompt: event.target.value }))
                           }
                         />
-                      )}
-                      {taskForm.modelChoice &&
-                        taskForm.modelChoice !== MODEL_CUSTOM_VALUE && (
+                        <Divider />
+                        <Typography variant="subtitle2">Model & effort</Typography>
+                        <TextField
+                          select
+                          label="Model"
+                          fullWidth
+                          value={taskForm.modelChoice}
+                          onChange={(event) => handleTaskModelChoiceChange(event.target.value)}
+                        >
+                          {MODEL_OPTIONS.map((option) => (
+                            <MenuItem key={option.value || 'default'} value={option.value}>
+                              {option.label}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                        {taskForm.modelChoice === MODEL_CUSTOM_VALUE && (
                           <TextField
-                            select
-                            label="Reasoning effort"
+                            label="Custom model"
                             fullWidth
-                            value={taskForm.reasoningEffort}
+                            value={taskForm.customModel}
                             onChange={(event) =>
-                              setTaskForm((prev) => ({
-                                ...prev,
-                                reasoningEffort: event.target.value
-                              }))
+                              setTaskForm((prev) => ({ ...prev, customModel: event.target.value }))
                             }
-                          >
-                            <MenuItem value="">Default (model default)</MenuItem>
-                            {getEffortOptionsForModel(taskForm.modelChoice).map((effort) => (
-                              <MenuItem key={effort} value={effort}>
-                                {EFFORT_LABELS[effort] || effort}
-                              </MenuItem>
-                            ))}
-                          </TextField>
+                          />
                         )}
-                      {taskForm.modelChoice === MODEL_CUSTOM_VALUE && (
-                        <TextField
-                          label="Custom reasoning effort"
-                          fullWidth
-                          value={taskForm.customReasoningEffort}
-                          onChange={(event) =>
-                            setTaskForm((prev) => ({
-                              ...prev,
-                              customReasoningEffort: event.target.value
-                            }))
-                          }
-                          placeholder="none | low | medium | high | xhigh"
-                        />
-                      )}
-                      <Typography color="text.secondary" variant="body2">
-                        Effort options are filtered by model support. Leave blank to use the model default.
-                      </Typography>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={taskForm.useHostDockerSocket}
+                        {taskForm.modelChoice &&
+                          taskForm.modelChoice !== MODEL_CUSTOM_VALUE && (
+                            <TextField
+                              select
+                              label="Reasoning effort"
+                              fullWidth
+                              value={taskForm.reasoningEffort}
                               onChange={(event) =>
                                 setTaskForm((prev) => ({
                                   ...prev,
-                                  useHostDockerSocket: event.target.checked
+                                  reasoningEffort: event.target.value
                                 }))
                               }
-                            />
-                          }
-                          label="Use host Docker socket"
-                        />
-                        <Tooltip title="Grants root-equivalent access to the host via Docker. Enable only if you trust the task.">
-                          <WarningAmberIcon color="warning" fontSize="small" />
-                        </Tooltip>
-                      </Stack>
-                      <Divider />
-                      <Typography variant="subtitle2">Attachments</Typography>
-                      <Stack spacing={1}>
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center">
-                          <Button
-                            variant="outlined"
-                            component="label"
-                            disabled={
-                              loading ||
-                              taskImageUploading ||
-                              taskImages.length >= MAX_TASK_IMAGES
-                            }
-                          >
-                            Add images
-                            <input
-                              ref={taskImageInputRef}
-                              type="file"
-                              hidden
-                              multiple
-                              accept="image/png,image/jpeg,image/gif,image/webp,image/bmp"
-                              onChange={handleTaskImagesSelected}
-                            />
-                          </Button>
-                          <Typography color="text.secondary">
-                            Up to {MAX_TASK_IMAGES} images, used only for the initial request.
-                          </Typography>
-                        </Stack>
-                        {taskImageError && <Typography color="error">{taskImageError}</Typography>}
-                        {taskImages.length > 0 && (
-                          <Stack spacing={1}>
-                            <Stack direction="row" spacing={1} flexWrap="wrap">
-                              {taskImages.map((file, index) => (
-                                <Chip
-                                  key={`${file.name}-${index}`}
-                                  label={`${file.name} (${formatBytes(file.size)})`}
-                                  onDelete={() => handleRemoveTaskImage(index)}
-                                />
-                              ))}
-                            </Stack>
-                            <Button
-                              size="small"
-                              color="secondary"
-                              onClick={handleClearTaskImages}
-                              disabled={loading || taskImageUploading}
                             >
-                              Clear images
-                            </Button>
-                          </Stack>
+                              <MenuItem value="">Default (model default)</MenuItem>
+                              {getEffortOptionsForModel(taskForm.modelChoice).map((effort) => (
+                                <MenuItem key={effort} value={effort}>
+                                  {EFFORT_LABELS[effort] || effort}
+                                </MenuItem>
+                              ))}
+                            </TextField>
+                          )}
+                        {taskForm.modelChoice === MODEL_CUSTOM_VALUE && (
+                          <TextField
+                            label="Custom reasoning effort"
+                            fullWidth
+                            value={taskForm.customReasoningEffort}
+                            onChange={(event) =>
+                              setTaskForm((prev) => ({
+                                ...prev,
+                                customReasoningEffort: event.target.value
+                              }))
+                            }
+                            placeholder="none | low | medium | high | xhigh"
+                          />
                         )}
-                      </Stack>
-                      <Button
-                        variant="contained"
-                        onClick={handleCreateTask}
-                        disabled={
-                          loading ||
-                          taskImageUploading ||
-                          !taskForm.envId ||
-                          !taskForm.prompt.trim()
-                        }
-                      >
-                        {taskImageUploading ? 'Uploading images...' : 'Run task'}
-                      </Button>
-                    </Stack>
-                  </Collapse>
-                </Stack>
-                <Divider />
-                {!selectedTaskId && (
-                  <Stack spacing={2}>
-                    <Typography variant="h6" className="panel-title">
-                      Task queue
-                    </Typography>
-                    <Stack spacing={1.5}>
-                      {visibleTasks.map((task) => (
-                        <Card
-                          key={task.taskId}
-                          className="task-card"
-                          sx={{
-                            borderColor: task.taskId === selectedTaskId ? 'primary.main' : 'divider',
-                            cursor: 'pointer'
-                          }}
-                          onClick={() => setSelectedTaskId(task.taskId)}
-                        >
-                          <CardContent>
+                        <Typography color="text.secondary" variant="body2">
+                          Effort options are filtered by model support. Leave blank to use the model default.
+                        </Typography>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                checked={taskForm.useHostDockerSocket}
+                                onChange={(event) =>
+                                  setTaskForm((prev) => ({
+                                    ...prev,
+                                    useHostDockerSocket: event.target.checked
+                                  }))
+                                }
+                              />
+                            }
+                            label="Use host Docker socket"
+                          />
+                          <Tooltip title="Grants root-equivalent access to the host via Docker. Enable only if you trust the task.">
+                            <WarningAmberIcon color="warning" fontSize="small" />
+                          </Tooltip>
+                        </Stack>
+                        <Divider />
+                        <Typography variant="subtitle2">Attachments</Typography>
+                        <Stack spacing={1}>
+                          <Stack
+                            direction={{ xs: 'column', sm: 'row' }}
+                            spacing={1}
+                            alignItems="center"
+                          >
+                            <Button
+                              variant="outlined"
+                              component="label"
+                              disabled={
+                                loading ||
+                                taskImageUploading ||
+                                taskImages.length >= MAX_TASK_IMAGES
+                              }
+                            >
+                              Add images
+                              <input
+                                ref={taskImageInputRef}
+                                type="file"
+                                hidden
+                                multiple
+                                accept="image/png,image/jpeg,image/gif,image/webp,image/bmp"
+                                onChange={handleTaskImagesSelected}
+                              />
+                            </Button>
+                            <Typography color="text.secondary">
+                              Up to {MAX_TASK_IMAGES} images, used only for the initial request.
+                            </Typography>
+                          </Stack>
+                          {taskImageError && <Typography color="error">{taskImageError}</Typography>}
+                          {taskImages.length > 0 && (
                             <Stack spacing={1}>
-                              <Stack
-                                direction="row"
-                                spacing={1}
-                                alignItems="center"
-                                justifyContent="space-between"
-                              >
-                                <Typography fontWeight={600}>{task.branchName}</Typography>
-                                <StatusIcon status={task.status} />
+                              <Stack direction="row" spacing={1} flexWrap="wrap">
+                                {taskImages.map((file, index) => (
+                                  <Chip
+                                    key={`${file.name}-${index}`}
+                                    label={`${file.name} (${formatBytes(file.size)})`}
+                                    onDelete={() => handleRemoveTaskImage(index)}
+                                  />
+                                ))}
                               </Stack>
-                              <Tooltip title={task.repoUrl || ''}>
-                                <Typography color="text.secondary">
-                                  {formatRepoDisplay(task.repoUrl) || task.repoUrl}
-                                </Typography>
-                              </Tooltip>
-                              <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
-                                <Chip size="small" label={task.ref} />
-                                {(task.model || task.reasoningEffort) && (
-                                  <Chip
-                                    size="small"
-                                    label={`model: ${formatModelDisplay(task.model)}`}
-                                  />
-                                )}
-                                {(task.model || task.reasoningEffort) && (
-                                  <Chip
-                                    size="small"
-                                    label={`effort: ${formatEffortDisplay(task.reasoningEffort)}`}
-                                  />
-                                )}
-                                <Chip
-                                  size="small"
-                                  label={`created ${formatTimestamp(task.createdAt)}`}
-                                />
-                                {(task.status === 'running' || task.status === 'stopping') && (() => {
-                                  const latestRun = getLatestRun(task);
-                                  const durationMs = getElapsedMs(
-                                    latestRun?.startedAt || task.createdAt,
-                                    null,
-                                    now
-                                  );
-                                  if (durationMs === null) return null;
-                                  const statusLabel =
-                                    STATUS_CONFIG[task.status]?.label.toLowerCase() || 'running';
-                                  return (
+                              <Button
+                                size="small"
+                                color="secondary"
+                                onClick={handleClearTaskImages}
+                                disabled={loading || taskImageUploading}
+                              >
+                                Clear images
+                              </Button>
+                            </Stack>
+                          )}
+                        </Stack>
+                        <Button
+                          variant="contained"
+                          onClick={handleCreateTask}
+                          disabled={
+                            loading ||
+                            taskImageUploading ||
+                            !taskForm.envId ||
+                            !taskForm.prompt.trim()
+                          }
+                        >
+                          {taskImageUploading ? 'Uploading images...' : 'Run task'}
+                        </Button>
+                      </Stack>
+                    </Collapse>
+                    <Divider />
+                    <Stack spacing={2}>
+                      <Typography variant="h6" className="panel-title">
+                        Tasks
+                      </Typography>
+                      <Stack spacing={1.5}>
+                        {visibleTasks.map((task) => (
+                          <Card
+                            key={task.taskId}
+                            className="task-card"
+                            sx={{
+                              borderColor:
+                                task.taskId === selectedTaskId ? 'primary.main' : 'divider',
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => setSelectedTaskId(task.taskId)}
+                          >
+                            <CardContent>
+                              <Stack spacing={1}>
+                                <Stack
+                                  direction="row"
+                                  spacing={1}
+                                  alignItems="center"
+                                  justifyContent="space-between"
+                                >
+                                  <Typography fontWeight={600}>{task.branchName}</Typography>
+                                  <StatusIcon status={task.status} />
+                                </Stack>
+                                <Tooltip title={task.repoUrl || ''}>
+                                  <Typography color="text.secondary">
+                                    {formatRepoDisplay(task.repoUrl) || task.repoUrl}
+                                  </Typography>
+                                </Tooltip>
+                                <Stack
+                                  direction="row"
+                                  spacing={1}
+                                  flexWrap="wrap"
+                                  alignItems="center"
+                                >
+                                  <Chip size="small" label={task.ref} />
+                                  {(task.model || task.reasoningEffort) && (
                                     <Chip
                                       size="small"
-                                      variant="outlined"
-                                      icon={<AccessTimeIcon fontSize="small" />}
-                                      label={`${statusLabel} ${formatDuration(durationMs)}`}
+                                      label={`model: ${formatModelDisplay(task.model)}`}
                                     />
-                                  );
-                                })()}
-                              </Stack>
-                              <Stack direction="row" spacing={0.5} alignItems="center">
-                                <Tooltip title="Stop task">
-                                  <span>
-                                    <IconButton
+                                  )}
+                                  {(task.model || task.reasoningEffort) && (
+                                    <Chip
                                       size="small"
-                                      color="error"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        handleStopTask(task.taskId);
-                                      }}
-                                      disabled={loading || task.status !== 'running'}
-                                      aria-label={`Stop task ${task.taskId}`}
-                                    >
-                                      <StopCircleOutlinedIcon fontSize="small" />
-                                    </IconButton>
-                                  </span>
-                                </Tooltip>
-                                <Tooltip title="Remove task">
-                                  <span>
-                                    <IconButton
-                                      size="small"
-                                      color="secondary"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        handleDeleteTask(task.taskId);
-                                      }}
-                                      disabled={loading}
-                                      aria-label={`Remove task ${task.taskId}`}
-                                    >
-                                      <DeleteOutlineIcon fontSize="small" />
-                                    </IconButton>
-                                  </span>
-                                </Tooltip>
+                                      label={`effort: ${formatEffortDisplay(task.reasoningEffort)}`}
+                                    />
+                                  )}
+                                  <Chip
+                                    size="small"
+                                    label={`created ${formatTimestamp(task.createdAt)}`}
+                                  />
+                                  {(task.status === 'running' || task.status === 'stopping') &&
+                                    (() => {
+                                      const latestRun = getLatestRun(task);
+                                      const durationMs = getElapsedMs(
+                                        latestRun?.startedAt || task.createdAt,
+                                        null,
+                                        now
+                                      );
+                                      if (durationMs === null) return null;
+                                      const statusLabel =
+                                        STATUS_CONFIG[task.status]?.label.toLowerCase() ||
+                                        'running';
+                                      return (
+                                        <Chip
+                                          size="small"
+                                          variant="outlined"
+                                          icon={<AccessTimeIcon fontSize="small" />}
+                                          label={`${statusLabel} ${formatDuration(durationMs)}`}
+                                        />
+                                      );
+                                    })()}
+                                </Stack>
+                                <Stack direction="row" spacing={0.5} alignItems="center">
+                                  <Tooltip title="Stop task">
+                                    <span>
+                                      <IconButton
+                                        size="small"
+                                        color="error"
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          handleStopTask(task.taskId);
+                                        }}
+                                        disabled={loading || task.status !== 'running'}
+                                        aria-label={`Stop task ${task.taskId}`}
+                                      >
+                                        <StopCircleOutlinedIcon fontSize="small" />
+                                      </IconButton>
+                                    </span>
+                                  </Tooltip>
+                                  <Tooltip title="Remove task">
+                                    <span>
+                                      <IconButton
+                                        size="small"
+                                        color="secondary"
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          handleDeleteTask(task.taskId);
+                                        }}
+                                        disabled={loading}
+                                        aria-label={`Remove task ${task.taskId}`}
+                                      >
+                                        <DeleteOutlineIcon fontSize="small" />
+                                      </IconButton>
+                                    </span>
+                                  </Tooltip>
+                                </Stack>
                               </Stack>
-                            </Stack>
-                          </CardContent>
-                        </Card>
-                      ))}
-                      {visibleTasks.length === 0 && (
-                        <Typography color="text.secondary">
-                          No tasks yet. Create one to get started.
-                        </Typography>
-                      )}
+                            </CardContent>
+                          </Card>
+                        ))}
+                        {visibleTasks.length === 0 && (
+                          <Typography color="text.secondary">
+                            No tasks yet. Create one to get started.
+                          </Typography>
+                        )}
+                      </Stack>
                     </Stack>
                   </Stack>
                 )}
                 {selectedTaskId && (
                   <Stack spacing={2}>
-                    <Typography variant="h6" className="panel-title">
-                      Task detail
-                    </Typography>
+                    <Box
+                      sx={{
+                        position: 'sticky',
+                        top: { xs: 8, md: 16 },
+                        zIndex: 2,
+                        backgroundColor: 'background.paper',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        px: { xs: 1.5, md: 2 },
+                        py: { xs: 1, md: 1.5 }
+                      }}
+                    >
+                      <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={1}
+                        alignItems={{ xs: 'flex-start', sm: 'center' }}
+                        justifyContent="space-between"
+                      >
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<ArrowBackOutlinedIcon />}
+                            onClick={handleBackToTasks}
+                          >
+                            Back to tasks
+                          </Button>
+                          <Typography variant="h6" className="panel-title">
+                            Task detail
+                          </Typography>
+                        </Stack>
+                        <Button size="small" variant="outlined" onClick={refreshAll}>
+                          Refresh
+                        </Button>
+                      </Stack>
+                    </Box>
                     {selectedTaskId && !taskDetail && (
                       <Typography color="text.secondary">Loading task details...</Typography>
                     )}
@@ -1859,29 +1897,6 @@ function App() {
               </Stack>
             </CardContent>
           </Card>
-          {selectedTaskId && (
-            <Tooltip title="Back to tasks">
-              <IconButton
-                color="primary"
-                onClick={handleBackToTasks}
-                aria-label="Back to tasks"
-                sx={{
-                  position: 'fixed',
-                  bottom: { xs: 16, md: 24 },
-                  left: { xs: 16, md: 24 },
-                  backgroundColor: 'background.paper',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  boxShadow: 3,
-                  '&:hover': {
-                    backgroundColor: 'background.paper'
-                  }
-                }}
-              >
-                <ArrowBackOutlinedIcon />
-              </IconButton>
-            </Tooltip>
-          )}
         </Box>
       )}
 

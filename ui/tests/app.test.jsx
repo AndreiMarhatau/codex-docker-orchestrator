@@ -4,7 +4,7 @@ import App from '../src/App.jsx';
 
 it('renders the orchestrator header and forms', async () => {
   render(<App />);
-  expect(await screen.findByText('Task filters')).toBeInTheDocument();
+  expect(await screen.findByLabelText('Filter')).toBeInTheDocument();
   expect(screen.getByRole('tab', { name: 'Environments' })).toBeInTheDocument();
   expect(screen.getByRole('tab', { name: 'Tasks' })).toBeInTheDocument();
   expect(screen.getByRole('tab', { name: 'Settings' })).toBeInTheDocument();

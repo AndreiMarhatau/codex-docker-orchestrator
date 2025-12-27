@@ -34,6 +34,7 @@ import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
 import { apiRequest, apiUrl } from './api.js';
 
 const emptyEnvForm = { repoUrl: '', defaultBranch: 'main' };
@@ -693,6 +694,7 @@ function App() {
       if (taskImageInputRef.current) {
         taskImageInputRef.current.value = '';
       }
+      setShowTaskForm(false);
       await refreshAll();
     } catch (err) {
       setError(err.message);
@@ -843,6 +845,11 @@ function App() {
     }
   }
 
+  function handleBackToTasks() {
+    setSelectedTaskId('');
+    setTaskDetail(null);
+  }
+
   return (
     <Box className="app-shell">
       <Tabs
@@ -910,89 +917,87 @@ function App() {
 
           <Card className="panel-card">
             <CardContent>
-              <Stack spacing={2}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <FolderOpenOutlinedIcon color="primary" />
-                  <Typography variant="h6" className="panel-title">
-                    Create environment
-                  </Typography>
-                </Stack>
-                <TextField
-                  label="Repository URL"
-                  fullWidth
-                  value={envForm.repoUrl}
-                  onChange={(event) =>
-                    setEnvForm((prev) => ({ ...prev, repoUrl: event.target.value }))
-                  }
-                />
-                <TextField
-                  label="Default branch"
-                  fullWidth
-                  value={envForm.defaultBranch}
-                  onChange={(event) =>
-                    setEnvForm((prev) => ({ ...prev, defaultBranch: event.target.value }))
-                  }
-                />
-                <Button
-                  variant="contained"
-                  onClick={handleCreateEnv}
-                  disabled={loading || !envForm.repoUrl.trim()}
-                >
-                  Create environment
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-
-          <Card className="panel-card">
-            <CardContent>
-              <Stack spacing={2}>
-                <Typography variant="h6" className="panel-title">
-                  Environments
-                </Typography>
-                <Stack spacing={1.5}>
-                  {envs.map((env) => (
-                    <Card
-                      key={env.envId}
-                      className="task-card"
-                      sx={{
-                        borderColor: env.envId === selectedEnvId ? 'primary.main' : 'divider',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => setSelectedEnvId(env.envId)}
-                    >
-                      <CardContent>
-                        <Stack spacing={0.5}>
-                          <Tooltip title={env.repoUrl || ''}>
-                            <Typography fontWeight={600}>
-                              {formatRepoDisplay(env.repoUrl) || env.repoUrl}
-                            </Typography>
-                          </Tooltip>
-                          <Typography color="text.secondary" className="mono">
-                            {env.envId}
-                          </Typography>
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <Chip size="small" label={`default: ${env.defaultBranch}`} />
-                            <Button
-                              size="small"
-                              color="secondary"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                handleDeleteEnv(env.envId);
-                              }}
-                            >
-                              Remove
-                            </Button>
-                          </Stack>
-                        </Stack>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {envs.length === 0 && (
-                    <Typography color="text.secondary">
-                      No environments yet. Create one to get started.
+              <Stack spacing={3}>
+                <Stack spacing={2}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <FolderOpenOutlinedIcon color="primary" />
+                    <Typography variant="h6" className="panel-title">
+                      Create environment
                     </Typography>
-                  )}
+                  </Stack>
+                  <TextField
+                    label="Repository URL"
+                    fullWidth
+                    value={envForm.repoUrl}
+                    onChange={(event) =>
+                      setEnvForm((prev) => ({ ...prev, repoUrl: event.target.value }))
+                    }
+                  />
+                  <TextField
+                    label="Default branch"
+                    fullWidth
+                    value={envForm.defaultBranch}
+                    onChange={(event) =>
+                      setEnvForm((prev) => ({ ...prev, defaultBranch: event.target.value }))
+                    }
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={handleCreateEnv}
+                    disabled={loading || !envForm.repoUrl.trim()}
+                  >
+                    Create environment
+                  </Button>
+                </Stack>
+                <Divider />
+                <Stack spacing={2}>
+                  <Typography variant="h6" className="panel-title">
+                    Environments
+                  </Typography>
+                  <Stack spacing={1.5}>
+                    {envs.map((env) => (
+                      <Card
+                        key={env.envId}
+                        className="task-card"
+                        sx={{
+                          borderColor: env.envId === selectedEnvId ? 'primary.main' : 'divider',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => setSelectedEnvId(env.envId)}
+                      >
+                        <CardContent>
+                          <Stack spacing={0.5}>
+                            <Tooltip title={env.repoUrl || ''}>
+                              <Typography fontWeight={600}>
+                                {formatRepoDisplay(env.repoUrl) || env.repoUrl}
+                              </Typography>
+                            </Tooltip>
+                            <Typography color="text.secondary" className="mono">
+                              {env.envId}
+                            </Typography>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Chip size="small" label={`default: ${env.defaultBranch}`} />
+                              <Button
+                                size="small"
+                                color="secondary"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  handleDeleteEnv(env.envId);
+                                }}
+                              >
+                                Remove
+                              </Button>
+                            </Stack>
+                          </Stack>
+                        </CardContent>
+                      </Card>
+                    ))}
+                    {envs.length === 0 && (
+                      <Typography color="text.secondary">
+                        No environments yet. Create one to get started.
+                      </Typography>
+                    )}
+                  </Stack>
                 </Stack>
               </Stack>
             </CardContent>
@@ -1041,289 +1046,393 @@ function App() {
 
           <Card className="panel-card">
             <CardContent>
-              <Stack spacing={2}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <BoltOutlinedIcon color="primary" />
-                  <Typography variant="h6" className="panel-title">
-                    Task filters
-                  </Typography>
-                </Stack>
-                <Stack
-                  direction={{ xs: 'column', md: 'row' }}
-                  spacing={2}
-                  alignItems={{ xs: 'flex-start', md: 'center' }}
-                  justifyContent="space-between"
-                >
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                    <TextField
-                      select
+              <Stack spacing={3}>
+                <Stack spacing={2}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <BoltOutlinedIcon color="primary" />
+                    <Typography variant="h6" className="panel-title">
+                      Task filters
+                    </Typography>
+                  </Stack>
+                  <Stack
+                    direction={{ xs: 'column', md: 'row' }}
+                    spacing={2}
+                    alignItems={{ xs: 'flex-start', md: 'center' }}
+                    justifyContent="space-between"
+                  >
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                      <TextField
+                        select
+                        size="small"
+                        label="Filter"
+                        value={taskFilterEnvId}
+                        onChange={(event) => setTaskFilterEnvId(event.target.value)}
+                        sx={{ minWidth: 220 }}
+                      >
+                        <MenuItem value="">All environments</MenuItem>
+                        {envs.map((env) => (
+                          <MenuItem key={env.envId} value={env.envId}>
+                            {formatRepoDisplay(env.repoUrl) || env.repoUrl}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                      <Button size="small" variant="outlined" onClick={refreshAll}>
+                        Refresh
+                      </Button>
+                    </Stack>
+                    <Button
                       size="small"
-                      label="Filter"
-                      value={taskFilterEnvId}
-                      onChange={(event) => setTaskFilterEnvId(event.target.value)}
+                      variant={showTaskForm ? 'outlined' : 'contained'}
+                      onClick={() => setShowTaskForm((prev) => !prev)}
                     >
-                      <MenuItem value="">All environments</MenuItem>
-                      {envs.map((env) => (
-                        <MenuItem key={env.envId} value={env.envId}>
-                          {formatRepoDisplay(env.repoUrl) || env.repoUrl}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <Button size="small" variant="outlined" onClick={refreshAll}>
-                      Refresh
+                      {showTaskForm ? 'Hide new task' : 'New task'}
                     </Button>
                   </Stack>
-                  <Button
-                    size="small"
-                    variant={showTaskForm ? 'outlined' : 'contained'}
-                    onClick={() => setShowTaskForm((prev) => !prev)}
-                  >
-                    {showTaskForm ? 'Hide new task' : 'New task'}
-                  </Button>
-                </Stack>
-                <Collapse in={showTaskForm} unmountOnExit>
-                  <Stack spacing={2} sx={{ mt: 2 }}>
-                    <Divider />
-                    <Typography variant="subtitle2">New task</Typography>
-                    <TextField
-                      select
-                      label="Environment"
-                      value={taskForm.envId}
-                      onChange={(event) =>
-                        setTaskForm((prev) => ({ ...prev, envId: event.target.value }))
-                      }
-                      fullWidth
-                    >
-                      {envs.map((env) => (
-                        <MenuItem key={env.envId} value={env.envId}>
-                          {formatRepoDisplay(env.repoUrl) || env.repoUrl}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      label="Branch / tag / ref"
-                      fullWidth
-                      value={taskForm.ref}
-                      onChange={(event) =>
-                        setTaskForm((prev) => ({ ...prev, ref: event.target.value }))
-                      }
-                      placeholder={selectedEnv?.defaultBranch || 'main'}
-                    />
-                    <TextField
-                      label="Task prompt"
-                      fullWidth
-                      multiline
-                      minRows={3}
-                      value={taskForm.prompt}
-                      onChange={(event) =>
-                        setTaskForm((prev) => ({ ...prev, prompt: event.target.value }))
-                      }
-                    />
-                    <Divider />
-                    <Typography variant="subtitle2">Model & effort</Typography>
-                    <TextField
-                      select
-                      label="Model"
-                      fullWidth
-                      value={taskForm.modelChoice}
-                      onChange={(event) => handleTaskModelChoiceChange(event.target.value)}
-                    >
-                      {MODEL_OPTIONS.map((option) => (
-                        <MenuItem key={option.value || 'default'} value={option.value}>
-                          {option.label}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    {taskForm.modelChoice === MODEL_CUSTOM_VALUE && (
+                  <Collapse in={showTaskForm} unmountOnExit>
+                    <Stack spacing={2} sx={{ mt: 2 }}>
+                      <Divider />
+                      <Typography variant="subtitle2">New task</Typography>
                       <TextField
-                        label="Custom model"
-                        fullWidth
-                        value={taskForm.customModel}
+                        select
+                        label="Environment"
+                        value={taskForm.envId}
                         onChange={(event) =>
-                          setTaskForm((prev) => ({ ...prev, customModel: event.target.value }))
+                          setTaskForm((prev) => ({ ...prev, envId: event.target.value }))
+                        }
+                        fullWidth
+                      >
+                        {envs.map((env) => (
+                          <MenuItem key={env.envId} value={env.envId}>
+                            {formatRepoDisplay(env.repoUrl) || env.repoUrl}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                      <TextField
+                        label="Branch / tag / ref"
+                        fullWidth
+                        value={taskForm.ref}
+                        onChange={(event) =>
+                          setTaskForm((prev) => ({ ...prev, ref: event.target.value }))
+                        }
+                        placeholder={selectedEnv?.defaultBranch || 'main'}
+                      />
+                      <TextField
+                        label="Task prompt"
+                        fullWidth
+                        multiline
+                        minRows={3}
+                        value={taskForm.prompt}
+                        onChange={(event) =>
+                          setTaskForm((prev) => ({ ...prev, prompt: event.target.value }))
                         }
                       />
-                    )}
-                    {taskForm.modelChoice &&
-                      taskForm.modelChoice !== MODEL_CUSTOM_VALUE && (
+                      <Divider />
+                      <Typography variant="subtitle2">Model & effort</Typography>
+                      <TextField
+                        select
+                        label="Model"
+                        fullWidth
+                        value={taskForm.modelChoice}
+                        onChange={(event) => handleTaskModelChoiceChange(event.target.value)}
+                      >
+                        {MODEL_OPTIONS.map((option) => (
+                          <MenuItem key={option.value || 'default'} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                      {taskForm.modelChoice === MODEL_CUSTOM_VALUE && (
                         <TextField
-                          select
-                          label="Reasoning effort"
+                          label="Custom model"
                           fullWidth
-                          value={taskForm.reasoningEffort}
+                          value={taskForm.customModel}
                           onChange={(event) =>
-                            setTaskForm((prev) => ({
-                              ...prev,
-                              reasoningEffort: event.target.value
-                            }))
+                            setTaskForm((prev) => ({ ...prev, customModel: event.target.value }))
                           }
-                        >
-                          <MenuItem value="">Default (model default)</MenuItem>
-                          {getEffortOptionsForModel(taskForm.modelChoice).map((effort) => (
-                            <MenuItem key={effort} value={effort}>
-                              {EFFORT_LABELS[effort] || effort}
-                            </MenuItem>
-                          ))}
-                        </TextField>
+                        />
                       )}
-                    {taskForm.modelChoice === MODEL_CUSTOM_VALUE && (
-                      <TextField
-                        label="Custom reasoning effort"
-                        fullWidth
-                        value={taskForm.customReasoningEffort}
-                        onChange={(event) =>
-                          setTaskForm((prev) => ({
-                            ...prev,
-                            customReasoningEffort: event.target.value
-                          }))
-                        }
-                        placeholder="none | low | medium | high | xhigh"
-                      />
-                    )}
-                    <Typography color="text.secondary" variant="body2">
-                      Effort options are filtered by model support. Leave blank to use the model default.
-                    </Typography>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={taskForm.useHostDockerSocket}
+                      {taskForm.modelChoice &&
+                        taskForm.modelChoice !== MODEL_CUSTOM_VALUE && (
+                          <TextField
+                            select
+                            label="Reasoning effort"
+                            fullWidth
+                            value={taskForm.reasoningEffort}
                             onChange={(event) =>
                               setTaskForm((prev) => ({
                                 ...prev,
-                                useHostDockerSocket: event.target.checked
+                                reasoningEffort: event.target.value
                               }))
                             }
-                          />
-                        }
-                        label="Use host Docker socket"
-                      />
-                      <Tooltip title="Grants root-equivalent access to the host via Docker. Enable only if you trust the task.">
-                        <WarningAmberIcon color="warning" fontSize="small" />
-                      </Tooltip>
-                    </Stack>
-                    <Divider />
-                    <Typography variant="subtitle2">Attachments</Typography>
-                    <Stack spacing={1}>
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center">
-                        <Button
-                          variant="outlined"
-                          component="label"
-                          disabled={
-                            loading ||
-                            taskImageUploading ||
-                            taskImages.length >= MAX_TASK_IMAGES
-                          }
-                        >
-                          Add images
-                          <input
-                            ref={taskImageInputRef}
-                            type="file"
-                            hidden
-                            multiple
-                            accept="image/png,image/jpeg,image/gif,image/webp,image/bmp"
-                            onChange={handleTaskImagesSelected}
-                          />
-                        </Button>
-                        <Typography color="text.secondary">
-                          Up to {MAX_TASK_IMAGES} images, used only for the initial request.
-                        </Typography>
-                      </Stack>
-                      {taskImageError && <Typography color="error">{taskImageError}</Typography>}
-                      {taskImages.length > 0 && (
-                        <Stack spacing={1}>
-                          <Stack direction="row" spacing={1} flexWrap="wrap">
-                            {taskImages.map((file, index) => (
-                              <Chip
-                                key={`${file.name}-${index}`}
-                                label={`${file.name} (${formatBytes(file.size)})`}
-                                onDelete={() => handleRemoveTaskImage(index)}
-                              />
-                            ))}
-                          </Stack>
-                          <Button
-                            size="small"
-                            color="secondary"
-                            onClick={handleClearTaskImages}
-                            disabled={loading || taskImageUploading}
                           >
-                            Clear images
+                            <MenuItem value="">Default (model default)</MenuItem>
+                            {getEffortOptionsForModel(taskForm.modelChoice).map((effort) => (
+                              <MenuItem key={effort} value={effort}>
+                                {EFFORT_LABELS[effort] || effort}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                        )}
+                      {taskForm.modelChoice === MODEL_CUSTOM_VALUE && (
+                        <TextField
+                          label="Custom reasoning effort"
+                          fullWidth
+                          value={taskForm.customReasoningEffort}
+                          onChange={(event) =>
+                            setTaskForm((prev) => ({
+                              ...prev,
+                              customReasoningEffort: event.target.value
+                            }))
+                          }
+                          placeholder="none | low | medium | high | xhigh"
+                        />
+                      )}
+                      <Typography color="text.secondary" variant="body2">
+                        Effort options are filtered by model support. Leave blank to use the model default.
+                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={taskForm.useHostDockerSocket}
+                              onChange={(event) =>
+                                setTaskForm((prev) => ({
+                                  ...prev,
+                                  useHostDockerSocket: event.target.checked
+                                }))
+                              }
+                            />
+                          }
+                          label="Use host Docker socket"
+                        />
+                        <Tooltip title="Grants root-equivalent access to the host via Docker. Enable only if you trust the task.">
+                          <WarningAmberIcon color="warning" fontSize="small" />
+                        </Tooltip>
+                      </Stack>
+                      <Divider />
+                      <Typography variant="subtitle2">Attachments</Typography>
+                      <Stack spacing={1}>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center">
+                          <Button
+                            variant="outlined"
+                            component="label"
+                            disabled={
+                              loading ||
+                              taskImageUploading ||
+                              taskImages.length >= MAX_TASK_IMAGES
+                            }
+                          >
+                            Add images
+                            <input
+                              ref={taskImageInputRef}
+                              type="file"
+                              hidden
+                              multiple
+                              accept="image/png,image/jpeg,image/gif,image/webp,image/bmp"
+                              onChange={handleTaskImagesSelected}
+                            />
                           </Button>
+                          <Typography color="text.secondary">
+                            Up to {MAX_TASK_IMAGES} images, used only for the initial request.
+                          </Typography>
                         </Stack>
+                        {taskImageError && <Typography color="error">{taskImageError}</Typography>}
+                        {taskImages.length > 0 && (
+                          <Stack spacing={1}>
+                            <Stack direction="row" spacing={1} flexWrap="wrap">
+                              {taskImages.map((file, index) => (
+                                <Chip
+                                  key={`${file.name}-${index}`}
+                                  label={`${file.name} (${formatBytes(file.size)})`}
+                                  onDelete={() => handleRemoveTaskImage(index)}
+                                />
+                              ))}
+                            </Stack>
+                            <Button
+                              size="small"
+                              color="secondary"
+                              onClick={handleClearTaskImages}
+                              disabled={loading || taskImageUploading}
+                            >
+                              Clear images
+                            </Button>
+                          </Stack>
+                        )}
+                      </Stack>
+                      <Button
+                        variant="contained"
+                        onClick={handleCreateTask}
+                        disabled={
+                          loading ||
+                          taskImageUploading ||
+                          !taskForm.envId ||
+                          !taskForm.prompt.trim()
+                        }
+                      >
+                        {taskImageUploading ? 'Uploading images...' : 'Run task'}
+                      </Button>
+                    </Stack>
+                  </Collapse>
+                </Stack>
+                <Divider />
+                {!selectedTaskId && (
+                  <Stack spacing={2}>
+                    <Typography variant="h6" className="panel-title">
+                      Task queue
+                    </Typography>
+                    <Stack spacing={1.5}>
+                      {visibleTasks.map((task) => (
+                        <Card
+                          key={task.taskId}
+                          className="task-card"
+                          sx={{
+                            borderColor: task.taskId === selectedTaskId ? 'primary.main' : 'divider',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => setSelectedTaskId(task.taskId)}
+                        >
+                          <CardContent>
+                            <Stack spacing={1}>
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                alignItems="center"
+                                justifyContent="space-between"
+                              >
+                                <Typography fontWeight={600}>{task.branchName}</Typography>
+                                <StatusIcon status={task.status} />
+                              </Stack>
+                              <Tooltip title={task.repoUrl || ''}>
+                                <Typography color="text.secondary">
+                                  {formatRepoDisplay(task.repoUrl) || task.repoUrl}
+                                </Typography>
+                              </Tooltip>
+                              <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+                                <Chip size="small" label={task.ref} />
+                                {(task.model || task.reasoningEffort) && (
+                                  <Chip
+                                    size="small"
+                                    label={`model: ${formatModelDisplay(task.model)}`}
+                                  />
+                                )}
+                                {(task.model || task.reasoningEffort) && (
+                                  <Chip
+                                    size="small"
+                                    label={`effort: ${formatEffortDisplay(task.reasoningEffort)}`}
+                                  />
+                                )}
+                                <Chip
+                                  size="small"
+                                  label={`created ${formatTimestamp(task.createdAt)}`}
+                                />
+                                {(task.status === 'running' || task.status === 'stopping') && (() => {
+                                  const latestRun = getLatestRun(task);
+                                  const durationMs = getElapsedMs(
+                                    latestRun?.startedAt || task.createdAt,
+                                    null,
+                                    now
+                                  );
+                                  if (durationMs === null) return null;
+                                  const statusLabel =
+                                    STATUS_CONFIG[task.status]?.label.toLowerCase() || 'running';
+                                  return (
+                                    <Chip
+                                      size="small"
+                                      variant="outlined"
+                                      icon={<AccessTimeIcon fontSize="small" />}
+                                      label={`${statusLabel} ${formatDuration(durationMs)}`}
+                                    />
+                                  );
+                                })()}
+                              </Stack>
+                              <Stack direction="row" spacing={0.5} alignItems="center">
+                                <Tooltip title="Stop task">
+                                  <span>
+                                    <IconButton
+                                      size="small"
+                                      color="error"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        handleStopTask(task.taskId);
+                                      }}
+                                      disabled={loading || task.status !== 'running'}
+                                      aria-label={`Stop task ${task.taskId}`}
+                                    >
+                                      <StopCircleOutlinedIcon fontSize="small" />
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                                <Tooltip title="Remove task">
+                                  <span>
+                                    <IconButton
+                                      size="small"
+                                      color="secondary"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        handleDeleteTask(task.taskId);
+                                      }}
+                                      disabled={loading}
+                                      aria-label={`Remove task ${task.taskId}`}
+                                    >
+                                      <DeleteOutlineIcon fontSize="small" />
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                              </Stack>
+                            </Stack>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      {visibleTasks.length === 0 && (
+                        <Typography color="text.secondary">
+                          No tasks yet. Create one to get started.
+                        </Typography>
                       )}
                     </Stack>
-                    <Button
-                      variant="contained"
-                      onClick={handleCreateTask}
-                      disabled={
-                        loading ||
-                        taskImageUploading ||
-                        !taskForm.envId ||
-                        !taskForm.prompt.trim()
-                      }
-                    >
-                      {taskImageUploading ? 'Uploading images...' : 'Run task'}
-                    </Button>
                   </Stack>
-                </Collapse>
-              </Stack>
-            </CardContent>
-          </Card>
-
-          {!selectedTaskId && (
-            <Card className="panel-card">
-            <CardContent>
-              <Stack spacing={2}>
-                <Typography variant="h6" className="panel-title">
-                  Task queue
-                </Typography>
-                <Stack spacing={1.5}>
-                  {visibleTasks.map((task) => (
-                    <Card
-                      key={task.taskId}
-                      className="task-card"
-                      sx={{
-                        borderColor: task.taskId === selectedTaskId ? 'primary.main' : 'divider',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => setSelectedTaskId(task.taskId)}
-                    >
-                      <CardContent>
-                        <Stack spacing={1}>
-                          <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-                            <Typography fontWeight={600}>{task.branchName}</Typography>
-                            <StatusIcon status={task.status} />
-                          </Stack>
-                          <Tooltip title={task.repoUrl || ''}>
+                )}
+                {selectedTaskId && (
+                  <Stack spacing={2}>
+                    <Typography variant="h6" className="panel-title">
+                      Task detail
+                    </Typography>
+                    {selectedTaskId && !taskDetail && (
+                      <Typography color="text.secondary">Loading task details...</Typography>
+                    )}
+                    {taskDetail && (
+                      <Stack spacing={2}>
+                        <Stack spacing={0.5}>
+                          <Typography fontWeight={600}>{taskDetail.branchName}</Typography>
+                          <Tooltip title={taskDetail.repoUrl || ''}>
                             <Typography color="text.secondary">
-                              {formatRepoDisplay(task.repoUrl) || task.repoUrl}
+                              {formatRepoDisplay(taskDetail.repoUrl) || taskDetail.repoUrl}
                             </Typography>
                           </Tooltip>
-                          <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
-                            <Chip size="small" label={task.ref} />
-                            {(task.model || task.reasoningEffort) && (
-                              <Chip
-                                size="small"
-                                label={`model: ${formatModelDisplay(task.model)}`}
-                              />
-                            )}
-                            {(task.model || task.reasoningEffort) && (
-                              <Chip
-                                size="small"
-                                label={`effort: ${formatEffortDisplay(task.reasoningEffort)}`}
-                              />
-                            )}
-                            <Chip size="small" label={`created ${formatTimestamp(task.createdAt)}`} />
-                            {(task.status === 'running' || task.status === 'stopping') && (() => {
-                              const latestRun = getLatestRun(task);
+                          <Typography className="mono">{taskDetail.taskId}</Typography>
+                        </Stack>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+                          <StatusIcon status={taskDetail.status} />
+                          <Chip label={`ref: ${taskDetail.ref}`} size="small" />
+                          <Chip
+                            label={`model: ${formatModelDisplay(taskDetail.model)}`}
+                            size="small"
+                          />
+                          <Chip
+                            label={`effort: ${formatEffortDisplay(taskDetail.reasoningEffort)}`}
+                            size="small"
+                          />
+                          <Chip label={`thread: ${taskDetail.threadId || 'pending'}`} size="small" />
+                          {(taskDetail.status === 'running' || taskDetail.status === 'stopping') &&
+                            (() => {
+                              const latestRun = getLatestRun(taskDetail);
                               const durationMs = getElapsedMs(
-                                latestRun?.startedAt || task.createdAt,
+                                latestRun?.startedAt || taskDetail.createdAt,
                                 null,
                                 now
                               );
                               if (durationMs === null) return null;
                               const statusLabel =
-                                STATUS_CONFIG[task.status]?.label.toLowerCase() || 'running';
+                                STATUS_CONFIG[taskDetail.status]?.label.toLowerCase() || 'running';
                               return (
                                 <Chip
                                   size="small"
@@ -1333,520 +1442,445 @@ function App() {
                                 />
                               );
                             })()}
-                          </Stack>
-                          <Stack direction="row" spacing={0.5} alignItems="center">
-                            <Tooltip title="Stop task">
-                              <span>
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    handleStopTask(task.taskId);
-                                  }}
-                                  disabled={loading || task.status !== 'running'}
-                                  aria-label={`Stop task ${task.taskId}`}
-                                >
-                                  <StopCircleOutlinedIcon fontSize="small" />
-                                </IconButton>
-                              </span>
+                          {gitStatusDisplay && (
+                            <Tooltip title={gitStatusDisplay.tooltip}>
+                              <Chip
+                                icon={gitStatusDisplay.icon}
+                                label={gitStatusDisplay.label}
+                                size="small"
+                                color={gitStatusDisplay.color}
+                                variant="outlined"
+                              />
                             </Tooltip>
-                            <Tooltip title="Remove task">
-                              <span>
-                                <IconButton
-                                  size="small"
-                                  color="secondary"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    handleDeleteTask(task.taskId);
-                                  }}
-                                  disabled={loading}
-                                  aria-label={`Remove task ${task.taskId}`}
-                                >
-                                  <DeleteOutlineIcon fontSize="small" />
-                                </IconButton>
-                              </span>
-                            </Tooltip>
-                          </Stack>
-                        </Stack>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {visibleTasks.length === 0 && (
-                    <Typography color="text.secondary">
-                      No tasks yet. Create one to get started.
-                    </Typography>
-                  )}
-                </Stack>
-              </Stack>
-            </CardContent>
-          </Card>
-          )}
-
-          {selectedTaskId && (
-            <Card className="panel-card">
-            <CardContent>
-              <Stack spacing={2}>
-                <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-                  <Typography variant="h6" className="panel-title">
-                    Task detail
-                  </Typography>
-                  {selectedTaskId && (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={() => {
-                        setSelectedTaskId('');
-                        setTaskDetail(null);
-                      }}
-                    >
-                      Back to tasks
-                    </Button>
-                  )}
-                </Stack>
-                {!selectedTaskId && (
-                  <Typography color="text.secondary">
-                    Select a task to inspect logs, artifacts, and resumes.
-                  </Typography>
-                )}
-                {selectedTaskId && !taskDetail && (
-                  <Typography color="text.secondary">Loading task details...</Typography>
-                )}
-                {taskDetail && (
-                  <Stack spacing={2}>
-                    <Stack spacing={0.5}>
-                      <Typography fontWeight={600}>{taskDetail.branchName}</Typography>
-                      <Tooltip title={taskDetail.repoUrl || ''}>
-                        <Typography color="text.secondary">
-                          {formatRepoDisplay(taskDetail.repoUrl) || taskDetail.repoUrl}
-                        </Typography>
-                      </Tooltip>
-                      <Typography className="mono">{taskDetail.taskId}</Typography>
-                    </Stack>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
-                      <StatusIcon status={taskDetail.status} />
-                      <Chip label={`ref: ${taskDetail.ref}`} size="small" />
-                      <Chip label={`model: ${formatModelDisplay(taskDetail.model)}`} size="small" />
-                      <Chip
-                        label={`effort: ${formatEffortDisplay(taskDetail.reasoningEffort)}`}
-                        size="small"
-                      />
-                      <Chip label={`thread: ${taskDetail.threadId || 'pending'}`} size="small" />
-                      {(taskDetail.status === 'running' || taskDetail.status === 'stopping') && (() => {
-                        const latestRun = getLatestRun(taskDetail);
-                        const durationMs = getElapsedMs(
-                          latestRun?.startedAt || taskDetail.createdAt,
-                          null,
-                          now
-                        );
-                        if (durationMs === null) return null;
-                        const statusLabel =
-                          STATUS_CONFIG[taskDetail.status]?.label.toLowerCase() || 'running';
-                        return (
-                          <Chip
-                            size="small"
-                            variant="outlined"
-                            icon={<AccessTimeIcon fontSize="small" />}
-                            label={`${statusLabel} ${formatDuration(durationMs)}`}
-                          />
-                        );
-                      })()}
-                      {gitStatusDisplay && (
-                        <Tooltip title={gitStatusDisplay.tooltip}>
-                          <Chip
-                            icon={gitStatusDisplay.icon}
-                            label={gitStatusDisplay.label}
-                            size="small"
-                            color={gitStatusDisplay.color}
-                            variant="outlined"
-                          />
-                        </Tooltip>
-                      )}
-                    </Stack>
-                    <Stack spacing={2}>
-                      <Box component="details" className="log-entry">
-                        <summary className="log-summary">
-                          <span>Diff</span>
-                          <span className="log-meta">
-                            {taskDiff
-                              ? taskDiff.available
-                                ? `${taskDiff.files.length} files`
-                                : 'Unavailable'
-                              : 'Loading'}
-                          </span>
-                        </summary>
-                        <Stack spacing={1} sx={{ mt: 1 }}>
-                          {!taskDiff && (
-                            <Typography color="text.secondary">Loading diff...</Typography>
-                          )}
-                          {taskDiff && !taskDiff.available && (
-                            <Typography color="text.secondary">
-                              {`Diff unavailable: ${taskDiff.reason || 'unknown error'}`}
-                            </Typography>
-                          )}
-                          {taskDiff && taskDiff.available && taskDiff.baseSha && (
-                            <Typography className="mono" color="text.secondary">
-                              {`Base commit: ${taskDiff.baseSha}`}
-                            </Typography>
-                          )}
-                          {taskDiff && taskDiff.available && taskDiff.files.length === 0 && (
-                            <Typography color="text.secondary">No changes yet.</Typography>
-                          )}
-                          {taskDiff && taskDiff.available && taskDiff.files.length > 0 && (
-                            <Stack spacing={1}>
-                              {taskDiff.files.map((file) => (
-                                <Box key={file.path} component="details" className="diff-file">
-                                  <summary className="log-summary">
-                                    <span className="mono">{file.path}</span>
-                                    <span className="log-meta">{`${file.lineCount} lines`}</span>
-                                  </summary>
-                                  <Box sx={{ mt: 1 }}>
-                                    {file.tooLarge && !revealedDiffs[file.path] ? (
-                                      <Stack direction="row" spacing={1} alignItems="center">
-                                        <Typography color="text.secondary">
-                                          {`Large diff (${file.lineCount} lines).`}
-                                        </Typography>
-                                        <Button
-                                          size="small"
-                                          variant="outlined"
-                                          onClick={() => revealDiff(file.path)}
-                                        >
-                                          Show diff
-                                        </Button>
-                                      </Stack>
-                                    ) : (
-                                      <Box className="log-box diff-box">
-                                        <pre>{file.diff}</pre>
-                                      </Box>
-                                    )}
-                                  </Box>
-                                </Box>
-                              ))}
-                            </Stack>
                           )}
                         </Stack>
-                      </Box>
-                      <Typography variant="subtitle2">Runs</Typography>
-                      <Stack spacing={1}>
-                        {(taskDetail.runLogs || []).map((run) => {
-                          const entries = run.entries || [];
-                          const agentMessages = collectAgentMessages(entries);
-                          const artifacts = run.artifacts || [];
-                          return (
-                            <React.Fragment key={run.runId}>
-                              <Box component="details" className="log-entry" open>
-                                <summary className="log-summary">
-                                  <span>Request</span>
-                                  <span className="log-meta">{run.runId}</span>
-                                </summary>
-                                {(run.model || run.reasoningEffort) && (
-                                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
-                                    <Chip size="small" label={`model: ${formatModelDisplay(run.model)}`} />
-                                    <Chip
-                                      size="small"
-                                      label={`effort: ${formatEffortDisplay(run.reasoningEffort)}`}
-                                    />
-                                  </Stack>
-                                )}
-                                <Box className="log-box">
-                                  <pre>{run.prompt || 'unknown'}</pre>
-                                </Box>
-                              </Box>
-                              <Box component="details" className="log-run">
-                                <summary className="log-summary">
-                                  <span>{run.runId}</span>
-                                  <Box
-                                    component="span"
-                                    className="log-meta"
-                                    sx={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: 1
-                                    }}
-                                  >
-                                    <StatusIcon status={run.status} size="small" />
-                                    <span>{formatTimestamp(run.startedAt)}</span>
-                                    {(() => {
-                                      const durationMs = getElapsedMs(
-                                        run.startedAt,
-                                        run.finishedAt,
-                                        now
-                                      );
-                                      if (durationMs === null) return null;
-                                      return <span>{formatDuration(durationMs)}</span>;
-                                    })()}
-                                  </Box>
-                                </summary>
-                                <Stack spacing={1} sx={{ mt: 1 }}>
-                                  {entries.length === 0 && (
-                                    <Typography color="text.secondary">No logs yet.</Typography>
-                                  )}
-                                  {entries.map((entry) => (
-                                    <Box
-                                      key={`${run.runId}-${entry.id}`}
-                                      component="details"
-                                      className="log-entry"
-                                    >
+                        <Stack spacing={2}>
+                          <Box component="details" className="log-entry">
+                            <summary className="log-summary">
+                              <span>Diff</span>
+                              <span className="log-meta">
+                                {taskDiff
+                                  ? taskDiff.available
+                                    ? `${taskDiff.files.length} files`
+                                    : 'Unavailable'
+                                  : 'Loading'}
+                              </span>
+                            </summary>
+                            <Stack spacing={1} sx={{ mt: 1 }}>
+                              {!taskDiff && (
+                                <Typography color="text.secondary">Loading diff...</Typography>
+                              )}
+                              {taskDiff && !taskDiff.available && (
+                                <Typography color="text.secondary">
+                                  {`Diff unavailable: ${taskDiff.reason || 'unknown error'}`}
+                                </Typography>
+                              )}
+                              {taskDiff && taskDiff.available && taskDiff.baseSha && (
+                                <Typography className="mono" color="text.secondary">
+                                  {`Base commit: ${taskDiff.baseSha}`}
+                                </Typography>
+                              )}
+                              {taskDiff && taskDiff.available && taskDiff.files.length === 0 && (
+                                <Typography color="text.secondary">No changes yet.</Typography>
+                              )}
+                              {taskDiff && taskDiff.available && taskDiff.files.length > 0 && (
+                                <Stack spacing={1}>
+                                  {taskDiff.files.map((file) => (
+                                    <Box key={file.path} component="details" className="diff-file">
                                       <summary className="log-summary">
-                                        <span className="mono">{formatLogSummary(entry)}</span>
+                                        <span className="mono">{file.path}</span>
+                                        <span className="log-meta">{`${file.lineCount} lines`}</span>
                                       </summary>
-                                      <Box className="log-box">
-                                        <pre>{formatLogEntry(entry)}</pre>
+                                      <Box sx={{ mt: 1 }}>
+                                        {file.tooLarge && !revealedDiffs[file.path] ? (
+                                          <Stack direction="row" spacing={1} alignItems="center">
+                                            <Typography color="text.secondary">
+                                              {`Large diff (${file.lineCount} lines).`}
+                                            </Typography>
+                                            <Button
+                                              size="small"
+                                              variant="outlined"
+                                              onClick={() => revealDiff(file.path)}
+                                            >
+                                              Show diff
+                                            </Button>
+                                          </Stack>
+                                        ) : (
+                                          <Box className="log-box diff-box">
+                                            <pre>{file.diff}</pre>
+                                          </Box>
+                                        )}
                                       </Box>
                                     </Box>
                                   ))}
                                 </Stack>
-                              </Box>
-                              <Box component="details" className="log-entry">
-                                <summary className="log-summary">
-                                  <span>Artifacts</span>
-                                  <span className="log-meta">{artifacts.length}</span>
-                                </summary>
-                                <Box sx={{ mt: 1 }}>
-                                  {artifacts.length === 0 && (
-                                    <Typography color="text.secondary">
-                                      No artifacts for this run.
-                                    </Typography>
-                                  )}
-                                  {artifacts.length > 0 &&
-                                    (() => {
-                                      const imageArtifacts = artifacts.filter((artifact) =>
-                                        isImageArtifact(artifact.path)
-                                      );
-                                      const fileArtifacts = artifacts.filter(
-                                        (artifact) => !isImageArtifact(artifact.path)
-                                      );
-                                      const renderArtifactCard = (artifact, showImage) => {
-                                        const encodedPath = encodeArtifactPath(artifact.path);
-                                        const artifactUrl = apiUrl(
-                                          `/api/tasks/${taskDetail.taskId}/artifacts/${run.runId}/${encodedPath}`
-                                        );
-                                        return (
-                                          <Box key={artifact.path} className="artifact-item">
-                                            {showImage && (
-                                              <img
-                                                className="artifact-image"
-                                                src={artifactUrl}
-                                                alt={artifact.path}
-                                              />
-                                            )}
-                                            <Stack spacing={1}>
-                                              <Typography className="mono">{artifact.path}</Typography>
-                                              <Stack
-                                                direction="row"
-                                                spacing={1}
-                                                alignItems="center"
-                                                justifyContent="space-between"
-                                              >
-                                                <Typography color="text.secondary" variant="caption">
-                                                  {formatBytes(artifact.size)}
-                                                </Typography>
-                                                <Button
-                                                  component="a"
-                                                  href={artifactUrl}
-                                                  target="_blank"
-                                                  rel="noreferrer"
-                                                  size="small"
-                                                  variant="outlined"
-                                                >
-                                                  Open
-                                                </Button>
-                                              </Stack>
-                                            </Stack>
-                                          </Box>
-                                        );
-                                      };
-                                      if (imageArtifacts.length > 0 && fileArtifacts.length > 0) {
-                                        return (
-                                          <Stack spacing={2}>
-                                            <Box>
-                                              <Typography variant="subtitle2">Images</Typography>
-                                              <Box className="artifact-grid">
-                                                {imageArtifacts.map((artifact) =>
-                                                  renderArtifactCard(artifact, true)
-                                                )}
-                                              </Box>
-                                            </Box>
-                                            <Box>
-                                              <Typography variant="subtitle2">Files</Typography>
-                                              <Box className="artifact-list">
-                                                {fileArtifacts.map((artifact) =>
-                                                  renderArtifactCard(artifact, false)
-                                                )}
-                                              </Box>
-                                            </Box>
-                                          </Stack>
-                                        );
-                                      }
-                                      return (
-                                        <Box className="artifact-grid">
-                                          {artifacts.map((artifact) =>
-                                            renderArtifactCard(
-                                              artifact,
-                                              isImageArtifact(artifact.path)
-                                            )
-                                          )}
-                                        </Box>
-                                      );
-                                    })()}
-                                </Box>
-                              </Box>
-                              {agentMessages && (
-                                <Box component="details" className="log-entry" open>
-                                  <summary className="log-summary">
-                                    <span>Agent messages</span>
-                                    <span className="log-meta">{run.runId}</span>
-                                  </summary>
-                                  <Box className="log-box">
-                                    <pre>{agentMessages}</pre>
-                                  </Box>
-                                </Box>
                               )}
-                            </React.Fragment>
-                          );
-                        })}
-                        {(taskDetail.runLogs || []).length === 0 && (
-                          <Typography color="text.secondary">No logs yet.</Typography>
-                        )}
-                      </Stack>
-                      <Stack spacing={1}>
-                        <Typography variant="subtitle2">Run overrides</Typography>
-                        <Typography color="text.secondary" variant="body2">
-                          Default: model {formatModelDisplay(taskDetail.model)} · effort{' '}
-                          {formatEffortDisplay(taskDetail.reasoningEffort)}
-                        </Typography>
-                        <TextField
-                          select
-                          label="Model override"
-                          fullWidth
-                          value={resumeConfig.modelChoice}
-                          onChange={(event) => handleResumeModelChoiceChange(event.target.value)}
-                        >
-                          {MODEL_OPTIONS.map((option) => (
-                            <MenuItem key={option.value || 'default'} value={option.value}>
-                              {option.value === '' ? 'Use task default' : option.label}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                        {resumeConfig.modelChoice === MODEL_CUSTOM_VALUE && (
-                          <TextField
-                            label="Custom model"
-                            fullWidth
-                            value={resumeConfig.customModel}
-                            onChange={(event) =>
-                              setResumeConfig((prev) => ({
-                                ...prev,
-                                customModel: event.target.value
-                              }))
-                            }
-                          />
-                        )}
-                        {resumeConfig.modelChoice &&
-                          resumeConfig.modelChoice !== MODEL_CUSTOM_VALUE && (
+                            </Stack>
+                          </Box>
+                          <Typography variant="subtitle2">Runs</Typography>
+                          <Stack spacing={1}>
+                            {(taskDetail.runLogs || []).map((run) => {
+                              const entries = run.entries || [];
+                              const agentMessages = collectAgentMessages(entries);
+                              const artifacts = run.artifacts || [];
+                              return (
+                                <React.Fragment key={run.runId}>
+                                  <Box component="details" className="log-entry" open>
+                                    <summary className="log-summary">
+                                      <span>Request</span>
+                                      <span className="log-meta">{run.runId}</span>
+                                    </summary>
+                                    {(run.model || run.reasoningEffort) && (
+                                      <Stack
+                                        direction="row"
+                                        spacing={1}
+                                        alignItems="center"
+                                        sx={{ mt: 1 }}
+                                      >
+                                        <Chip
+                                          size="small"
+                                          label={`model: ${formatModelDisplay(run.model)}`}
+                                        />
+                                        <Chip
+                                          size="small"
+                                          label={`effort: ${formatEffortDisplay(
+                                            run.reasoningEffort
+                                          )}`}
+                                        />
+                                      </Stack>
+                                    )}
+                                    <Box className="log-box">
+                                      <pre>{run.prompt || 'unknown'}</pre>
+                                    </Box>
+                                  </Box>
+                                  <Box component="details" className="log-run">
+                                    <summary className="log-summary">
+                                      <span>{run.runId}</span>
+                                      <Box
+                                        component="span"
+                                        className="log-meta"
+                                        sx={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: 1
+                                        }}
+                                      >
+                                        <StatusIcon status={run.status} size="small" />
+                                        <span>{formatTimestamp(run.startedAt)}</span>
+                                        {(() => {
+                                          const durationMs = getElapsedMs(
+                                            run.startedAt,
+                                            run.finishedAt,
+                                            now
+                                          );
+                                          if (durationMs === null) return null;
+                                          return <span>{formatDuration(durationMs)}</span>;
+                                        })()}
+                                      </Box>
+                                    </summary>
+                                    <Stack spacing={1} sx={{ mt: 1 }}>
+                                      {entries.length === 0 && (
+                                        <Typography color="text.secondary">No logs yet.</Typography>
+                                      )}
+                                      {entries.map((entry) => (
+                                        <Box
+                                          key={`${run.runId}-${entry.id}`}
+                                          component="details"
+                                          className="log-entry"
+                                        >
+                                          <summary className="log-summary">
+                                            <span className="mono">
+                                              {formatLogSummary(entry)}
+                                            </span>
+                                          </summary>
+                                          <Box className="log-box">
+                                            <pre>{formatLogEntry(entry)}</pre>
+                                          </Box>
+                                        </Box>
+                                      ))}
+                                    </Stack>
+                                  </Box>
+                                  <Box component="details" className="log-entry">
+                                    <summary className="log-summary">
+                                      <span>Artifacts</span>
+                                      <span className="log-meta">{artifacts.length}</span>
+                                    </summary>
+                                    <Box sx={{ mt: 1 }}>
+                                      {artifacts.length === 0 && (
+                                        <Typography color="text.secondary">
+                                          No artifacts for this run.
+                                        </Typography>
+                                      )}
+                                      {artifacts.length > 0 &&
+                                        (() => {
+                                          const imageArtifacts = artifacts.filter((artifact) =>
+                                            isImageArtifact(artifact.path)
+                                          );
+                                          const fileArtifacts = artifacts.filter(
+                                            (artifact) => !isImageArtifact(artifact.path)
+                                          );
+                                          const renderArtifactCard = (artifact, showImage) => {
+                                            const encodedPath = encodeArtifactPath(artifact.path);
+                                            const artifactUrl = apiUrl(
+                                              `/api/tasks/${taskDetail.taskId}/artifacts/${run.runId}/${encodedPath}`
+                                            );
+                                            return (
+                                              <Box key={artifact.path} className="artifact-item">
+                                                {showImage && (
+                                                  <img
+                                                    className="artifact-image"
+                                                    src={artifactUrl}
+                                                    alt={artifact.path}
+                                                  />
+                                                )}
+                                                <Stack spacing={1}>
+                                                  <Typography className="mono">
+                                                    {artifact.path}
+                                                  </Typography>
+                                                  <Stack
+                                                    direction="row"
+                                                    spacing={1}
+                                                    alignItems="center"
+                                                    justifyContent="space-between"
+                                                  >
+                                                    <Typography
+                                                      color="text.secondary"
+                                                      variant="caption"
+                                                    >
+                                                      {formatBytes(artifact.size)}
+                                                    </Typography>
+                                                    <Button
+                                                      component="a"
+                                                      href={artifactUrl}
+                                                      target="_blank"
+                                                      rel="noreferrer"
+                                                      size="small"
+                                                      variant="outlined"
+                                                    >
+                                                      Open
+                                                    </Button>
+                                                  </Stack>
+                                                </Stack>
+                                              </Box>
+                                            );
+                                          };
+                                          if (imageArtifacts.length > 0 && fileArtifacts.length > 0) {
+                                            return (
+                                              <Stack spacing={2}>
+                                                <Box>
+                                                  <Typography variant="subtitle2">Images</Typography>
+                                                  <Box className="artifact-grid">
+                                                    {imageArtifacts.map((artifact) =>
+                                                      renderArtifactCard(artifact, true)
+                                                    )}
+                                                  </Box>
+                                                </Box>
+                                                <Box>
+                                                  <Typography variant="subtitle2">Files</Typography>
+                                                  <Box className="artifact-list">
+                                                    {fileArtifacts.map((artifact) =>
+                                                      renderArtifactCard(artifact, false)
+                                                    )}
+                                                  </Box>
+                                                </Box>
+                                              </Stack>
+                                            );
+                                          }
+                                          return (
+                                            <Box className="artifact-grid">
+                                              {artifacts.map((artifact) =>
+                                                renderArtifactCard(
+                                                  artifact,
+                                                  isImageArtifact(artifact.path)
+                                                )
+                                              )}
+                                            </Box>
+                                          );
+                                        })()}
+                                    </Box>
+                                  </Box>
+                                  {agentMessages && (
+                                    <Box component="details" className="log-entry" open>
+                                      <summary className="log-summary">
+                                        <span>Agent messages</span>
+                                        <span className="log-meta">{run.runId}</span>
+                                      </summary>
+                                      <Box className="log-box">
+                                        <pre>{agentMessages}</pre>
+                                      </Box>
+                                    </Box>
+                                  )}
+                                </React.Fragment>
+                              );
+                            })}
+                            {(taskDetail.runLogs || []).length === 0 && (
+                              <Typography color="text.secondary">No logs yet.</Typography>
+                            )}
+                          </Stack>
+                          <Stack spacing={1}>
+                            <Typography variant="subtitle2">Run overrides</Typography>
+                            <Typography color="text.secondary" variant="body2">
+                              Default: model {formatModelDisplay(taskDetail.model)} · effort{' '}
+                              {formatEffortDisplay(taskDetail.reasoningEffort)}
+                            </Typography>
                             <TextField
                               select
-                              label="Reasoning effort"
+                              label="Model override"
                               fullWidth
-                              value={resumeConfig.reasoningEffort}
-                              onChange={(event) =>
-                                setResumeConfig((prev) => ({
-                                  ...prev,
-                                  reasoningEffort: event.target.value
-                                }))
-                              }
+                              value={resumeConfig.modelChoice}
+                              onChange={(event) => handleResumeModelChoiceChange(event.target.value)}
                             >
-                              <MenuItem value="">Use task default</MenuItem>
-                              {getEffortOptionsForModel(resumeConfig.modelChoice).map((effort) => (
-                                <MenuItem key={effort} value={effort}>
-                                  {EFFORT_LABELS[effort] || effort}
+                              {MODEL_OPTIONS.map((option) => (
+                                <MenuItem key={option.value || 'default'} value={option.value}>
+                                  {option.value === '' ? 'Use task default' : option.label}
                                 </MenuItem>
                               ))}
                             </TextField>
-                          )}
-                        {resumeConfig.modelChoice === MODEL_CUSTOM_VALUE && (
+                            {resumeConfig.modelChoice === MODEL_CUSTOM_VALUE && (
+                              <TextField
+                                label="Custom model"
+                                fullWidth
+                                value={resumeConfig.customModel}
+                                onChange={(event) =>
+                                  setResumeConfig((prev) => ({
+                                    ...prev,
+                                    customModel: event.target.value
+                                  }))
+                                }
+                              />
+                            )}
+                            {resumeConfig.modelChoice &&
+                              resumeConfig.modelChoice !== MODEL_CUSTOM_VALUE && (
+                                <TextField
+                                  select
+                                  label="Reasoning effort"
+                                  fullWidth
+                                  value={resumeConfig.reasoningEffort}
+                                  onChange={(event) =>
+                                    setResumeConfig((prev) => ({
+                                      ...prev,
+                                      reasoningEffort: event.target.value
+                                    }))
+                                  }
+                                >
+                                  <MenuItem value="">Use task default</MenuItem>
+                                  {getEffortOptionsForModel(resumeConfig.modelChoice).map(
+                                    (effort) => (
+                                      <MenuItem key={effort} value={effort}>
+                                        {EFFORT_LABELS[effort] || effort}
+                                      </MenuItem>
+                                    )
+                                  )}
+                                </TextField>
+                              )}
+                            {resumeConfig.modelChoice === MODEL_CUSTOM_VALUE && (
+                              <TextField
+                                label="Custom reasoning effort"
+                                fullWidth
+                                value={resumeConfig.customReasoningEffort}
+                                onChange={(event) =>
+                                  setResumeConfig((prev) => ({
+                                    ...prev,
+                                    customReasoningEffort: event.target.value
+                                  }))
+                                }
+                                placeholder="none | low | medium | high | xhigh"
+                              />
+                            )}
+                          </Stack>
                           <TextField
-                            label="Custom reasoning effort"
+                            label="Resume prompt"
                             fullWidth
-                            value={resumeConfig.customReasoningEffort}
-                            onChange={(event) =>
-                              setResumeConfig((prev) => ({
-                                ...prev,
-                                customReasoningEffort: event.target.value
-                              }))
-                            }
-                            placeholder="none | low | medium | high | xhigh"
+                            multiline
+                            minRows={3}
+                            value={resumePrompt}
+                            onChange={(event) => setResumePrompt(event.target.value)}
                           />
-                        )}
-                      </Stack>
-                      <TextField
-                        label="Resume prompt"
-                        fullWidth
-                        multiline
-                        minRows={3}
-                        value={resumePrompt}
-                        onChange={(event) => setResumePrompt(event.target.value)}
-                      />
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={resumeUseHostDockerSocket}
-                              onChange={(event) => {
-                                setResumeUseHostDockerSocket(event.target.checked);
-                                setResumeDockerTouched(true);
-                              }}
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={resumeUseHostDockerSocket}
+                                  onChange={(event) => {
+                                    setResumeUseHostDockerSocket(event.target.checked);
+                                    setResumeDockerTouched(true);
+                                  }}
+                                />
+                              }
+                              label="Use host Docker socket for this run"
                             />
-                          }
-                          label="Use host Docker socket for this run"
-                        />
-                        <Tooltip title="Grants root-equivalent access to the host via Docker. Disable if you do not trust the task.">
-                          <WarningAmberIcon color="warning" fontSize="small" />
-                        </Tooltip>
-                      </Stack>
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                        <Button
-                          variant="contained"
-                          onClick={handleResumeTask}
-                          disabled={loading || !resumePrompt.trim()}
-                        >
-                          Continue task
-                        </Button>
-                        <Button variant="outlined" onClick={handlePushTask} disabled={loading}>
-                          Push
-                        </Button>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Tooltip title="Stop task">
-                            <span>
-                              <IconButton
-                                color="error"
-                                onClick={() => handleStopTask(taskDetail.taskId)}
-                                disabled={loading || taskDetail.status !== 'running'}
-                                aria-label="Stop task"
-                              >
-                                <StopCircleOutlinedIcon />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                          <Tooltip title="Remove task">
-                            <span>
-                              <IconButton
-                                color="secondary"
-                                onClick={() => handleDeleteTask(taskDetail.taskId)}
-                                disabled={loading}
-                                aria-label="Remove task"
-                              >
-                                <DeleteOutlineIcon />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
+                            <Tooltip title="Grants root-equivalent access to the host via Docker. Disable if you do not trust the task.">
+                              <WarningAmberIcon color="warning" fontSize="small" />
+                            </Tooltip>
+                          </Stack>
+                          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                            <Button
+                              variant="contained"
+                              onClick={handleResumeTask}
+                              disabled={loading || !resumePrompt.trim()}
+                            >
+                              Continue task
+                            </Button>
+                            <Button variant="outlined" onClick={handlePushTask} disabled={loading}>
+                              Push
+                            </Button>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Tooltip title="Stop task">
+                                <span>
+                                  <IconButton
+                                    color="error"
+                                    onClick={() => handleStopTask(taskDetail.taskId)}
+                                    disabled={loading || taskDetail.status !== 'running'}
+                                    aria-label="Stop task"
+                                  >
+                                    <StopCircleOutlinedIcon />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                              <Tooltip title="Remove task">
+                                <span>
+                                  <IconButton
+                                    color="secondary"
+                                    onClick={() => handleDeleteTask(taskDetail.taskId)}
+                                    disabled={loading}
+                                    aria-label="Remove task"
+                                  >
+                                    <DeleteOutlineIcon />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            </Stack>
+                          </Stack>
                         </Stack>
                       </Stack>
-                    </Stack>
+                    )}
                   </Stack>
                 )}
               </Stack>
             </CardContent>
           </Card>
+          {selectedTaskId && (
+            <Tooltip title="Back to tasks">
+              <IconButton
+                color="primary"
+                onClick={handleBackToTasks}
+                aria-label="Back to tasks"
+                sx={{
+                  position: 'fixed',
+                  bottom: { xs: 16, md: 24 },
+                  left: { xs: 16, md: 24 },
+                  backgroundColor: 'background.paper',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  boxShadow: 3,
+                  '&:hover': {
+                    backgroundColor: 'background.paper'
+                  }
+                }}
+              >
+                <ArrowBackOutlinedIcon />
+              </IconButton>
+            </Tooltip>
           )}
         </Box>
       )}

@@ -8,5 +8,5 @@ it('renders the orchestrator header and forms', async () => {
   expect(screen.getByRole('tab', { name: 'Environments' })).toBeInTheDocument();
   expect(screen.getByRole('tab', { name: 'Tasks' })).toBeInTheDocument();
   expect(screen.getByRole('tab', { name: 'Settings' })).toBeInTheDocument();
-  expect(screen.getByText('New task')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'New task' })).toBeInTheDocument();
 });

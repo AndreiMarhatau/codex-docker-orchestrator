@@ -1003,50 +1003,49 @@ function App() {
 
       {activeTab === 1 && (
         <Box className="section-shell fade-in">
-          {!selectedTaskId && (
-            <Card className="panel-card">
-              <CardContent>
-                <Stack
-                  direction={{ xs: 'column', md: 'row' }}
-                  spacing={2}
-                  alignItems={{ xs: 'flex-start', md: 'center' }}
-                  justifyContent="space-between"
-                >
-                  <Stack spacing={1}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <BoltOutlinedIcon color="primary" />
-                      <Typography variant="h6" className="panel-title">
-                        Tasks
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Box
-                        component="span"
-                        className={`status-dot ${hasActiveRuns ? '' : 'is-idle'}`}
-                      />
-                      <Typography variant="subtitle2">
-                        {hasActiveRuns ? 'Runs in progress' : 'No active runs'}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" spacing={1} flexWrap="wrap">
-                      <Chip label={`${taskStats.total} total`} size="small" />
-                      <Chip label={`${taskStats.running} running`} size="small" />
-                      <Chip label={`${taskStats.failed} failed`} size="small" />
-                    </Stack>
-                  </Stack>
-                  <Button variant="outlined" size="small" onClick={refreshAll} disabled={loading}>
-                    Sync now
-                  </Button>
-                </Stack>
-              </CardContent>
-            </Card>
-          )}
-
           <Card className="panel-card">
             <CardContent>
               <Stack spacing={3}>
                 {!selectedTaskId && (
                   <Stack spacing={2}>
+                    <Stack
+                      direction={{ xs: 'column', md: 'row' }}
+                      spacing={2}
+                      alignItems={{ xs: 'flex-start', md: 'center' }}
+                      justifyContent="space-between"
+                    >
+                      <Stack spacing={1}>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <BoltOutlinedIcon color="primary" />
+                          <Typography variant="h6" className="panel-title">
+                            Tasks
+                          </Typography>
+                        </Stack>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Box
+                            component="span"
+                            className={`status-dot ${hasActiveRuns ? '' : 'is-idle'}`}
+                          />
+                          <Typography variant="subtitle2">
+                            {hasActiveRuns ? 'Runs in progress' : 'No active runs'}
+                          </Typography>
+                        </Stack>
+                        <Stack direction="row" spacing={1} flexWrap="wrap">
+                          <Chip label={`${taskStats.total} total`} size="small" />
+                          <Chip label={`${taskStats.running} running`} size="small" />
+                          <Chip label={`${taskStats.failed} failed`} size="small" />
+                        </Stack>
+                      </Stack>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={refreshAll}
+                        disabled={loading}
+                      >
+                        Sync now
+                      </Button>
+                    </Stack>
+                    <Divider />
                     <Stack
                       direction={{ xs: 'column', md: 'row' }}
                       spacing={2}
@@ -1397,43 +1396,14 @@ function App() {
                 )}
                 {selectedTaskId && (
                   <Stack spacing={2}>
-                    <Box
-                      sx={{
-                        position: 'sticky',
-                        top: { xs: 8, md: 16 },
-                        zIndex: 2,
-                        backgroundColor: 'background.paper',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        borderRadius: 1,
-                        px: { xs: 1.5, md: 2 },
-                        py: { xs: 1, md: 1.5 }
-                      }}
-                    >
-                      <Stack
-                        direction={{ xs: 'column', sm: 'row' }}
-                        spacing={1}
-                        alignItems={{ xs: 'flex-start', sm: 'center' }}
-                        justifyContent="space-between"
-                      >
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<ArrowBackOutlinedIcon />}
-                            onClick={handleBackToTasks}
-                          >
-                            Back to tasks
-                          </Button>
-                          <Typography variant="h6" className="panel-title">
-                            Task detail
-                          </Typography>
-                        </Stack>
-                        <Button size="small" variant="outlined" onClick={refreshAll}>
-                          Refresh
-                        </Button>
-                      </Stack>
-                    </Box>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Typography variant="h6" className="panel-title">
+                        Task detail
+                      </Typography>
+                      <Button size="small" variant="outlined" onClick={refreshAll}>
+                        Refresh
+                      </Button>
+                    </Stack>
                     {selectedTaskId && !taskDetail && (
                       <Typography color="text.secondary">Loading task details...</Typography>
                     )}
@@ -1897,6 +1867,30 @@ function App() {
               </Stack>
             </CardContent>
           </Card>
+          {selectedTaskId && (
+            <Tooltip title="Back to tasks">
+              <IconButton
+                color="primary"
+                onClick={handleBackToTasks}
+                aria-label="Back to tasks"
+                sx={{
+                  position: 'fixed',
+                  top: { xs: 72, md: 88 },
+                  left: { xs: 16, md: 24 },
+                  backgroundColor: 'background.paper',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  boxShadow: 3,
+                  zIndex: 10,
+                  '&:hover': {
+                    backgroundColor: 'background.paper'
+                  }
+                }}
+              >
+                <ArrowBackOutlinedIcon />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
       )}
 

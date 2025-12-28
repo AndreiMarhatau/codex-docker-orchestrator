@@ -5,6 +5,7 @@ const fsp = require('node:fs/promises');
 const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 const { runCommand } = require('./commands');
+const { AccountStore } = require('./accounts');
 const {
   ensureDir,
   writeJson,
@@ -27,6 +28,7 @@ const DEFAULT_HOST_DOCKER_AGENTS_FILE = path.join(
 );
 const COMMIT_SHA_REGEX = /^[0-9a-f]{7,40}$/i;
 const DEFAULT_GIT_CREDENTIAL_HELPER = '!/usr/bin/gh auth git-credential';
+const DEFAULT_ACCOUNT_ROTATION_LIMIT = 'auto';
 
 function invalidImageError(message) {
   const error = new Error(message);
@@ -117,6 +119,15 @@ function normalizeOptionalString(value) {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+}
+
+function isUsageLimitError(output) {
+  if (!output) return false;
+  const lower = output.toLowerCase();
+  if (lower.includes("you've hit your usage limit")) return true;
+  if (lower.includes('usage limit') && lower.includes('codex')) return true;
+  if (lower.includes('usage limit') && lower.includes('chatgpt')) return true;
+  return false;
 }
 
 function buildContextReposSection(contextRepos) {
@@ -239,6 +250,7 @@ async function listArtifacts(rootDir) {
 class Orchestrator {
   constructor(options = {}) {
     this.orchHome = options.orchHome || process.env.ORCH_HOME || DEFAULT_ORCH_HOME;
+    this.codexHome = options.codexHome || process.env.CODEX_HOME || path.join(os.homedir(), '.codex');
     const baseExec = options.exec || runCommand;
     this.exec = (command, args, execOptions = {}) => {
       if (command === 'git') {
@@ -264,6 +276,22 @@ class Orchestrator {
       options.getGid ||
       (() => (typeof process.getgid === 'function' ? process.getgid() : null));
     this.running = new Map();
+    this.accountStore =
+      options.accountStore ||
+      new AccountStore({
+        orchHome: this.orchHome,
+        codexHome: this.codexHome,
+        now: this.now
+      });
+    this.maxAccountRotations = options.maxAccountRotations ?? this.parseRotationLimitEnv();
+  }
+
+  parseRotationLimitEnv() {
+    const value = process.env.ORCH_ACCOUNT_ROTATION_MAX || DEFAULT_ACCOUNT_ROTATION_LIMIT;
+    if (value === 'auto') return null;
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isNaN(parsed) || parsed < 0) return null;
+    return parsed;
   }
 
   gitCredentialHelper() {
@@ -366,6 +394,14 @@ class Orchestrator {
   async init() {
     await ensureDir(this.envsDir());
     await ensureDir(this.tasksDir());
+  }
+
+  async ensureActiveAuth() {
+    try {
+      await this.accountStore.applyActiveAccount();
+    } catch (error) {
+      // Best-effort: codex may still use existing auth.json.
+    }
   }
 
   async getImageInfo() {
@@ -680,6 +716,7 @@ class Orchestrator {
     const threadId = result.threadId || parseThreadId(combinedOutput);
     const resolvedThreadId = threadId || meta.threadId || null;
     const stopped = result.stopped === true;
+    const usageLimit = isUsageLimitError(combinedOutput);
     const success = !stopped && result.code === 0 && !!resolvedThreadId;
     const now = this.now();
     const artifactsDir = this.runArtifactsDir(taskId, runLabel);
@@ -690,7 +727,9 @@ class Orchestrator {
       ? null
       : stopped
         ? 'Stopped by user.'
-        : 'Unable to parse thread_id from codex output.';
+        : usageLimit
+          ? 'Usage limit reached.'
+          : 'Unable to parse thread_id from codex output.';
     meta.status = success ? 'completed' : stopped ? 'stopped' : 'failed';
     meta.updatedAt = now;
     meta.lastPrompt = prompt || meta.lastPrompt || null;
@@ -764,7 +803,7 @@ class Orchestrator {
     const stderrStream = fs.createWriteStream(stderrPath, { flags: 'a' });
     const env = { ...process.env };
     const homeDir = env.HOME || os.homedir();
-    const codexHome = env.CODEX_HOME || path.join(homeDir, '.codex');
+    const codexHome = this.codexHome || env.CODEX_HOME || path.join(homeDir, '.codex');
     env.HOME = homeDir;
     env.CODEX_HOME = codexHome;
     try {
@@ -876,6 +915,7 @@ class Orchestrator {
         threadId: detectedThreadId
       };
       await this.finalizeRun(taskId, runLabel, result, prompt);
+      await this.maybeAutoRotate(taskId, prompt, result);
     };
 
     child.on('error', (error) => {
@@ -1053,6 +1093,7 @@ class Orchestrator {
     };
 
     await writeJson(this.taskMetaPath(taskId), meta);
+    await this.ensureActiveAuth();
     const imageArgs = resolvedImagePaths.flatMap((imagePath) => ['--image', imagePath]);
     const args = buildCodexArgs({
       prompt,
@@ -1121,6 +1162,7 @@ class Orchestrator {
 
     await ensureDir(this.runArtifactsDir(taskId, runLabel));
     await writeJson(this.taskMetaPath(taskId), meta);
+    await this.ensureActiveAuth();
     const args = buildCodexArgs({
       prompt,
       model: runModel,
@@ -1176,6 +1218,59 @@ class Orchestrator {
     }
     await writeJson(this.taskMetaPath(taskId), meta);
     return meta;
+  }
+
+  async maybeAutoRotate(taskId, prompt, result) {
+    if (!prompt) return;
+    if (result.stopped) return;
+    const combinedOutput = [result.stdout, result.stderr].filter(Boolean).join('\n');
+    if (!isUsageLimitError(combinedOutput)) return;
+    const meta = await readJson(this.taskMetaPath(taskId));
+    if (!meta.threadId) return;
+    const accountCount = await this.accountStore.countAccounts();
+    if (accountCount < 2) return;
+    const maxRotations =
+      this.maxAccountRotations === null
+        ? Math.max(0, accountCount - 1)
+        : this.maxAccountRotations;
+    const attempts = meta.autoRotateCount || 0;
+    if (attempts >= maxRotations) return;
+    await this.accountStore.rotateActiveAccount();
+    meta.autoRotateCount = attempts + 1;
+    meta.updatedAt = this.now();
+    meta.status = 'running';
+    meta.error = null;
+    await writeJson(this.taskMetaPath(taskId), meta);
+    await this.resumeTask(taskId, prompt, {
+      model: meta.model,
+      reasoningEffort: meta.reasoningEffort,
+      useHostDockerSocket: meta.useHostDockerSocket
+    });
+  }
+
+  async listAccounts() {
+    return this.accountStore.listAccounts();
+  }
+
+  async addAccount({ label, authJson }) {
+    const account = await this.accountStore.addAccount({ label, authJson });
+    await this.accountStore.applyActiveAccount();
+    return account;
+  }
+
+  async activateAccount(accountId) {
+    await this.accountStore.setActiveAccount(accountId);
+    return this.listAccounts();
+  }
+
+  async rotateAccount() {
+    await this.accountStore.rotateActiveAccount();
+    return this.listAccounts();
+  }
+
+  async removeAccount(accountId) {
+    await this.accountStore.removeAccount(accountId);
+    return this.listAccounts();
   }
 
   async deleteTask(taskId) {
@@ -1293,5 +1388,6 @@ class Orchestrator {
 
 module.exports = {
   Orchestrator,
-  parseThreadId
+  parseThreadId,
+  isUsageLimitError
 };

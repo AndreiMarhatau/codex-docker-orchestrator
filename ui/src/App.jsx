@@ -79,6 +79,10 @@ const emptyResumeConfig = {
   reasoningEffort: '',
   customReasoningEffort: ''
 };
+const emptyAccountForm = {
+  label: '',
+  authJson: ''
+};
 const MAX_TASK_IMAGES = 5;
 const emptyContextRepo = { envId: '', ref: '' };
 
@@ -189,6 +193,11 @@ function formatRepoDisplay(repoUrl) {
   }
   const display = pickFromPath(cleaned);
   return display || cleaned;
+}
+
+function formatAccountLabel(account) {
+  if (!account) return 'unknown';
+  return account.label || account.id || 'unknown';
 }
 
 function formatDuration(ms) {
@@ -364,6 +373,7 @@ function collectAgentMessages(entries) {
 function App() {
   const [envs, setEnvs] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [accountState, setAccountState] = useState({ accounts: [], activeAccountId: null });
   const [selectedEnvId, setSelectedEnvId] = useState('');
   const [selectedTaskId, setSelectedTaskId] = useState('');
   const [taskFilterEnvId, setTaskFilterEnvId] = useState('');
@@ -384,6 +394,7 @@ function App() {
   const [taskImages, setTaskImages] = useState([]);
   const [taskImageError, setTaskImageError] = useState('');
   const [taskImageUploading, setTaskImageUploading] = useState(false);
+  const [accountForm, setAccountForm] = useState(emptyAccountForm);
   const [activeTab, setActiveTab] = useState(1);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -440,12 +451,14 @@ function App() {
   );
 
   async function refreshAll() {
-    const [envData, taskData] = await Promise.all([
+    const [envData, taskData, accountData] = await Promise.all([
       apiRequest('/api/envs'),
-      apiRequest('/api/tasks')
+      apiRequest('/api/tasks'),
+      apiRequest('/api/accounts')
     ]);
     setEnvs(envData);
     setTasks(taskData);
+    setAccountState(accountData || { accounts: [], activeAccountId: null });
     if (!selectedEnvId && envData.length > 0) {
       setSelectedEnvId(envData[0].envId);
     }
@@ -486,6 +499,11 @@ function App() {
     } finally {
       setImageLoading(false);
     }
+  }
+
+  async function refreshAccounts() {
+    const accountData = await apiRequest('/api/accounts');
+    setAccountState(accountData || { accounts: [], activeAccountId: null });
   }
 
   useEffect(() => {
@@ -864,6 +882,68 @@ function App() {
       setError(err.message);
     } finally {
       setImageUpdating(false);
+    }
+  }
+
+  async function handleAddAccount() {
+    if (!accountForm.authJson.trim()) return;
+    setError('');
+    setLoading(true);
+    try {
+      await apiRequest('/api/accounts', {
+        method: 'POST',
+        body: JSON.stringify({
+          label: accountForm.label,
+          authJson: accountForm.authJson
+        })
+      });
+      setAccountForm(emptyAccountForm);
+      await refreshAccounts();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleActivateAccount(accountId) {
+    setError('');
+    setLoading(true);
+    try {
+      const accountData = await apiRequest(`/api/accounts/${accountId}/activate`, {
+        method: 'POST'
+      });
+      setAccountState(accountData || { accounts: [], activeAccountId: null });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRotateAccount() {
+    setError('');
+    setLoading(true);
+    try {
+      const accountData = await apiRequest('/api/accounts/rotate', { method: 'POST' });
+      setAccountState(accountData || { accounts: [], activeAccountId: null });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteAccount(accountId) {
+    setError('');
+    setLoading(true);
+    try {
+      const accountData = await apiRequest(`/api/accounts/${accountId}`, { method: 'DELETE' });
+      setAccountState(accountData || { accounts: [], activeAccountId: null });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -2086,47 +2166,185 @@ function App() {
 
       {activeTab === 2 && (
         <Box className="section-shell fade-in">
-          <Card className="panel-card">
-            <CardContent>
-              <Stack spacing={2}>
-                <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-                  <Typography variant="h6" className="panel-title">
-                    Codex Docker Image
-                  </Typography>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => refreshImageInfo()}
-                    disabled={imageLoading || imageUpdating}
-                  >
-                    Refresh
-                  </Button>
-                </Stack>
-                {imageLoading && (
-                  <Typography color="text.secondary">Loading image details...</Typography>
-                )}
-                {!imageLoading && (
-                  <Stack spacing={1}>
-                    <Typography>
-                      Image: <span className="mono">{imageInfo?.imageName || 'unknown'}</span>
+          <Stack spacing={2}>
+            <Card className="panel-card">
+              <CardContent>
+                <Stack spacing={2}>
+                  <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+                    <Typography variant="h6" className="panel-title">
+                      Accounts
                     </Typography>
-                    <Typography>Created: {formatTimestamp(imageInfo?.imageCreatedAt)}</Typography>
-                    {imageInfo?.imageId && (
-                      <Typography className="mono">ID: {imageInfo.imageId}</Typography>
-                    )}
-                    {imageInfo && imageInfo.present === false && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => refreshAccounts()}
+                      disabled={loading}
+                    >
+                      Refresh
+                    </Button>
+                  </Stack>
+                  <Typography color="text.secondary">
+                    Copy credentials from any local terminal and paste them here to add an account.
+                  </Typography>
+                  <Box className="log-box">
+                    <pre>{`codex login\ncat ~/.codex/auth.json`}</pre>
+                  </Box>
+                  <Stack spacing={2}>
+                    <TextField
+                      label="Account label"
+                      fullWidth
+                      value={accountForm.label}
+                      onChange={(event) =>
+                        setAccountForm((prev) => ({ ...prev, label: event.target.value }))
+                      }
+                      placeholder="Personal / Work / Alt"
+                    />
+                    <TextField
+                      label="auth.json contents"
+                      fullWidth
+                      multiline
+                      minRows={6}
+                      value={accountForm.authJson}
+                      onChange={(event) =>
+                        setAccountForm((prev) => ({ ...prev, authJson: event.target.value }))
+                      }
+                      placeholder="{...}"
+                    />
+                    <Button
+                      variant="contained"
+                      onClick={handleAddAccount}
+                      disabled={loading || !accountForm.authJson.trim()}
+                    >
+                      Add account
+                    </Button>
+                  </Stack>
+                  <Divider />
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={2}
+                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                    justifyContent="space-between"
+                  >
+                    <Stack spacing={0.5}>
+                      <Typography variant="subtitle2">Rotation queue</Typography>
                       <Typography color="text.secondary">
-                        Image not found locally. Pull to download it.
+                        Active account is first. Usage-limit failures auto-rotate.
+                      </Typography>
+                    </Stack>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={handleRotateAccount}
+                      disabled={loading || accountState.accounts.length < 2}
+                    >
+                      Rotate now
+                    </Button>
+                  </Stack>
+                  <Stack spacing={1.5}>
+                    {accountState.accounts.map((account) => (
+                      <Card key={account.id} className="task-card">
+                        <CardContent>
+                          <Stack spacing={1}>
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              alignItems="center"
+                              justifyContent="space-between"
+                            >
+                              <Typography fontWeight={600}>
+                                {formatAccountLabel(account)}
+                              </Typography>
+                              {account.isActive && (
+                                <Chip size="small" color="success" label="Active" />
+                              )}
+                            </Stack>
+                            <Typography color="text.secondary" className="mono">
+                              {account.id}
+                            </Typography>
+                            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                              <Chip size="small" label={`Queue #${account.position}`} />
+                              {account.createdAt && (
+                                <Chip size="small" label={`Added ${formatTimestamp(account.createdAt)}`} />
+                              )}
+                            </Stack>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => handleActivateAccount(account.id)}
+                                disabled={loading || account.isActive}
+                              >
+                                Make active
+                              </Button>
+                              <Button
+                                size="small"
+                                color="secondary"
+                                onClick={() => handleDeleteAccount(account.id)}
+                                disabled={loading}
+                              >
+                                Remove
+                              </Button>
+                            </Stack>
+                          </Stack>
+                        </CardContent>
+                      </Card>
+                    ))}
+                    {accountState.accounts.length === 0 && (
+                      <Typography color="text.secondary">
+                        No accounts yet. Add one to enable rotation.
                       </Typography>
                     )}
                   </Stack>
-                )}
-                <Button variant="contained" onClick={handlePullImage} disabled={imageUpdating}>
-                  {imageUpdating ? 'Updating image...' : 'Update image'}
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
+                </Stack>
+              </CardContent>
+            </Card>
+            <Card className="panel-card">
+              <CardContent>
+                <Stack spacing={2}>
+                  <Stack
+                    direction="row"
+                    spacing={2}
+                    alignItems="center"
+                    justifyContent="space-between"
+                  >
+                    <Typography variant="h6" className="panel-title">
+                      Codex Docker Image
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => refreshImageInfo()}
+                      disabled={imageLoading || imageUpdating}
+                    >
+                      Refresh
+                    </Button>
+                  </Stack>
+                  {imageLoading && (
+                    <Typography color="text.secondary">Loading image details...</Typography>
+                  )}
+                  {!imageLoading && (
+                    <Stack spacing={1}>
+                      <Typography>
+                        Image: <span className="mono">{imageInfo?.imageName || 'unknown'}</span>
+                      </Typography>
+                      <Typography>Created: {formatTimestamp(imageInfo?.imageCreatedAt)}</Typography>
+                      {imageInfo?.imageId && (
+                        <Typography className="mono">ID: {imageInfo.imageId}</Typography>
+                      )}
+                      {imageInfo && imageInfo.present === false && (
+                        <Typography color="text.secondary">
+                          Image not found locally. Pull to download it.
+                        </Typography>
+                      )}
+                    </Stack>
+                  )}
+                  <Button variant="contained" onClick={handlePullImage} disabled={imageUpdating}>
+                    {imageUpdating ? 'Updating image...' : 'Update image'}
+                  </Button>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Stack>
         </Box>
       )}
 

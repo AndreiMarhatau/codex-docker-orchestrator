@@ -163,6 +163,46 @@ describe('Orchestrator', () => {
     expect(runCall.options?.env?.CODEX_MOUNT_PATHS_RO).toBeUndefined();
   });
 
+  it('mounts context repos read-only and injects instructions', async () => {
+    const orchHome = await createTempDir();
+    const exec = createMockExec({ branches: ['main'] });
+    const spawn = createMockSpawn();
+    const orchestrator = new Orchestrator({
+      orchHome,
+      exec,
+      spawn
+    });
+
+    const primaryEnv = await orchestrator.createEnv({
+      repoUrl: 'git@example.com:repo.git',
+      defaultBranch: 'main'
+    });
+    const contextEnv = await orchestrator.createEnv({
+      repoUrl: 'git@example.com:context.git',
+      defaultBranch: 'main'
+    });
+
+    const task = await orchestrator.createTask({
+      envId: primaryEnv.envId,
+      ref: 'main',
+      prompt: 'Do work',
+      contextRepos: [{ envId: contextEnv.envId, ref: 'main' }]
+    });
+    await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+
+    const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
+    expect(runCall).toBeTruthy();
+    const mountRo = runCall.options?.env?.CODEX_MOUNT_PATHS_RO || '';
+    const contextPath = orchestrator.taskContextWorktree(task.taskId, contextEnv.repoUrl, contextEnv.envId);
+    expect(mountRo.split(':')).toContain(contextPath);
+
+    const agentsFile = runCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
+    expect(agentsFile).toBeTruthy();
+    const agentsContent = await fs.readFile(agentsFile, 'utf8');
+    expect(agentsContent).toContain('Read-only reference repositories');
+    expect(agentsContent).toContain(contextPath);
+  });
+
   it('mounts docker socket when enabled and skips when disabled', async () => {
     const orchHome = await createTempDir();
     const exec = createMockExec({ branches: ['main'] });

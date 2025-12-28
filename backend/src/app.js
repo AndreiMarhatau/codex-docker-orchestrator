@@ -27,6 +27,24 @@ function isSupportedImageFile(file) {
   return allowedMimeTypes.has(mimeType) || allowedExts.has(ext);
 }
 
+function normalizeContextReposInput(contextRepos) {
+  if (contextRepos === undefined) return null;
+  if (!Array.isArray(contextRepos)) {
+    throw new Error('contextRepos must be an array');
+  }
+  return contextRepos.map((entry, index) => {
+    if (!entry || typeof entry !== 'object') {
+      throw new Error(`contextRepos[${index}] must be an object`);
+    }
+    const envId = typeof entry.envId === 'string' ? entry.envId.trim() : '';
+    if (!envId) {
+      throw new Error(`contextRepos[${index}].envId is required`);
+    }
+    const ref = typeof entry.ref === 'string' ? entry.ref.trim() : '';
+    return ref ? { envId, ref } : { envId };
+  });
+}
+
 function createUploadMiddleware(orchestrator) {
   const storage = multer.diskStorage({
     destination: async (req, file, cb) => {
@@ -129,12 +147,27 @@ function createApp({ orchestrator = new Orchestrator() } = {}) {
   }));
 
   app.post('/api/tasks', asyncHandler(async (req, res) => {
-    const { envId, ref, prompt, imagePaths, model, reasoningEffort, useHostDockerSocket } = req.body;
+    const {
+      envId,
+      ref,
+      prompt,
+      imagePaths,
+      model,
+      reasoningEffort,
+      useHostDockerSocket,
+      contextRepos
+    } = req.body;
     if (!envId || !prompt) {
       return res.status(400).send('envId and prompt are required');
     }
     if (useHostDockerSocket !== undefined && typeof useHostDockerSocket !== 'boolean') {
       return res.status(400).send('useHostDockerSocket must be a boolean');
+    }
+    let normalizedContextRepos = null;
+    try {
+      normalizedContextRepos = normalizeContextReposInput(contextRepos);
+    } catch (error) {
+      return res.status(400).send(error.message || 'Invalid contextRepos');
     }
     try {
       const task = await orchestrator.createTask({
@@ -144,11 +177,15 @@ function createApp({ orchestrator = new Orchestrator() } = {}) {
         imagePaths,
         model,
         reasoningEffort,
-        useHostDockerSocket
+        useHostDockerSocket,
+        contextRepos: normalizedContextRepos
       });
       res.status(201).json(task);
     } catch (error) {
       if (error.code === 'INVALID_IMAGE') {
+        return res.status(400).send(error.message);
+      }
+      if (error.code === 'INVALID_CONTEXT') {
         return res.status(400).send(error.message);
       }
       throw error;

@@ -2280,7 +2280,7 @@ function App() {
                                 size="small"
                                 color="secondary"
                                 onClick={() => handleDeleteAccount(account.id)}
-                                disabled={loading}
+                                disabled={loading || account.isActive}
                               >
                                 Remove
                               </Button>

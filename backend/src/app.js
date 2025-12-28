@@ -148,8 +148,16 @@ function createApp({ orchestrator = new Orchestrator() } = {}) {
   }));
 
   app.delete('/api/accounts/:accountId', asyncHandler(async (req, res) => {
-    const accounts = await orchestrator.removeAccount(req.params.accountId);
-    res.json(accounts);
+    try {
+      const accounts = await orchestrator.removeAccount(req.params.accountId);
+      res.json(accounts);
+    } catch (error) {
+      const message = error?.message || 'Unable to remove account';
+      if (message.toLowerCase().includes('active account')) {
+        return res.status(400).send(message);
+      }
+      throw error;
+    }
   }));
 
   app.get('/api/settings/image', asyncHandler(async (req, res) => {

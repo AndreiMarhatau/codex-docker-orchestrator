@@ -1057,6 +1057,7 @@ class Orchestrator {
     await ensureDir(this.runArtifactsDir(taskId, runLabel));
     const logFile = `${runLabel}.jsonl`;
     const now = this.now();
+    const activeAccount = await this.accountStore.getActiveAccount();
     const meta = {
       taskId,
       envId,
@@ -1087,7 +1088,9 @@ class Orchestrator {
           finishedAt: null,
           status: 'running',
           exitCode: null,
-          useHostDockerSocket: shouldUseHostDockerSocket
+          useHostDockerSocket: shouldUseHostDockerSocket,
+          accountId: activeAccount?.id || null,
+          accountLabel: activeAccount?.label || null
         }
       ]
     };
@@ -1147,6 +1150,7 @@ class Orchestrator {
     const runReasoningEffort =
       normalizeOptionalString(options.reasoningEffort) ??
       normalizeOptionalString(meta.reasoningEffort);
+    const activeAccount = await this.accountStore.getActiveAccount();
     meta.runs.push({
       runId: runLabel,
       prompt,
@@ -1157,7 +1161,9 @@ class Orchestrator {
       finishedAt: null,
       status: 'running',
       exitCode: null,
-      useHostDockerSocket: shouldUseHostDockerSocket
+      useHostDockerSocket: shouldUseHostDockerSocket,
+      accountId: activeAccount?.id || null,
+      accountLabel: activeAccount?.label || null
     });
 
     await ensureDir(this.runArtifactsDir(taskId, runLabel));
@@ -1227,6 +1233,19 @@ class Orchestrator {
     if (!isUsageLimitError(combinedOutput)) return;
     const meta = await readJson(this.taskMetaPath(taskId));
     if (!meta.threadId) return;
+    const lastRun = meta.runs?.[meta.runs.length - 1];
+    const activeAccount = await this.accountStore.getActiveAccount();
+    if (!activeAccount?.id) {
+      return;
+    }
+    if (lastRun && !lastRun.accountId) {
+      lastRun.accountId = activeAccount.id;
+      lastRun.accountLabel = activeAccount.label || null;
+      await writeJson(this.taskMetaPath(taskId), meta);
+    }
+    if (!lastRun?.accountId || lastRun.accountId !== activeAccount.id) {
+      return;
+    }
     const accountCount = await this.accountStore.countAccounts();
     if (accountCount < 2) return;
     const maxRotations =

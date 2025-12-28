@@ -56,4 +56,22 @@ describe('AccountStore', () => {
     );
     expect(hostAuth).toEqual({ token: 'b' });
   });
+
+  it('prevents removing the active account', async () => {
+    const orchHome = await createTempDir();
+    const codexHome = path.join(orchHome, 'codex-home');
+    await fs.mkdir(codexHome, { recursive: true });
+    await fs.writeFile(path.join(codexHome, 'auth.json'), JSON.stringify({ token: 'a' }, null, 2));
+
+    const store = new AccountStore({
+      orchHome,
+      codexHome,
+      now: () => '2025-12-19T00:00:00.000Z'
+    });
+
+    const list = await store.listAccounts();
+    await expect(store.removeAccount(list.activeAccountId)).rejects.toThrow(
+      'Cannot remove the active account'
+    );
+  });
 });

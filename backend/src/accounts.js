@@ -130,6 +130,17 @@ class AccountStore {
     };
   }
 
+  async getActiveAccount() {
+    const state = await this.loadState();
+    const activeId = state.queue[0] || null;
+    if (!activeId) return null;
+    const account = state.accounts.find((entry) => entry.id === activeId);
+    if (!account) {
+      return { id: activeId, label: null };
+    }
+    return { id: account.id, label: account.label };
+  }
+
   async addAccount({ label, authJson }) {
     const parsed = parseAuthJson(authJson);
     const state = await this.loadState();
@@ -176,6 +187,9 @@ class AccountStore {
     const existing = state.queue.includes(accountId);
     if (!existing) {
       throw new Error('Account not found');
+    }
+    if (state.queue[0] === accountId) {
+      throw new Error('Cannot remove the active account');
     }
     state.queue = state.queue.filter((id) => id !== accountId);
     state.accounts = state.accounts.filter((account) => account.id !== accountId);

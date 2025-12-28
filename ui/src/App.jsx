@@ -2187,7 +2187,7 @@ function App() {
                     Copy credentials from any local terminal and paste them here to add an account.
                   </Typography>
                   <Box className="log-box">
-                    <pre>{`codex login\ncat ~/.codex/auth.json`}</pre>
+                    <pre>{`CODEX_HOME="$PWD/.codex-auth" codex login\ncat "$PWD/.codex-auth/auth.json"`}</pre>
                   </Box>
                   <Stack spacing={2}>
                     <TextField

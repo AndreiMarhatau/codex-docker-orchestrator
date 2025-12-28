@@ -712,6 +712,15 @@ class Orchestrator {
     const logStream = fs.createWriteStream(logPath, { flags: 'a' });
     const stderrStream = fs.createWriteStream(stderrPath, { flags: 'a' });
     const env = { ...process.env };
+    const homeDir = env.HOME || os.homedir();
+    const codexHome = env.CODEX_HOME || path.join(homeDir, '.codex');
+    env.HOME = homeDir;
+    env.CODEX_HOME = codexHome;
+    try {
+      fs.mkdirSync(codexHome, { recursive: true });
+    } catch (error) {
+      // Best-effort: codex can still run if the directory is created elsewhere.
+    }
     const agentsAppendFile = this.buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket });
     if (agentsAppendFile) {
       env.CODEX_AGENTS_APPEND_FILE = agentsAppendFile;
@@ -724,6 +733,9 @@ class Orchestrator {
       if (mountPath && fs.existsSync(mountPath) && !mountParts.includes(mountPath)) {
         mountParts.push(mountPath);
       }
+    }
+    if (fs.existsSync(codexHome) && !mountParts.includes(codexHome)) {
+      mountParts.push(codexHome);
     }
     if (!mountParts.includes(artifactsDir)) {
       mountParts.push(artifactsDir);

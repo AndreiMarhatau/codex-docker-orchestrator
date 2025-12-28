@@ -1,5 +1,7 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import { EventEmitter } from 'node:events';
+import { PassThrough } from 'node:stream';
 import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 import { createMockExec, createMockSpawn, createTempDir } from './helpers.mjs';
@@ -36,6 +38,7 @@ describe('Orchestrator', () => {
     const spawn = createMockSpawn();
     const orchestrator = new Orchestrator({
       orchHome,
+      codexHome: path.join(orchHome, 'codex-home'),
       exec,
       spawn,
       now: () => '2025-12-19T00:00:00.000Z'
@@ -86,6 +89,144 @@ describe('Orchestrator', () => {
     );
   });
 
+  it('auto-rotates accounts on usage limit and resumes', async () => {
+    const orchHome = await createTempDir();
+    const codexHome = path.join(orchHome, 'codex-home');
+    await fs.mkdir(codexHome, { recursive: true });
+    await fs.writeFile(path.join(codexHome, 'auth.json'), JSON.stringify({ token: 'primary' }, null, 2));
+
+    const exec = createMockExec({ branches: ['main'] });
+    const spawnCalls = [];
+    let runCount = 0;
+    const spawn = (command, args, options = {}) => {
+      spawnCalls.push({ command, args, options });
+      const child = new EventEmitter();
+      child.stdout = new PassThrough();
+      child.stderr = new PassThrough();
+      child.stdin = new PassThrough();
+      child.kill = () => {
+        setImmediate(() => {
+          child.emit('close', 143, 'SIGTERM');
+        });
+      };
+      const isResume = args.includes('resume');
+      setImmediate(() => {
+        if (runCount === 0) {
+          child.stdout.write(
+            JSON.stringify({ type: 'thread.started', thread_id: 'thread-1' }) +
+              '\n' +
+              JSON.stringify({ type: 'error', message: "You've hit your usage limit." }) +
+              '\n'
+          );
+          child.stdout.end();
+          child.emit('close', 1, null);
+        } else {
+          child.stdout.write(
+            JSON.stringify({ type: 'thread.started', thread_id: 'thread-1' }) +
+              '\n' +
+              JSON.stringify({
+                type: 'item.completed',
+                item: { id: 'item_1', type: 'agent_message', text: isResume ? 'RESUME' : 'OK' }
+              }) +
+              '\n'
+          );
+          child.stdout.end();
+          child.emit('close', 0, null);
+        }
+        runCount += 1;
+      });
+      return child;
+    };
+
+    const orchestrator = new Orchestrator({
+      orchHome,
+      codexHome,
+      exec,
+      spawn,
+      now: () => '2025-12-19T00:00:00.000Z'
+    });
+
+    await orchestrator.addAccount({
+      label: 'Secondary',
+      authJson: JSON.stringify({ token: 'secondary' })
+    });
+
+    const env = await orchestrator.createEnv({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' });
+    const task = await orchestrator.createTask({
+      envId: env.envId,
+      ref: 'main',
+      prompt: 'Do work'
+    });
+
+    const completed = await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    expect(completed.autoRotateCount).toBe(1);
+    expect(spawnCalls.length).toBe(2);
+
+    const activeAuth = JSON.parse(
+      await fs.readFile(path.join(codexHome, 'auth.json'), 'utf8')
+    );
+    expect(activeAuth).toEqual({ token: 'secondary' });
+  });
+
+  it('skips rotation when usage limit hits an outdated account', async () => {
+    const orchHome = await createTempDir();
+    const codexHome = path.join(orchHome, 'codex-home');
+    await fs.mkdir(codexHome, { recursive: true });
+    await fs.writeFile(path.join(codexHome, 'auth.json'), JSON.stringify({ token: 'primary' }, null, 2));
+
+    const exec = createMockExec({ branches: ['main'] });
+    const spawnCalls = [];
+    let orchestrator = null;
+    const spawn = (command, args, options = {}) => {
+      spawnCalls.push({ command, args, options });
+      const child = new EventEmitter();
+      child.stdout = new PassThrough();
+      child.stderr = new PassThrough();
+      child.stdin = new PassThrough();
+      child.kill = () => {
+        setImmediate(() => {
+          child.emit('close', 143, 'SIGTERM');
+        });
+      };
+      setImmediate(async () => {
+        await orchestrator.accountStore.rotateActiveAccount();
+        child.stdout.write(
+          JSON.stringify({ type: 'thread.started', thread_id: 'thread-1' }) +
+            '\n' +
+            JSON.stringify({ type: 'error', message: "You've hit your usage limit." }) +
+            '\n'
+        );
+        child.stdout.end();
+        child.emit('close', 1, null);
+      });
+      return child;
+    };
+
+    orchestrator = new Orchestrator({
+      orchHome,
+      codexHome,
+      exec,
+      spawn,
+      now: () => '2025-12-19T00:00:00.000Z'
+    });
+
+    await orchestrator.addAccount({
+      label: 'Secondary',
+      authJson: JSON.stringify({ token: 'secondary' })
+    });
+
+    const env = await orchestrator.createEnv({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' });
+    const task = await orchestrator.createTask({
+      envId: env.envId,
+      ref: 'main',
+      prompt: 'Do work'
+    });
+
+    const failed = await waitForTaskStatus(orchestrator, task.taskId, 'failed');
+    expect(failed.autoRotateCount || 0).toBe(0);
+    expect(spawnCalls.length).toBe(1);
+  });
+
   it('attempts to fix ownership before deleting a task', async () => {
     const orchHome = await createTempDir();
     const exec = createMockExec({ branches: ['main'] });
@@ -94,6 +235,7 @@ describe('Orchestrator', () => {
     let fakeGid = null;
     const orchestrator = new Orchestrator({
       orchHome,
+      codexHome: path.join(orchHome, 'codex-home'),
       exec,
       spawn,
       getUid: () => fakeUid,
@@ -123,6 +265,7 @@ describe('Orchestrator', () => {
     let fakeGid = null;
     const orchestrator = new Orchestrator({
       orchHome,
+      codexHome: path.join(orchHome, 'codex-home'),
       exec,
       getUid: () => fakeUid,
       getGid: () => fakeGid
@@ -148,6 +291,7 @@ describe('Orchestrator', () => {
     const spawn = createMockSpawn();
     const orchestrator = new Orchestrator({
       orchHome,
+      codexHome: path.join(orchHome, 'codex-home'),
       exec,
       spawn
     });
@@ -169,6 +313,7 @@ describe('Orchestrator', () => {
     const spawn = createMockSpawn();
     const orchestrator = new Orchestrator({
       orchHome,
+      codexHome: path.join(orchHome, 'codex-home'),
       exec,
       spawn
     });

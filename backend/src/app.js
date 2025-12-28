@@ -115,6 +115,51 @@ function createApp({ orchestrator = new Orchestrator() } = {}) {
     res.json(tasks);
   }));
 
+  app.get('/api/accounts', asyncHandler(async (req, res) => {
+    const accounts = await orchestrator.listAccounts();
+    res.json(accounts);
+  }));
+
+  app.post('/api/accounts', asyncHandler(async (req, res) => {
+    const { label, authJson } = req.body || {};
+    if (!authJson || typeof authJson !== 'string') {
+      return res.status(400).send('authJson is required');
+    }
+    try {
+      const account = await orchestrator.addAccount({ label, authJson });
+      res.status(201).json(account);
+    } catch (error) {
+      const message = error?.message || 'Invalid authJson';
+      if (message.toLowerCase().includes('authjson') || message.toLowerCase().includes('json')) {
+        return res.status(400).send(message);
+      }
+      throw error;
+    }
+  }));
+
+  app.post('/api/accounts/:accountId/activate', asyncHandler(async (req, res) => {
+    const accounts = await orchestrator.activateAccount(req.params.accountId);
+    res.json(accounts);
+  }));
+
+  app.post('/api/accounts/rotate', asyncHandler(async (req, res) => {
+    const accounts = await orchestrator.rotateAccount();
+    res.json(accounts);
+  }));
+
+  app.delete('/api/accounts/:accountId', asyncHandler(async (req, res) => {
+    try {
+      const accounts = await orchestrator.removeAccount(req.params.accountId);
+      res.json(accounts);
+    } catch (error) {
+      const message = error?.message || 'Unable to remove account';
+      if (message.toLowerCase().includes('active account')) {
+        return res.status(400).send(message);
+      }
+      throw error;
+    }
+  }));
+
   app.get('/api/settings/image', asyncHandler(async (req, res) => {
     const info = await orchestrator.getImageInfo();
     res.json(info);

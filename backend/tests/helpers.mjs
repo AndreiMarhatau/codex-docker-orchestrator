@@ -68,7 +68,8 @@ export function createMockExec({
         normalizedArgs[2] === 'worktree' &&
         normalizedArgs[3] === 'add'
       ) {
-        const worktreePath = normalizedArgs[4];
+        const detachIndex = normalizedArgs.indexOf('--detach');
+        const worktreePath = detachIndex !== -1 ? normalizedArgs[detachIndex + 1] : normalizedArgs[4];
         await fs.mkdir(worktreePath, { recursive: true });
         return { stdout: '', stderr: '', code: 0 };
       }

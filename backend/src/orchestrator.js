@@ -34,6 +34,12 @@ function invalidImageError(message) {
   return error;
 }
 
+function invalidContextError(message) {
+  const error = new Error(message);
+  error.code = 'INVALID_CONTEXT';
+  return error;
+}
+
 async function resolveRefInRepo(execOrThrow, gitDir, ref) {
   if (!ref) return ref;
   if (ref.startsWith('refs/')) return ref;
@@ -111,6 +117,23 @@ function normalizeOptionalString(value) {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+}
+
+function buildContextReposSection(contextRepos) {
+  if (!Array.isArray(contextRepos) || contextRepos.length === 0) return '';
+  const lines = [
+    '# Read-only reference repositories',
+    '',
+    'The following repositories are mounted read-only for context:',
+    ...contextRepos.map((repo) => {
+      const repoLabel = repo.repoUrl || repo.envId || 'unknown';
+      const refLabel = repo.ref ? ` (${repo.ref})` : '';
+      return `- ${repoLabel}${refLabel} at ${repo.worktreePath}`;
+    }),
+    '',
+    'Do not modify these paths; treat them as read-only references.'
+  ];
+  return lines.join('\n');
 }
 
 function buildCodexArgs({ prompt, model, reasoningEffort, imageArgs = [], resumeThreadId }) {
@@ -304,6 +327,16 @@ class Orchestrator {
   taskWorktree(taskId, repoUrl) {
     const repoName = repoNameFromUrl(repoUrl);
     return path.join(this.taskDir(taskId), repoName);
+  }
+
+  taskContextDir(taskId) {
+    return path.join(this.taskDir(taskId), 'context');
+  }
+
+  taskContextWorktree(taskId, repoUrl, envId) {
+    const repoName = repoNameFromUrl(repoUrl);
+    const suffix = envId ? `-${envId}` : '';
+    return path.join(this.taskContextDir(taskId), `${repoName}${suffix}`);
   }
 
   taskArtifactsDir(taskId) {
@@ -676,14 +709,16 @@ class Orchestrator {
     await writeJson(this.taskMetaPath(taskId), meta);
   }
 
-  buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket }) {
+  buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket, contextRepos }) {
     const baseFile =
       this.orchAgentsFile && fs.existsSync(this.orchAgentsFile) ? this.orchAgentsFile : null;
     const hostDockerFile =
       this.hostDockerAgentsFile && fs.existsSync(this.hostDockerAgentsFile)
         ? this.hostDockerAgentsFile
         : null;
-    if (!useHostDockerSocket) {
+    const contextSection = buildContextReposSection(contextRepos);
+    const shouldCombine = Boolean(useHostDockerSocket || contextSection);
+    if (!shouldCombine) {
       return baseFile;
     }
     const sections = [];
@@ -693,11 +728,17 @@ class Orchestrator {
         sections.push(baseContent);
       }
     }
-    if (hostDockerFile) {
+    if (useHostDockerSocket && hostDockerFile) {
       const hostDockerContent = fs.readFileSync(hostDockerFile, 'utf8').trimEnd();
       if (hostDockerContent) {
         sections.push(hostDockerContent);
       }
+    }
+    if (contextSection) {
+      sections.push(contextSection.trimEnd());
+    }
+    if (sections.length === 0) {
+      return null;
     }
     const combined = `${sections.join('\n\n')}\n`;
     const targetPath = path.join(this.taskLogsDir(taskId), `${runLabel}.agents.md`);
@@ -705,7 +746,17 @@ class Orchestrator {
     return targetPath;
   }
 
-  startCodexRun({ taskId, runLabel, prompt, cwd, args, mountPaths = [], useHostDockerSocket }) {
+  startCodexRun({
+    taskId,
+    runLabel,
+    prompt,
+    cwd,
+    args,
+    mountPaths = [],
+    mountPathsRo = [],
+    contextRepos = [],
+    useHostDockerSocket
+  }) {
     const logFile = `${runLabel}.jsonl`;
     const logPath = path.join(this.taskLogsDir(taskId), logFile);
     const stderrPath = path.join(this.taskLogsDir(taskId), `${runLabel}.stderr`);
@@ -721,7 +772,12 @@ class Orchestrator {
     } catch (error) {
       // Best-effort: codex can still run if the directory is created elsewhere.
     }
-    const agentsAppendFile = this.buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket });
+    const agentsAppendFile = this.buildAgentsAppendFile({
+      taskId,
+      runLabel,
+      useHostDockerSocket,
+      contextRepos
+    });
     if (agentsAppendFile) {
       env.CODEX_AGENTS_APPEND_FILE = agentsAppendFile;
     }
@@ -741,7 +797,23 @@ class Orchestrator {
       mountParts.push(artifactsDir);
     }
     env.CODEX_MOUNT_PATHS = mountParts.join(':');
-    delete env.CODEX_MOUNT_PATHS_RO;
+    const existingMountsRo = env.CODEX_MOUNT_PATHS_RO || '';
+    const mountPartsRo = existingMountsRo.split(':').filter(Boolean);
+    for (const mountPath of mountPathsRo) {
+      if (
+        mountPath &&
+        fs.existsSync(mountPath) &&
+        !mountParts.includes(mountPath) &&
+        !mountPartsRo.includes(mountPath)
+      ) {
+        mountPartsRo.push(mountPath);
+      }
+    }
+    if (mountPartsRo.length > 0) {
+      env.CODEX_MOUNT_PATHS_RO = mountPartsRo.join(':');
+    } else {
+      delete env.CODEX_MOUNT_PATHS_RO;
+    }
 
     const child = this.spawn('codex-docker', args, {
       cwd,
@@ -847,7 +919,66 @@ class Orchestrator {
     return resolved;
   }
 
-  async createTask({ envId, ref, prompt, imagePaths, model, reasoningEffort, useHostDockerSocket }) {
+  async resolveContextRepos(taskId, contextRepos) {
+    if (!Array.isArray(contextRepos) || contextRepos.length === 0) return [];
+    await ensureDir(this.taskContextDir(taskId));
+    const seenEnvIds = new Set();
+    const resolved = [];
+    for (const entry of contextRepos) {
+      const envId = normalizeOptionalString(entry?.envId);
+      if (!envId) {
+        throw invalidContextError('Each context repo must include a valid envId.');
+      }
+      if (seenEnvIds.has(envId)) {
+        continue;
+      }
+      seenEnvIds.add(envId);
+      const ref = normalizeOptionalString(entry?.ref);
+      const env = await this.readEnv(envId);
+      await this.ensureOwnership(env.mirrorPath);
+      await this.execOrThrow('git', [
+        '--git-dir',
+        env.mirrorPath,
+        'fetch',
+        'origin',
+        '--prune',
+        '+refs/heads/*:refs/remotes/origin/*'
+      ]);
+      const targetRef = ref || env.defaultBranch;
+      const worktreeRef = await resolveRefInRepo(this.execOrThrow.bind(this), env.mirrorPath, targetRef);
+      const baseShaResult = await this.execOrThrow('git', ['--git-dir', env.mirrorPath, 'rev-parse', worktreeRef]);
+      const baseSha = baseShaResult.stdout.trim() || null;
+      const worktreePath = this.taskContextWorktree(taskId, env.repoUrl, envId);
+      await this.execOrThrow('git', [
+        '--git-dir',
+        env.mirrorPath,
+        'worktree',
+        'add',
+        '--detach',
+        worktreePath,
+        worktreeRef
+      ]);
+      resolved.push({
+        envId,
+        repoUrl: env.repoUrl,
+        ref: targetRef,
+        baseSha,
+        worktreePath
+      });
+    }
+    return resolved;
+  }
+
+  async createTask({
+    envId,
+    ref,
+    prompt,
+    imagePaths,
+    model,
+    reasoningEffort,
+    useHostDockerSocket,
+    contextRepos
+  }) {
     await this.init();
     const env = await this.readEnv(envId);
     await this.ensureOwnership(env.mirrorPath);
@@ -864,6 +995,7 @@ class Orchestrator {
 
     await ensureDir(taskDir);
     await ensureDir(logsDir);
+    const resolvedContextRepos = await this.resolveContextRepos(taskId, contextRepos);
 
     const targetRef = ref || env.defaultBranch;
 
@@ -893,6 +1025,7 @@ class Orchestrator {
       baseSha,
       branchName,
       worktreePath,
+      contextRepos: resolvedContextRepos,
       model: normalizedModel,
       reasoningEffort: normalizedReasoningEffort,
       useHostDockerSocket: shouldUseHostDockerSocket,
@@ -938,6 +1071,8 @@ class Orchestrator {
         ...resolvedImagePaths,
         ...(dockerSocketPath ? [dockerSocketPath] : [])
       ],
+      mountPathsRo: resolvedContextRepos.map((repo) => repo.worktreePath),
+      contextRepos: resolvedContextRepos,
       useHostDockerSocket: shouldUseHostDockerSocket
     });
     return meta;
@@ -949,6 +1084,7 @@ class Orchestrator {
     if (!meta.threadId) {
       throw new Error('Cannot resume task without a thread_id. Rerun the task to generate one.');
     }
+    const contextRepos = Array.isArray(meta.contextRepos) ? meta.contextRepos : [];
     const hasDockerSocketOverride = typeof options.useHostDockerSocket === 'boolean';
     const shouldUseHostDockerSocket = hasDockerSocketOverride
       ? options.useHostDockerSocket
@@ -1001,6 +1137,8 @@ class Orchestrator {
         env.mirrorPath,
         ...(dockerSocketPath ? [dockerSocketPath] : [])
       ],
+      mountPathsRo: contextRepos.map((repo) => repo.worktreePath),
+      contextRepos,
       useHostDockerSocket: shouldUseHostDockerSocket
     });
     return meta;
@@ -1045,8 +1183,46 @@ class Orchestrator {
     const meta = await readJson(this.taskMetaPath(taskId));
     const env = await this.readEnv(meta.envId);
     const worktreePath = meta.worktreePath;
+    const contextRepos = Array.isArray(meta.contextRepos) ? meta.contextRepos : [];
     await this.ensureOwnership(worktreePath);
     await this.ensureOwnership(this.taskDir(taskId));
+    for (const contextRepo of contextRepos) {
+      const contextPath = contextRepo?.worktreePath;
+      if (!contextPath) continue;
+      await this.ensureOwnership(contextPath);
+      let contextEnv = null;
+      try {
+        contextEnv = await this.readEnv(contextRepo.envId);
+      } catch (error) {
+        contextEnv = null;
+      }
+      if (contextEnv?.mirrorPath) {
+        const contextResult = await this.exec('git', [
+          '--git-dir',
+          contextEnv.mirrorPath,
+          'worktree',
+          'remove',
+          '--force',
+          contextPath
+        ]);
+        if (contextResult.code !== 0) {
+          const message = (contextResult.stderr || contextResult.stdout || '').trim();
+          const ignorable =
+            message.includes('not a working tree') ||
+            message.includes('does not exist') ||
+            message.includes('No such file or directory');
+          if (!ignorable) {
+            throw new Error(message || 'Failed to remove context worktree');
+          }
+        }
+      }
+      if (await pathExists(contextPath)) {
+        await removePath(contextPath);
+      }
+      if (contextEnv?.mirrorPath) {
+        await this.exec('git', ['--git-dir', contextEnv.mirrorPath, 'worktree', 'prune', '--expire', 'now']);
+      }
+    }
     const result = await this.exec('git', [
       '--git-dir',
       env.mirrorPath,

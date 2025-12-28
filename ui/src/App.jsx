@@ -19,6 +19,7 @@ import {
   Typography
 } from '@mui/material';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -65,6 +66,7 @@ const emptyTaskForm = {
   envId: '',
   ref: '',
   prompt: '',
+  contextRepos: [],
   modelChoice: '',
   customModel: '',
   reasoningEffort: '',
@@ -78,6 +80,7 @@ const emptyResumeConfig = {
   customReasoningEffort: ''
 };
 const MAX_TASK_IMAGES = 5;
+const emptyContextRepo = { envId: '', ref: '' };
 
 const STATUS_CONFIG = {
   running: {
@@ -431,6 +434,10 @@ function App() {
     const completed = tasks.filter((task) => task.status === 'completed').length;
     return { total, running, failed, completed };
   }, [tasks]);
+  const usedContextEnvIds = useMemo(
+    () => taskForm.contextRepos.map((entry) => entry.envId).filter(Boolean),
+    [taskForm.contextRepos]
+  );
 
   async function refreshAll() {
     const [envData, taskData] = await Promise.all([
@@ -663,6 +670,28 @@ function App() {
     });
   }
 
+  function handleAddContextRepo() {
+    setTaskForm((prev) => ({
+      ...prev,
+      contextRepos: [...prev.contextRepos, { ...emptyContextRepo }]
+    }));
+  }
+
+  function handleRemoveContextRepo(index) {
+    setTaskForm((prev) => ({
+      ...prev,
+      contextRepos: prev.contextRepos.filter((_, idx) => idx !== index)
+    }));
+  }
+
+  function handleContextRepoChange(index, field, value) {
+    setTaskForm((prev) => {
+      const next = [...prev.contextRepos];
+      next[index] = { ...next[index], [field]: value };
+      return { ...prev, contextRepos: next };
+    });
+  }
+
   async function handleCreateTask() {
     setError('');
     setTaskImageError('');
@@ -692,6 +721,13 @@ function App() {
       }
       const modelValue = resolveModelValue(taskForm.modelChoice, taskForm.customModel);
       const reasoningEffortValue = resolveReasoningEffortValue(taskForm);
+      const contextRepos = (taskForm.contextRepos || [])
+        .map((entry) => ({
+          envId: (entry.envId || '').trim(),
+          ref: (entry.ref || '').trim()
+        }))
+        .filter((entry) => entry.envId)
+        .map((entry) => (entry.ref ? entry : { envId: entry.envId }));
       await apiRequest('/api/tasks', {
         method: 'POST',
         body: JSON.stringify({
@@ -701,7 +737,8 @@ function App() {
           imagePaths,
           model: modelValue || undefined,
           reasoningEffort: reasoningEffortValue || undefined,
-          useHostDockerSocket: taskForm.useHostDockerSocket
+          useHostDockerSocket: taskForm.useHostDockerSocket,
+          contextRepos: contextRepos.length > 0 ? contextRepos : undefined
         })
       });
       setTaskForm(emptyTaskForm);
@@ -1226,6 +1263,89 @@ function App() {
                           </Tooltip>
                         </Stack>
                         <Divider />
+                        <Typography variant="subtitle2">Reference repos (read-only)</Typography>
+                        <Stack spacing={1}>
+                          <Stack
+                            direction={{ xs: 'column', sm: 'row' }}
+                            spacing={1}
+                            alignItems="center"
+                          >
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<AddOutlinedIcon />}
+                              onClick={handleAddContextRepo}
+                              disabled={
+                                loading ||
+                                envs.length === 0 ||
+                                usedContextEnvIds.length >= envs.length
+                              }
+                            >
+                              Add reference repo
+                            </Button>
+                            <Typography color="text.secondary">
+                              Attach existing environments as read-only context.
+                            </Typography>
+                          </Stack>
+                          {taskForm.contextRepos.length === 0 && (
+                            <Typography color="text.secondary">
+                              No reference repos attached.
+                            </Typography>
+                          )}
+                          {taskForm.contextRepos.map((entry, index) => {
+                            const selectedContextEnv = envs.find((env) => env.envId === entry.envId);
+                            return (
+                              <Stack
+                                key={`context-repo-${index}`}
+                                direction={{ xs: 'column', sm: 'row' }}
+                                spacing={1}
+                                alignItems="center"
+                              >
+                                <TextField
+                                  select
+                                  size="small"
+                                  label="Environment"
+                                  value={entry.envId}
+                                  onChange={(event) =>
+                                    handleContextRepoChange(index, 'envId', event.target.value)
+                                  }
+                                  sx={{ minWidth: 220, flex: 1 }}
+                                >
+                                  {envs.map((env) => (
+                                    <MenuItem
+                                      key={env.envId}
+                                      value={env.envId}
+                                      disabled={
+                                        usedContextEnvIds.includes(env.envId) &&
+                                        env.envId !== entry.envId
+                                      }
+                                    >
+                                      {formatRepoDisplay(env.repoUrl) || env.repoUrl}
+                                    </MenuItem>
+                                  ))}
+                                </TextField>
+                                <TextField
+                                  size="small"
+                                  label="Branch / tag / ref"
+                                  value={entry.ref}
+                                  onChange={(event) =>
+                                    handleContextRepoChange(index, 'ref', event.target.value)
+                                  }
+                                  placeholder={selectedContextEnv?.defaultBranch || 'main'}
+                                  sx={{ flex: 1 }}
+                                />
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleRemoveContextRepo(index)}
+                                  aria-label="Remove reference repo"
+                                >
+                                  <DeleteOutlineIcon fontSize="small" />
+                                </IconButton>
+                              </Stack>
+                            );
+                          })}
+                        </Stack>
+                        <Divider />
                         <Typography variant="subtitle2">Attachments</Typography>
                         <Stack spacing={1}>
                           <Stack
@@ -1503,6 +1623,35 @@ function App() {
                             </Tooltip>
                           )}
                         </Stack>
+                        {taskDetail.contextRepos?.length > 0 && (
+                          <Stack spacing={1}>
+                            <Typography variant="subtitle2">Reference repos (read-only)</Typography>
+                            <Stack spacing={1}>
+                              {taskDetail.contextRepos.map((repo, index) => (
+                                <Stack
+                                  key={`${repo.envId || repo.repoUrl || 'repo'}-${index}`}
+                                  direction={{ xs: 'column', sm: 'row' }}
+                                  spacing={1}
+                                  alignItems={{ xs: 'flex-start', sm: 'center' }}
+                                  sx={{ flexWrap: 'wrap' }}
+                                >
+                                  <Typography color="text.secondary">
+                                    {formatRepoDisplay(repo.repoUrl) || repo.repoUrl || repo.envId}
+                                  </Typography>
+                                  <Chip
+                                    size="small"
+                                    label={`ref: ${repo.ref || 'default'}`}
+                                  />
+                                  {repo.worktreePath && (
+                                    <Typography className="mono" color="text.secondary">
+                                      {repo.worktreePath}
+                                    </Typography>
+                                  )}
+                                </Stack>
+                              ))}
+                            </Stack>
+                          </Stack>
+                        )}
                         <Stack spacing={2}>
                           <Box component="details" className="log-entry">
                             <summary className="log-summary">

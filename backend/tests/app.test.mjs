@@ -122,6 +122,38 @@ describe('API', () => {
     expect(spawn.calls[0].options.env.CODEX_MOUNT_PATHS).toContain(uploadedPath);
   });
 
+  it('attaches context repos to tasks', async () => {
+    const { app, spawn } = await createTestApp();
+
+    const primaryEnvRes = await request(app)
+      .post('/api/envs')
+      .send({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' })
+      .expect(201);
+    const contextEnvRes = await request(app)
+      .post('/api/envs')
+      .send({ repoUrl: 'git@example.com:context.git', defaultBranch: 'main' })
+      .expect(201);
+
+    const taskRes = await request(app)
+      .post('/api/tasks')
+      .send({
+        envId: primaryEnvRes.body.envId,
+        ref: 'main',
+        prompt: 'Do work',
+        contextRepos: [{ envId: contextEnvRes.body.envId, ref: 'main' }]
+      })
+      .expect(201);
+
+    expect(taskRes.body.contextRepos).toHaveLength(1);
+    expect(taskRes.body.contextRepos[0].envId).toBe(contextEnvRes.body.envId);
+    expect(taskRes.body.contextRepos[0].worktreePath).toBeTruthy();
+
+    const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
+    expect(runCall.options.env.CODEX_MOUNT_PATHS_RO).toContain(
+      taskRes.body.contextRepos[0].worktreePath
+    );
+  });
+
   it('rejects tasks with invalid image paths', async () => {
     const { app } = await createTestApp();
 

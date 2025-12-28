@@ -35,6 +35,7 @@ import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { apiRequest, apiUrl } from './api.js';
 
 const emptyEnvForm = { repoUrl: '', defaultBranch: 'main' };
@@ -383,6 +384,7 @@ function App() {
   const [activeTab, setActiveTab] = useState(1);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const taskImageInputRef = useRef(null);
   const logStreamRef = useRef(null);
   const resumeDefaultsTaskIdRef = useRef('');
@@ -518,6 +520,19 @@ function App() {
     if (resumeDefaultsTaskIdRef.current !== taskDetail.taskId) return;
     setResumeUseHostDockerSocket(taskDetail.useHostDockerSocket === true);
   }, [taskDetail, resumeDockerTouched]);
+
+  useEffect(() => {
+    if (!selectedTaskId || activeTab !== 1) {
+      setShowScrollTop(false);
+      return;
+    }
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 240);
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [selectedTaskId, activeTab]);
 
   useEffect(() => {
     if (!selectedTaskId) {
@@ -873,7 +888,16 @@ function App() {
         }}
       >
         <Tab icon={<FolderOpenOutlinedIcon />} iconPosition="start" label="Environments" />
-        <Tab icon={<ListAltOutlinedIcon />} iconPosition="start" label="Tasks" />
+        <Tab
+          icon={<ListAltOutlinedIcon />}
+          iconPosition="start"
+          label="Tasks"
+          onClick={() => {
+            if (activeTab === 1 && selectedTaskId) {
+              handleBackToTasks();
+            }
+          }}
+        />
         <Tab icon={<SettingsOutlinedIcon />} iconPosition="start" label="Settings" />
       </Tabs>
 
@@ -1396,10 +1420,27 @@ function App() {
                 )}
                 {selectedTaskId && (
                   <Stack spacing={2}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Typography variant="h6" className="panel-title">
-                        Task detail
-                      </Typography>
+                    <Stack
+                      direction={{ xs: 'column', sm: 'row' }}
+                      spacing={1}
+                      alignItems={{ xs: 'flex-start', sm: 'center' }}
+                      justifyContent="space-between"
+                    >
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Tooltip title="Back to tasks">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={handleBackToTasks}
+                            aria-label="Back to tasks"
+                          >
+                            <ArrowBackOutlinedIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Typography variant="h6" className="panel-title">
+                          Task details
+                        </Typography>
+                      </Stack>
                       <Button size="small" variant="outlined" onClick={refreshAll}>
                         Refresh
                       </Button>
@@ -1867,16 +1908,16 @@ function App() {
               </Stack>
             </CardContent>
           </Card>
-          {selectedTaskId && (
-            <Tooltip title="Back to tasks">
+          {selectedTaskId && showScrollTop && (
+            <Tooltip title="Scroll to top">
               <IconButton
                 color="primary"
-                onClick={handleBackToTasks}
-                aria-label="Back to tasks"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                aria-label="Scroll to top"
                 sx={{
                   position: 'fixed',
-                  top: { xs: 72, md: 88 },
-                  left: { xs: 16, md: 24 },
+                  bottom: { xs: 24, md: 32 },
+                  right: { xs: 16, md: 24 },
                   backgroundColor: 'background.paper',
                   border: '1px solid',
                   borderColor: 'divider',
@@ -1887,7 +1928,7 @@ function App() {
                   }
                 }}
               >
-                <ArrowBackOutlinedIcon />
+                <KeyboardArrowUpIcon />
               </IconButton>
             </Tooltip>
           )}

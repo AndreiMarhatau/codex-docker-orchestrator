@@ -19,9 +19,9 @@ jobs:
         with:
           filters: |
             ui:
-              - "codex-docker-orchestrator/ui/**"
+              - "ui/**"
             backend:
-              - "codex-docker-orchestrator/backend/**"
+              - "backend/**"
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -33,12 +33,12 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${UI_CHANGED}" = "true" ]; then
-            npm -C codex-docker-orchestrator/ui ci
-            npm -C codex-docker-orchestrator/ui test
-            npm -C codex-docker-orchestrator/ui run build
+            npm -C ui ci
+            npm -C ui test
+            npm -C ui run build
           fi
           if [ "${BACKEND_CHANGED}" = "true" ]; then
-            npm -C codex-docker-orchestrator/backend ci
-            npm -C codex-docker-orchestrator/backend test
-            npm -C codex-docker-orchestrator/backend run lint
+            npm -C backend ci
+            npm -C backend test
+            npm -C backend run lint
           fi

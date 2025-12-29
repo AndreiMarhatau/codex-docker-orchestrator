@@ -32,7 +32,9 @@ async function listDirs(dirPath) {
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
     return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
   } catch (error) {
-    if (error.code === 'ENOENT') return [];
+    if (error.code === 'ENOENT') {
+      return [];
+    }
     throw error;
   }
 }
@@ -42,7 +44,9 @@ async function pathExists(filePath) {
     await fs.access(filePath);
     return true;
   } catch (error) {
-    if (error.code === 'ENOENT') return false;
+    if (error.code === 'ENOENT') {
+      return false;
+    }
     throw error;
   }
 }

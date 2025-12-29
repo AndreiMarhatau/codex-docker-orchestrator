@@ -669,7 +669,7 @@ function App() {
   useEffect(() => {
     if (activeTab !== 2) return;
     refreshRateLimits().catch(() => {});
-  }, [activeTab]);
+  }, [activeTab, activeAccount?.id]);
 
   useEffect(() => {
     if (activeTab !== 3) return;

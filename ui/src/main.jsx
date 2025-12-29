@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { StrictMode, useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
 import { CssBaseline, ThemeProvider, useMediaQuery } from '@mui/material';
 import App from './App.jsx';
@@ -18,7 +18,7 @@ const ThemeBridge = () => {
 };
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+  <StrictMode>
     <ThemeBridge />
-  </React.StrictMode>
+  </StrictMode>
 );

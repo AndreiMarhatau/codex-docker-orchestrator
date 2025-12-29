@@ -1,7 +1,9 @@
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').trim();
 
 export function apiUrl(path, baseUrl = apiBaseUrl) {
-  if (!baseUrl) return path;
+  if (!baseUrl) {
+    return path;
+  }
   return new URL(path, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`).toString();
 }
 

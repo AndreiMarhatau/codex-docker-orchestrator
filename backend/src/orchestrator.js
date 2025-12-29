@@ -1235,6 +1235,7 @@ class Orchestrator {
   async maybeAutoRotate(taskId, prompt, result) {
     if (!prompt) return;
     if (result.stopped) return;
+    if (result.code === 0) return;
     const combinedOutput = [result.stdout, result.stderr].filter(Boolean).join('\n');
     if (!isUsageLimitError(combinedOutput)) return;
     const meta = await readJson(this.taskMetaPath(taskId));

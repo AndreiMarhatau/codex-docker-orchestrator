@@ -168,7 +168,7 @@ describe('Orchestrator', () => {
     expect(activeAuth).toEqual({ token: 'secondary' });
   });
 
-  it('does not auto-rotate when usage limit warnings appear in a successful run', async () => {
+  it('does not auto-rotate when usage limit appears in agent output of a successful run', async () => {
     const orchHome = await createTempDir();
     const codexHome = path.join(orchHome, 'codex-home');
     await fs.mkdir(codexHome, { recursive: true });
@@ -191,11 +191,13 @@ describe('Orchestrator', () => {
         child.stdout.write(
           JSON.stringify({ type: 'thread.started', thread_id: 'thread-1' }) +
             '\n' +
-            JSON.stringify({ type: 'error', message: "You've hit your usage limit." }) +
-            '\n' +
             JSON.stringify({
               type: 'item.completed',
-              item: { id: 'item_1', type: 'agent_message', text: 'OK' }
+              item: {
+                id: 'item_1',
+                type: 'agent_message',
+                text: 'Approaching usage limit, switching soon.'
+              }
             }) +
             '\n'
         );

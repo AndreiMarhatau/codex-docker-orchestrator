@@ -37,6 +37,7 @@ import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
 import { apiRequest, apiUrl } from './api.js';
 
 const emptyEnvForm = { repoUrl: '', defaultBranch: 'main' };
@@ -143,6 +144,57 @@ function formatEpochSeconds(value) {
   const date = new Date(value * 1000);
   if (Number.isNaN(date.getTime())) return 'unknown';
   return date.toLocaleString();
+}
+
+function formatDurationFromMinutes(value) {
+  if (!Number.isFinite(value)) return 'unknown';
+  const absValue = Math.abs(value);
+  let unit = 'min';
+  let unitMinutes = 1;
+  if (absValue >= 60 * 24 * 7) {
+    unit = 'wk';
+    unitMinutes = 60 * 24 * 7;
+  } else if (absValue >= 60 * 24) {
+    unit = 'day';
+    unitMinutes = 60 * 24;
+  } else if (absValue >= 60) {
+    unit = 'hr';
+    unitMinutes = 60;
+  }
+  const rounded = Math.round((value / unitMinutes) * 10) / 10;
+  const formatted = rounded.toFixed(1);
+  const cleaned = formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted;
+  return `${cleaned} ${unit}`;
+}
+
+function formatRelativeTimeFromEpochSeconds(value) {
+  if (!Number.isFinite(value)) return 'unknown';
+  const diffMinutes = Math.round((value * 1000 - Date.now()) / 60000);
+  if (diffMinutes === 0) return 'now';
+  const absMinutes = Math.abs(diffMinutes);
+  let unit = 'minute';
+  let unitMinutes = 1;
+  if (absMinutes >= 60 * 24 * 7) {
+    unit = 'week';
+    unitMinutes = 60 * 24 * 7;
+  } else if (absMinutes >= 60 * 24) {
+    unit = 'day';
+    unitMinutes = 60 * 24;
+  } else if (absMinutes >= 60) {
+    unit = 'hour';
+    unitMinutes = 60;
+  }
+  const rounded = Math.round(diffMinutes / unitMinutes);
+  const formatter = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+  return formatter.format(rounded, unit);
+}
+
+function formatPercent(value) {
+  if (!Number.isFinite(value)) return 'unknown';
+  const rounded = Math.round(value * 10) / 10;
+  const formatted = rounded.toFixed(1);
+  const cleaned = formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted;
+  return `${cleaned}%`;
 }
 
 function getEffortOptionsForModel(model) {
@@ -412,6 +464,7 @@ function App() {
   const [taskImageError, setTaskImageError] = useState('');
   const [taskImageUploading, setTaskImageUploading] = useState(false);
   const [accountForm, setAccountForm] = useState(emptyAccountForm);
+  const [showAccountForm, setShowAccountForm] = useState(false);
   const [rateLimits, setRateLimits] = useState(null);
   const [rateLimitsLoading, setRateLimitsLoading] = useState(false);
   const [rateLimitsError, setRateLimitsError] = useState('');
@@ -476,13 +529,20 @@ function App() {
   );
   const renderRateLimitWindow = (label, window) => {
     const hasWindow = window && typeof window === 'object';
-    const percent =
-      hasWindow && Number.isFinite(window.usedPercent) ? `${window.usedPercent}%` : 'unknown';
-    const windowDuration =
-      hasWindow && Number.isFinite(window.windowDurationMins)
-        ? `${window.windowDurationMins} min`
+    const leftPercent =
+      hasWindow && Number.isFinite(window.usedPercent)
+        ? Math.min(100, Math.max(0, 100 - window.usedPercent))
         : 'unknown';
+    const leftDisplay = formatPercent(leftPercent);
+    const windowDuration = hasWindow
+      ? formatDurationFromMinutes(window.windowDurationMins)
+      : 'unknown';
     const resetsAt = hasWindow ? formatEpochSeconds(window.resetsAt) : 'unknown';
+    const resetsRelative = hasWindow
+      ? formatRelativeTimeFromEpochSeconds(window.resetsAt)
+      : 'unknown';
+    const resetsDisplay =
+      resetsRelative === 'unknown' ? resetsAt : `${resetsAt} (${resetsRelative})`;
     return (
       <Box
         sx={{
@@ -498,9 +558,9 @@ function App() {
           <Typography variant="subtitle2">{label}</Typography>
           {hasWindow ? (
             <>
-              <Typography variant="body2">Used: {percent}</Typography>
+              <Typography variant="body2">Left: {leftDisplay}</Typography>
               <Typography variant="body2">Window: {windowDuration}</Typography>
-              <Typography variant="body2">Resets: {resetsAt}</Typography>
+              <Typography variant="body2">Resets: {resetsDisplay}</Typography>
             </>
           ) : (
             <Typography variant="body2" color="text.secondary">
@@ -608,8 +668,12 @@ function App() {
 
   useEffect(() => {
     if (activeTab !== 2) return;
-    refreshImageInfo().catch(() => {});
     refreshRateLimits().catch(() => {});
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 3) return;
+    refreshImageInfo().catch(() => {});
   }, [activeTab]);
 
   useEffect(() => {
@@ -985,6 +1049,7 @@ function App() {
         })
       });
       setAccountForm(emptyAccountForm);
+      setShowAccountForm(false);
       await refreshAccounts();
     } catch (err) {
       setError(err.message);
@@ -1102,6 +1167,7 @@ function App() {
             }
           }}
         />
+        <Tab icon={<AccountCircleOutlinedIcon />} iconPosition="start" label="Accounts" />
         <Tab icon={<SettingsOutlinedIcon />} iconPosition="start" label="Settings" />
       </Tabs>
 
@@ -2270,64 +2336,6 @@ function App() {
                       Refresh
                     </Button>
                   </Stack>
-                  <Typography color="text.secondary">
-                    Copy credentials from any local terminal and paste them here to add an account.
-                  </Typography>
-                  <Box className="log-box">
-                    <pre>{`CODEX_HOME="$PWD/.codex-auth" sh -c 'mkdir -p "$CODEX_HOME" && codex login' && cat "$PWD/.codex-auth/auth.json"`}</pre>
-                  </Box>
-                  <Stack spacing={2}>
-                    <TextField
-                      label="Account label"
-                      fullWidth
-                      value={accountForm.label}
-                      onChange={(event) =>
-                        setAccountForm((prev) => ({ ...prev, label: event.target.value }))
-                      }
-                      placeholder="Personal / Work / Alt"
-                    />
-                    <TextField
-                      label="auth.json contents"
-                      fullWidth
-                      multiline
-                      minRows={6}
-                      value={accountForm.authJson}
-                      onChange={(event) =>
-                        setAccountForm((prev) => ({ ...prev, authJson: event.target.value }))
-                      }
-                      placeholder="{...}"
-                    />
-                    <Button
-                      variant="contained"
-                      onClick={handleAddAccount}
-                      disabled={loading || !accountForm.authJson.trim()}
-                    >
-                      Add account
-                    </Button>
-                  </Stack>
-                  <Divider />
-                  <Stack
-                    direction={{ xs: 'column', sm: 'row' }}
-                    spacing={2}
-                    alignItems={{ xs: 'flex-start', sm: 'center' }}
-                    justifyContent="space-between"
-                  >
-                    <Stack spacing={0.5}>
-                      <Typography variant="subtitle2">Rotation queue</Typography>
-                      <Typography color="text.secondary">
-                        Active account is first. Usage-limit failures auto-rotate.
-                      </Typography>
-                    </Stack>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={handleRotateAccount}
-                      disabled={loading || accountState.accounts.length < 2}
-                    >
-                      Rotate now
-                    </Button>
-                  </Stack>
-                  <Divider />
                   <Stack spacing={1.5}>
                     <Stack
                       direction={{ xs: 'column', sm: 'row' }}
@@ -2385,6 +2393,92 @@ function App() {
                       </Typography>
                     )}
                   </Stack>
+                  <Divider />
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={2}
+                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                    justifyContent="space-between"
+                  >
+                    <Stack spacing={0.5}>
+                      <Typography variant="subtitle2">Rotation queue</Typography>
+                      <Typography color="text.secondary">
+                        Active account is first. Usage-limit failures auto-rotate.
+                      </Typography>
+                    </Stack>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={handleRotateAccount}
+                      disabled={loading || accountState.accounts.length < 2}
+                    >
+                      Rotate now
+                    </Button>
+                  </Stack>
+                  <Divider />
+                  <Stack spacing={1.5}>
+                    <Stack
+                      direction={{ xs: 'column', sm: 'row' }}
+                      spacing={2}
+                      alignItems={{ xs: 'flex-start', sm: 'center' }}
+                      justifyContent="space-between"
+                    >
+                      <Stack spacing={0.5}>
+                        <Typography variant="subtitle2">Add account</Typography>
+                        <Typography color="text.secondary">
+                          Paste credentials from a local auth.json file.
+                        </Typography>
+                      </Stack>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<AddOutlinedIcon />}
+                        onClick={() => setShowAccountForm((prev) => !prev)}
+                      >
+                        {showAccountForm ? 'Hide form' : 'New account'}
+                      </Button>
+                    </Stack>
+                    <Collapse in={showAccountForm} unmountOnExit>
+                      <Stack spacing={2}>
+                        <Typography color="text.secondary">
+                          Copy credentials from any local terminal and paste them here.
+                        </Typography>
+                        <Box className="log-box">
+                          <pre>{`CODEX_HOME="$PWD/.codex-auth" sh -c 'mkdir -p "$CODEX_HOME" && codex login' && cat "$PWD/.codex-auth/auth.json"`}</pre>
+                        </Box>
+                        <Stack spacing={2}>
+                          <TextField
+                            label="Account label"
+                            fullWidth
+                            value={accountForm.label}
+                            onChange={(event) =>
+                              setAccountForm((prev) => ({ ...prev, label: event.target.value }))
+                            }
+                            placeholder="Personal / Work / Alt"
+                          />
+                          <TextField
+                            label="auth.json contents"
+                            fullWidth
+                            multiline
+                            minRows={6}
+                            value={accountForm.authJson}
+                            onChange={(event) =>
+                              setAccountForm((prev) => ({ ...prev, authJson: event.target.value }))
+                            }
+                            placeholder="{...}"
+                          />
+                          <Button
+                            variant="contained"
+                            onClick={handleAddAccount}
+                            disabled={loading || !accountForm.authJson.trim()}
+                          >
+                            Add account
+                          </Button>
+                        </Stack>
+                      </Stack>
+                    </Collapse>
+                  </Stack>
+                  <Divider />
                   <Stack spacing={1.5}>
                     {accountState.accounts.map((account) => (
                       <Card key={account.id} className="task-card">
@@ -2409,7 +2503,10 @@ function App() {
                             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                               <Chip size="small" label={`Queue #${account.position}`} />
                               {account.createdAt && (
-                                <Chip size="small" label={`Added ${formatTimestamp(account.createdAt)}`} />
+                                <Chip
+                                  size="small"
+                                  label={`Added ${formatTimestamp(account.createdAt)}`}
+                                />
                               )}
                             </Stack>
                             <Stack direction="row" spacing={1} alignItems="center">
@@ -2443,6 +2540,13 @@ function App() {
                 </Stack>
               </CardContent>
             </Card>
+          </Stack>
+        </Box>
+      )}
+
+      {activeTab === 3 && (
+        <Box className="section-shell fade-in">
+          <Stack spacing={2}>
             <Card className="panel-card">
               <CardContent>
                 <Stack spacing={2}>

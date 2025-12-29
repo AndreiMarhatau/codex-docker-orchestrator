@@ -1314,7 +1314,15 @@ class Orchestrator {
 
   async fetchAccountRateLimits() {
     const env = { ...process.env, CODEX_HOME: this.codexHome };
-    const child = this.spawn('codex', ['app-server'], {
+    const existingMounts = env.CODEX_MOUNT_PATHS || '';
+    const mountParts = existingMounts.split(':').filter(Boolean);
+    if (fs.existsSync(this.codexHome) && !mountParts.includes(this.codexHome)) {
+      mountParts.push(this.codexHome);
+    }
+    if (mountParts.length > 0) {
+      env.CODEX_MOUNT_PATHS = mountParts.join(':');
+    }
+    const child = this.spawn('codex-docker', ['app-server'], {
       env,
       stdio: ['pipe', 'pipe', 'pipe']
     });

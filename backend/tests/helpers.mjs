@@ -176,7 +176,7 @@ export function createMockSpawn({
         child.emit('close', 143, 'SIGTERM');
       });
     };
-    if (command === 'codex' && args[0] === 'app-server') {
+    if (command === 'codex-docker' && args[0] === 'app-server') {
       let buffer = '';
       child.stdin.on('data', (chunk) => {
         buffer += chunk.toString();

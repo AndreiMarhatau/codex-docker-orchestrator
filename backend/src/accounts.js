@@ -9,57 +9,18 @@ const {
   pathExists,
   removePath
 } = require('./storage');
-
-const DEFAULT_LABEL_PREFIX = 'Account';
-
-function normalizeLabel(value, fallback) {
-  if (typeof value !== 'string') return fallback;
-  const trimmed = value.trim();
-  return trimmed ? trimmed : fallback;
-}
-
-function parseAuthJson(authJson) {
-  if (typeof authJson !== 'string') {
-    throw new Error('authJson must be a string');
-  }
-  const trimmed = authJson.trim();
-  if (!trimmed) {
-    throw new Error('authJson is required');
-  }
-  try {
-    return JSON.parse(trimmed);
-  } catch (error) {
-    throw new Error('authJson must be valid JSON');
-  }
-}
-
+const { DEFAULT_LABEL_PREFIX, normalizeLabel, parseAuthJson } = require('./accounts-helpers');
 class AccountStore {
   constructor({ orchHome, codexHome, now } = {}) {
     this.orchHome = orchHome || path.join(os.homedir(), '.codex-orchestrator');
     this.codexHome = codexHome || process.env.CODEX_HOME || path.join(os.homedir(), '.codex');
     this.now = now || (() => new Date().toISOString());
   }
-
-  accountsDir() {
-    return path.join(this.orchHome, 'accounts');
-  }
-
-  statePath() {
-    return path.join(this.accountsDir(), 'accounts.json');
-  }
-
-  hostAuthPath() {
-    return path.join(this.codexHome, 'auth.json');
-  }
-
-  accountDir(accountId) {
-    return path.join(this.accountsDir(), accountId);
-  }
-
-  accountAuthPath(accountId) {
-    return path.join(this.accountDir(accountId), 'auth.json');
-  }
-
+  accountsDir() { return path.join(this.orchHome, 'accounts'); }
+  statePath() { return path.join(this.accountsDir(), 'accounts.json'); }
+  hostAuthPath() { return path.join(this.codexHome, 'auth.json'); }
+  accountDir(accountId) { return path.join(this.accountsDir(), accountId); }
+  accountAuthPath(accountId) { return path.join(this.accountDir(accountId), 'auth.json'); }
   async loadState() {
     let state = null;
     if (await pathExists(this.statePath())) {
@@ -67,17 +28,22 @@ class AccountStore {
     } else {
       state = { accounts: [], queue: [] };
     }
-    if (!Array.isArray(state.accounts)) state.accounts = [];
-    if (!Array.isArray(state.queue)) state.queue = [];
+    if (!Array.isArray(state.accounts)) {
+      state.accounts = [];
+    }
+    if (!Array.isArray(state.queue)) {
+      state.queue = [];
+    }
     if (!state.activeAccountId) {
       state.activeAccountId = state.queue[0] || null;
     }
     await this.bootstrapFromHostAuth(state);
     return state;
   }
-
   async bootstrapFromHostAuth(state) {
-    if (state.queue.length > 0) return state;
+    if (state.queue.length > 0) {
+      return state;
+    }
     if (!(await pathExists(this.hostAuthPath()))) {
       state.activeAccountId = null;
       return state;
@@ -105,10 +71,7 @@ class AccountStore {
     await writeJson(this.statePath(), state);
     return state;
   }
-
-  async saveState(state) {
-    await writeJson(this.statePath(), state);
-  }
+  async saveState(state) { await writeJson(this.statePath(), state); }
 
   async listAccounts() {
     const state = await this.loadState();
@@ -116,7 +79,9 @@ class AccountStore {
     const ordered = state.queue
       .map((id, index) => {
         const account = accountMap.get(id);
-        if (!account) return null;
+        if (!account) {
+          return null;
+        }
         return {
           ...account,
           position: index + 1,
@@ -133,7 +98,9 @@ class AccountStore {
   async getActiveAccount() {
     const state = await this.loadState();
     const activeId = state.queue[0] || null;
-    if (!activeId) return null;
+    if (!activeId) {
+      return null;
+    }
     const account = state.accounts.find((entry) => entry.id === activeId);
     if (!account) {
       return { id: activeId, label: null };
@@ -173,7 +140,9 @@ class AccountStore {
 
   async rotateActiveAccount() {
     const state = await this.loadState();
-    if (state.queue.length < 2) return null;
+    if (state.queue.length < 2) {
+      return null;
+    }
     const current = state.queue.shift();
     state.queue.push(current);
     state.activeAccountId = state.queue[0] || null;
@@ -206,7 +175,9 @@ class AccountStore {
   async applyActiveAccount() {
     const state = await this.loadState();
     const activeId = state.queue[0] || null;
-    if (!activeId) return null;
+    if (!activeId) {
+      return null;
+    }
     const sourcePath = this.accountAuthPath(activeId);
     if (!(await pathExists(sourcePath))) {
       throw new Error('Active account auth.json missing');
@@ -216,7 +187,6 @@ class AccountStore {
     await fs.writeFile(this.hostAuthPath(), content, { mode: 0o600 });
     return activeId;
   }
-
   async countAccounts() {
     const state = await this.loadState();
     return state.queue.length;

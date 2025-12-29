@@ -7,8 +7,8 @@
   "scripts": {
     "dev": "node src/server.js",
     "start": "node src/server.js",
-    "test": "vitest run",
-    "lint": "node -e \"console.log('no lint configured')\""
+    "test": "vitest run --coverage",
+    "lint": "eslint --rulesdir eslint-rules --ext .js,.mjs src tests --max-warnings=0"
   },
   "dependencies": {
     "cors": "2.8.5",
@@ -17,6 +17,9 @@
   },
   "devDependencies": {
     "@types/node": "20.16.5",
+    "@vitest/coverage-v8": "2.1.1",
+    "eslint": "8.57.1",
+    "eslint-plugin-vitest": "0.5.4",
     "supertest": "6.3.4",
     "vitest": "2.1.1"
   }

@@ -57,4 +57,47 @@ describe('task artifacts route', () => {
       .get(`/api/tasks/task-1/artifacts/${runId}/../secrets.txt`)
       .expect(400);
   });
+
+  it('returns 404 for missing runs and files', async () => {
+    const root = await createTempDir();
+    const runId = 'run-001';
+    const artifactsDir = path.join(root, runId);
+    await fs.mkdir(artifactsDir, { recursive: true });
+
+    const orchestrator = {
+      getTaskMeta: async () => ({ runs: [] }),
+      runArtifactsDir: () => artifactsDir
+    };
+    const app = buildApp(orchestrator);
+
+    await request(app)
+      .get(`/api/tasks/task-1/artifacts/${runId}/missing.txt`)
+      .expect(404);
+
+    const orchestratorWithRun = {
+      getTaskMeta: async () => ({ runs: [{ runId }] }),
+      runArtifactsDir: () => artifactsDir
+    };
+    const appWithRun = buildApp(orchestratorWithRun);
+    await request(appWithRun)
+      .get(`/api/tasks/task-1/artifacts/${runId}/missing.txt`)
+      .expect(404);
+  });
+
+  it('returns 404 when artifacts root is not a directory', async () => {
+    const root = await createTempDir();
+    const runId = 'run-001';
+    const artifactsPath = path.join(root, 'not-dir');
+    await fs.writeFile(artifactsPath, 'data');
+
+    const orchestrator = {
+      getTaskMeta: async () => ({ runs: [{ runId }] }),
+      runArtifactsDir: () => artifactsPath
+    };
+    const app = buildApp(orchestrator);
+
+    await request(app)
+      .get(`/api/tasks/task-1/artifacts/${runId}/file.txt`)
+      .expect(404);
+  });
 });

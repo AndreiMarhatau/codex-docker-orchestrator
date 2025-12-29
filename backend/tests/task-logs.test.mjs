@@ -63,4 +63,38 @@ describe('task logs stream', () => {
     expect(payload).toContain('data:');
     expect(payload).toContain(runId);
   });
+
+  it('returns 404 when task is missing', async () => {
+    const orchestrator = {
+      getTask: async () => {
+        const error = new Error('missing');
+        error.code = 'ENOENT';
+        throw error;
+      },
+      taskLogsDir: () => '/tmp'
+    };
+    const req = new EventEmitter();
+    req.params = { taskId: 'missing' };
+    req.query = {};
+    const res = createResponseRecorder();
+
+    await streamTaskLogs(orchestrator, req, res);
+    expect(res.statusCode).toBe(404);
+    expect(res.body).toBe('Task not found.');
+  });
+
+  it('returns 404 when run is missing', async () => {
+    const orchestrator = {
+      getTask: async () => ({ runs: [] }),
+      taskLogsDir: () => '/tmp'
+    };
+    const req = new EventEmitter();
+    req.params = { taskId: 'task-1' };
+    req.query = {};
+    const res = createResponseRecorder();
+
+    await streamTaskLogs(orchestrator, req, res);
+    expect(res.statusCode).toBe(404);
+    expect(res.body).toBe('Run not found.');
+  });
 });

@@ -138,6 +138,13 @@ function formatTimestamp(value) {
   return date.toLocaleString();
 }
 
+function formatEpochSeconds(value) {
+  if (!Number.isFinite(value)) return 'unknown';
+  const date = new Date(value * 1000);
+  if (Number.isNaN(date.getTime())) return 'unknown';
+  return date.toLocaleString();
+}
+
 function getEffortOptionsForModel(model) {
   return MODEL_EFFORTS[model] || [];
 }
@@ -198,6 +205,16 @@ function formatRepoDisplay(repoUrl) {
 function formatAccountLabel(account) {
   if (!account) return 'unknown';
   return account.label || account.id || 'unknown';
+}
+
+function normalizeAccountState(value) {
+  if (!value || typeof value !== 'object') {
+    return { accounts: [], activeAccountId: null };
+  }
+  if (!Array.isArray(value.accounts)) {
+    return { accounts: [], activeAccountId: null };
+  }
+  return value;
 }
 
 function formatDuration(ms) {
@@ -395,6 +412,10 @@ function App() {
   const [taskImageError, setTaskImageError] = useState('');
   const [taskImageUploading, setTaskImageUploading] = useState(false);
   const [accountForm, setAccountForm] = useState(emptyAccountForm);
+  const [rateLimits, setRateLimits] = useState(null);
+  const [rateLimitsLoading, setRateLimitsLoading] = useState(false);
+  const [rateLimitsError, setRateLimitsError] = useState('');
+  const [rateLimitsFetchedAt, setRateLimitsFetchedAt] = useState('');
   const [activeTab, setActiveTab] = useState(1);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -410,6 +431,10 @@ function App() {
   const selectedEnv = useMemo(
     () => envs.find((env) => env.envId === selectedEnvId),
     [envs, selectedEnvId]
+  );
+  const activeAccount = useMemo(
+    () => accountState.accounts.find((account) => account.isActive),
+    [accountState]
   );
 
   const visibleTasks = useMemo(() => {
@@ -449,6 +474,51 @@ function App() {
     () => taskForm.contextRepos.map((entry) => entry.envId).filter(Boolean),
     [taskForm.contextRepos]
   );
+  const renderRateLimitWindow = (label, window) => {
+    const hasWindow = window && typeof window === 'object';
+    const percent =
+      hasWindow && Number.isFinite(window.usedPercent) ? `${window.usedPercent}%` : 'unknown';
+    const windowDuration =
+      hasWindow && Number.isFinite(window.windowDurationMins)
+        ? `${window.windowDurationMins} min`
+        : 'unknown';
+    const resetsAt = hasWindow ? formatEpochSeconds(window.resetsAt) : 'unknown';
+    return (
+      <Box
+        sx={{
+          flex: 1,
+          minWidth: 200,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 2,
+          padding: 1.5
+        }}
+      >
+        <Stack spacing={0.5}>
+          <Typography variant="subtitle2">{label}</Typography>
+          {hasWindow ? (
+            <>
+              <Typography variant="body2">Used: {percent}</Typography>
+              <Typography variant="body2">Window: {windowDuration}</Typography>
+              <Typography variant="body2">Resets: {resetsAt}</Typography>
+            </>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              No data.
+            </Typography>
+          )}
+        </Stack>
+      </Box>
+    );
+  };
+  const creditsSummary = useMemo(() => {
+    const credits = rateLimits?.credits;
+    if (!credits) return 'No credit data.';
+    if (!credits.hasCredits) return 'No credits available.';
+    if (credits.unlimited) return 'Unlimited credits.';
+    if (credits.balance) return `Balance: ${credits.balance}`;
+    return 'Credits available.';
+  }, [rateLimits]);
 
   async function refreshAll() {
     const [envData, taskData, accountData] = await Promise.all([
@@ -458,7 +528,7 @@ function App() {
     ]);
     setEnvs(envData);
     setTasks(taskData);
-    setAccountState(accountData || { accounts: [], activeAccountId: null });
+    setAccountState(normalizeAccountState(accountData));
     if (!selectedEnvId && envData.length > 0) {
       setSelectedEnvId(envData[0].envId);
     }
@@ -503,7 +573,23 @@ function App() {
 
   async function refreshAccounts() {
     const accountData = await apiRequest('/api/accounts');
-    setAccountState(accountData || { accounts: [], activeAccountId: null });
+    setAccountState(normalizeAccountState(accountData));
+  }
+
+  async function refreshRateLimits() {
+    setRateLimitsError('');
+    setRateLimitsLoading(true);
+    try {
+      const info = await apiRequest('/api/accounts/rate-limits');
+      setRateLimits(info.rateLimits || null);
+      setRateLimitsFetchedAt(info.fetchedAt || '');
+    } catch (err) {
+      setRateLimits(null);
+      setRateLimitsFetchedAt('');
+      setRateLimitsError(err.message);
+    } finally {
+      setRateLimitsLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -523,6 +609,7 @@ function App() {
   useEffect(() => {
     if (activeTab !== 2) return;
     refreshImageInfo().catch(() => {});
+    refreshRateLimits().catch(() => {});
   }, [activeTab]);
 
   useEffect(() => {
@@ -913,7 +1000,7 @@ function App() {
       const accountData = await apiRequest(`/api/accounts/${accountId}/activate`, {
         method: 'POST'
       });
-      setAccountState(accountData || { accounts: [], activeAccountId: null });
+      setAccountState(normalizeAccountState(accountData));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -926,7 +1013,7 @@ function App() {
     setLoading(true);
     try {
       const accountData = await apiRequest('/api/accounts/rotate', { method: 'POST' });
-      setAccountState(accountData || { accounts: [], activeAccountId: null });
+      setAccountState(normalizeAccountState(accountData));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -939,7 +1026,7 @@ function App() {
     setLoading(true);
     try {
       const accountData = await apiRequest(`/api/accounts/${accountId}`, { method: 'DELETE' });
-      setAccountState(accountData || { accounts: [], activeAccountId: null });
+      setAccountState(normalizeAccountState(accountData));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -2239,6 +2326,64 @@ function App() {
                     >
                       Rotate now
                     </Button>
+                  </Stack>
+                  <Divider />
+                  <Stack spacing={1.5}>
+                    <Stack
+                      direction={{ xs: 'column', sm: 'row' }}
+                      spacing={2}
+                      alignItems={{ xs: 'flex-start', sm: 'center' }}
+                      justifyContent="space-between"
+                    >
+                      <Stack spacing={0.5}>
+                        <Typography variant="subtitle2">Usage limits</Typography>
+                        <Typography color="text.secondary">
+                          {activeAccount
+                            ? `Active account: ${formatAccountLabel(activeAccount)}`
+                            : 'No active account selected.'}
+                        </Typography>
+                      </Stack>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={refreshRateLimits}
+                        disabled={rateLimitsLoading}
+                      >
+                        Check usage limits
+                      </Button>
+                    </Stack>
+                    {rateLimitsLoading && (
+                      <Typography color="text.secondary">Loading usage limits...</Typography>
+                    )}
+                    {rateLimitsError && <Typography color="error">{rateLimitsError}</Typography>}
+                    {!rateLimitsLoading && !rateLimitsError && !rateLimits && (
+                      <Typography color="text.secondary">
+                        Usage limits have not been loaded yet.
+                      </Typography>
+                    )}
+                    {rateLimits && (
+                      <Box className="log-box">
+                        <Stack spacing={1.5}>
+                          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                            {renderRateLimitWindow('Primary window', rateLimits.primary)}
+                            {renderRateLimitWindow('Secondary window', rateLimits.secondary)}
+                          </Stack>
+                          <Divider />
+                          <Stack spacing={0.5}>
+                            <Typography variant="subtitle2">Credits</Typography>
+                            <Typography variant="body2">{creditsSummary}</Typography>
+                            {rateLimits.planType && (
+                              <Typography variant="body2">Plan: {rateLimits.planType}</Typography>
+                            )}
+                          </Stack>
+                        </Stack>
+                      </Box>
+                    )}
+                    {rateLimitsFetchedAt && (
+                      <Typography variant="caption" color="text.secondary">
+                        Last checked {formatTimestamp(rateLimitsFetchedAt)}
+                      </Typography>
+                    )}
                   </Stack>
                   <Stack spacing={1.5}>
                     {accountState.accounts.map((account) => (

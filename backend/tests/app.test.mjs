@@ -23,10 +23,12 @@ async function waitForTaskCompletion(app, taskId) {
 
 async function createTestApp() {
   const orchHome = await createTempDir();
+  const codexHome = await createTempDir();
   const exec = createMockExec({ branches: ['main'] });
   const spawn = createMockSpawn();
   const orchestrator = new Orchestrator({
     orchHome,
+    codexHome,
     exec,
     spawn,
     now: () => '2025-12-19T00:00:00.000Z'
@@ -89,6 +91,22 @@ describe('API', () => {
     const pullRes = await request(app).post('/api/settings/image/pull').expect(200);
     expect(pullRes.body.imageName).toBe(infoRes.body.imageName);
     expect(pullRes.body.present).toBe(true);
+  });
+
+  it('returns account rate limits for the active account', async () => {
+    const { app } = await createTestApp();
+
+    const accountRes = await request(app)
+      .post('/api/accounts')
+      .send({ label: 'Primary', authJson: '{}' })
+      .expect(201);
+
+    const rateRes = await request(app).get('/api/accounts/rate-limits').expect(200);
+    expect(rateRes.body.account.id).toBe(accountRes.body.id);
+    expect(rateRes.body.rateLimits.primary.usedPercent).toBe(25);
+    expect(rateRes.body.rateLimits.primary.windowDurationMins).toBe(15);
+    expect(rateRes.body.rateLimits.primary.resetsAt).toBe(1730947200);
+    expect(rateRes.body.fetchedAt).toBeTruthy();
   });
 
   it('uploads images and attaches them to new tasks', async () => {

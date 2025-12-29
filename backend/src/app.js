@@ -120,6 +120,18 @@ function createApp({ orchestrator = new Orchestrator() } = {}) {
     res.json(accounts);
   }));
 
+  app.get('/api/accounts/rate-limits', asyncHandler(async (req, res) => {
+    try {
+      const limits = await orchestrator.getAccountRateLimits();
+      res.json(limits);
+    } catch (error) {
+      if (error?.code === 'NO_ACTIVE_ACCOUNT') {
+        return res.status(400).send(error.message);
+      }
+      throw error;
+    }
+  }));
+
   app.post('/api/accounts', asyncHandler(async (req, res) => {
     const { label, authJson } = req.body || {};
     if (!authJson || typeof authJson !== 'string') {

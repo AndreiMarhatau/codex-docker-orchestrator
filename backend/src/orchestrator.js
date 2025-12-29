@@ -42,6 +42,12 @@ function invalidContextError(message) {
   return error;
 }
 
+function noActiveAccountError(message) {
+  const error = new Error(message);
+  error.code = 'NO_ACTIVE_ACCOUNT';
+  return error;
+}
+
 async function resolveRefInRepo(execOrThrow, gitDir, ref) {
   if (!ref) return ref;
   if (ref.startsWith('refs/')) return ref;
@@ -1290,6 +1296,138 @@ class Orchestrator {
   async removeAccount(accountId) {
     await this.accountStore.removeAccount(accountId);
     return this.listAccounts();
+  }
+
+  async getAccountRateLimits() {
+    const activeAccount = await this.accountStore.getActiveAccount();
+    if (!activeAccount?.id) {
+      throw noActiveAccountError('No active account. Add or activate an account first.');
+    }
+    await this.ensureActiveAuth();
+    const rateLimits = await this.fetchAccountRateLimits();
+    return {
+      account: activeAccount,
+      rateLimits,
+      fetchedAt: this.now()
+    };
+  }
+
+  async fetchAccountRateLimits() {
+    const env = { ...process.env, CODEX_HOME: this.codexHome };
+    const existingMounts = env.CODEX_MOUNT_PATHS || '';
+    const mountParts = existingMounts.split(':').filter(Boolean);
+    if (fs.existsSync(this.codexHome) && !mountParts.includes(this.codexHome)) {
+      mountParts.push(this.codexHome);
+    }
+    if (mountParts.length > 0) {
+      env.CODEX_MOUNT_PATHS = mountParts.join(':');
+    }
+    const child = this.spawn('codex-docker', ['app-server'], {
+      env,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    const initRequestId = 1;
+    const rateLimitRequestId = 2;
+    const initPayload = {
+      method: 'initialize',
+      id: initRequestId,
+      params: {
+        clientInfo: {
+          name: 'codex-docker-orchestrator',
+          title: 'Codex Docker Orchestrator',
+          version: '0.1.0'
+        }
+      }
+    };
+    const rateLimitPayload = { method: 'account/rateLimits/read', id: rateLimitRequestId };
+
+    return new Promise((resolve, reject) => {
+      let resolved = false;
+      let buffer = '';
+      let stderr = '';
+      const timeout = setTimeout(() => {
+        finalize(new Error('Timed out reading usage limits from Codex.'));
+      }, 15000);
+
+      const finalize = (error, value) => {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeout);
+        try {
+          child.kill('SIGTERM');
+        } catch (killError) {
+          // Ignore kill errors.
+        }
+        if (error) {
+          reject(error);
+        } else {
+          resolve(value);
+        }
+      };
+
+      const send = (payload) => {
+        try {
+          child.stdin.write(`${JSON.stringify(payload)}\n`);
+        } catch (error) {
+          finalize(error);
+        }
+      };
+
+      const handleMessage = (message) => {
+        if (!message || typeof message !== 'object') return;
+        if (message.id === initRequestId) {
+          if (message.error) {
+            const messageText = message.error.message || 'Failed to initialize Codex app-server.';
+            finalize(new Error(messageText));
+            return;
+          }
+          send({ method: 'initialized' });
+          send(rateLimitPayload);
+          return;
+        }
+        if (message.id === rateLimitRequestId) {
+          if (message.error) {
+            const messageText = message.error.message || 'Failed to read account rate limits.';
+            finalize(new Error(messageText));
+            return;
+          }
+          finalize(null, message.result?.rateLimits ?? null);
+        }
+      };
+
+      child.stdout.on('data', (chunk) => {
+        buffer += chunk.toString();
+        let newlineIndex = buffer.indexOf('\n');
+        while (newlineIndex !== -1) {
+          const line = buffer.slice(0, newlineIndex).trim();
+          buffer = buffer.slice(newlineIndex + 1);
+          if (line) {
+            try {
+              const message = JSON.parse(line);
+              handleMessage(message);
+            } catch (error) {
+              // Ignore parse errors from non-JSON output.
+            }
+          }
+          newlineIndex = buffer.indexOf('\n');
+        }
+      });
+
+      child.stderr.on('data', (chunk) => {
+        stderr += chunk.toString();
+      });
+
+      child.on('error', (error) => finalize(error));
+
+      child.on('close', () => {
+        if (resolved) return;
+        const message = stderr.trim() || 'Codex app-server exited before responding.';
+        finalize(new Error(message));
+      });
+
+      send(initPayload);
+    });
   }
 
   async deleteTask(taskId) {

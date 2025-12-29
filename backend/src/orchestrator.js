@@ -129,10 +129,28 @@ function normalizeOptionalString(value) {
 
 function isUsageLimitError(output) {
   if (!output) return false;
-  const lower = output.toLowerCase();
-  if (lower.includes("you've hit your usage limit")) return true;
-  if (lower.includes('usage limit') && lower.includes('codex')) return true;
-  if (lower.includes('usage limit') && lower.includes('chatgpt')) return true;
+  // Codex `exec --json` emits structured error events on stdout; rely on those signals only.
+  const lines = output.split(/\r?\n/).filter(Boolean);
+  for (const line of lines) {
+    const payload = safeJsonParse(line);
+    if (!payload || typeof payload !== 'object') continue;
+    let message = null;
+    if (payload.type === 'error' && typeof payload.message === 'string') {
+      message = payload.message;
+    } else if (
+      payload.type === 'turn_failed' &&
+      payload.error &&
+      typeof payload.error.message === 'string'
+    ) {
+      message = payload.error.message;
+    }
+    if (!message) continue;
+    const lower = message.toLowerCase();
+    if (lower.includes("you've hit your usage limit")) return true;
+    if (lower.includes('usage limit') && lower.includes('codex')) return true;
+    if (lower.includes('usage limit') && lower.includes('chatgpt')) return true;
+    if (lower.includes('usage limit')) return true;
+  }
   return false;
 }
 
@@ -722,7 +740,7 @@ class Orchestrator {
     const threadId = result.threadId || parseThreadId(combinedOutput);
     const resolvedThreadId = threadId || meta.threadId || null;
     const stopped = result.stopped === true;
-    const usageLimit = isUsageLimitError(combinedOutput);
+    const usageLimit = isUsageLimitError(result.stdout);
     const success = !stopped && result.code === 0 && !!resolvedThreadId;
     const now = this.now();
     const artifactsDir = this.runArtifactsDir(taskId, runLabel);
@@ -1235,8 +1253,8 @@ class Orchestrator {
   async maybeAutoRotate(taskId, prompt, result) {
     if (!prompt) return;
     if (result.stopped) return;
-    const combinedOutput = [result.stdout, result.stderr].filter(Boolean).join('\n');
-    if (!isUsageLimitError(combinedOutput)) return;
+    if (result.code === 0) return;
+    if (!isUsageLimitError(result.stdout)) return;
     const meta = await readJson(this.taskMetaPath(taskId));
     if (!meta.threadId) return;
     const lastRun = meta.runs?.[meta.runs.length - 1];

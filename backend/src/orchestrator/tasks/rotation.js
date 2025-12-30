@@ -1,7 +1,4 @@
-const os = require('node:os');
-const path = require('node:path');
-const fs = require('node:fs/promises');
-const { readJson, writeJson, pathExists, removePath } = require('../../storage');
+const { readJson, writeJson, pathExists } = require('../../storage');
 const { isUsageLimitError } = require('../logs');
 
 function shouldRotate({ prompt, result }) {
@@ -47,13 +44,8 @@ async function fetchRateLimitsForAccount(orchestrator, accountId) {
   if (!(await pathExists(authPath))) {
     return null;
   }
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-account-'));
-  try {
-    await fs.copyFile(authPath, path.join(tempDir, 'auth.json'));
-    return await orchestrator.fetchAccountRateLimitsForHome(tempDir);
-  } finally {
-    await removePath(tempDir);
-  }
+  const accountDir = orchestrator.accountStore.accountDir(accountId);
+  return await orchestrator.fetchAccountRateLimitsForHome(accountDir);
 }
 
 async function findUsableAccount(orchestrator, accountIds) {

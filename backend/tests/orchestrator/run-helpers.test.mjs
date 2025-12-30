@@ -186,4 +186,37 @@ describe('run helpers meta updates', () => {
     expect(updated.meta.status).toBe('failed');
     expect(updated.meta.error).toBe('Usage limit reached.');
   });
+
+  it('treats usage limit output as failure even with exit code 0', async () => {
+    const root = await createTempDir();
+    const taskId = 'task-4';
+    const runLabel = 'run-004';
+    const taskDir = path.join(root, 'tasks', taskId);
+    await fs.mkdir(taskDir, { recursive: true });
+    await fs.writeFile(
+      path.join(taskDir, 'meta.json'),
+      JSON.stringify({ taskId, runs: [] })
+    );
+
+    const result = {
+      stdout: JSON.stringify({ type: 'error', message: "You've hit your usage limit" }),
+      stderr: '',
+      code: 0,
+      threadId: 'thread-4'
+    };
+    const updated = await updateRunMeta({
+      taskId,
+      runLabel,
+      result,
+      prompt: null,
+      now: () => '2025-01-04T00:00:00.000Z',
+      taskMetaPath: (id) => path.join(root, 'tasks', id, 'meta.json'),
+      runArtifactsDir: () => path.join(root, 'artifacts', taskId, runLabel)
+    });
+
+    expect(updated.success).toBe(false);
+    expect(updated.usageLimit).toBe(true);
+    expect(updated.meta.status).toBe('failed');
+    expect(updated.meta.error).toBe('Usage limit reached.');
+  });
 });

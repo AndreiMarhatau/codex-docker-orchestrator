@@ -11,9 +11,6 @@ function shouldRotate({ prompt, result }) {
   if (result.stopped) {
     return false;
   }
-  if (result.code === 0) {
-    return false;
-  }
   const combinedOutput = [result.stdout, result.stderr].filter(Boolean).join('\n');
   return result.usageLimit ?? isUsageLimitError(combinedOutput);
 }

@@ -1,8 +1,10 @@
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').trim();
 
-export function apiUrl(path) {
-  if (!apiBaseUrl) return path;
-  return new URL(path, apiBaseUrl.endsWith('/') ? apiBaseUrl : `${apiBaseUrl}/`).toString();
+export function apiUrl(path, baseUrl = apiBaseUrl) {
+  if (!baseUrl) {
+    return path;
+  }
+  return new URL(path, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`).toString();
 }
 
 export async function apiRequest(path, options = {}) {

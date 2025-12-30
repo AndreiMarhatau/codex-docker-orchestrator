@@ -53,6 +53,10 @@ async function fetchRateLimitsForAccount(orchestrator, accountId) {
   const codexHome = path.join(tempDir, '.codex');
   try {
     await fs.mkdir(codexHome, { recursive: true });
+    // Precreate writable parents so root-owned children can be deleted later.
+    const skillsDir = path.join(codexHome, 'skills');
+    await fs.mkdir(skillsDir, { recursive: true, mode: 0o777 });
+    await fs.chmod(skillsDir, 0o777);
     await fs.copyFile(authPath, path.join(codexHome, 'auth.json'));
     await fs.writeFile(
       path.join(codexHome, 'config.toml'),

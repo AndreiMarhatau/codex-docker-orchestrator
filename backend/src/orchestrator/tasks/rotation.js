@@ -61,6 +61,7 @@ async function fetchRateLimitsForAccount(orchestrator, accountId) {
     return await orchestrator.fetchAccountRateLimitsForHome(codexHome);
   } finally {
     try {
+      await orchestrator.ensureOwnership(tempDir);
       await removePath(tempDir);
     } catch (error) {
       // Best-effort cleanup; permission errors shouldn't block rotation.

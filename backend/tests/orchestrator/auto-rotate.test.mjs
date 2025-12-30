@@ -6,90 +6,12 @@ import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 import { createMockExec, createTempDir } from '../helpers.mjs';
 import { waitForTaskStatus } from '../helpers/wait.mjs';
+import { buildSpawnWithUsageLimit } from '../helpers/auto-rotate.mjs';
+
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
-function buildSpawnWithUsageLimit({ spawnCalls, onBeforeLimit }) {
-  let runCount = 0;
-  return (command, args, options = {}) => {
-    spawnCalls.push({ command, args, options });
-    const child = new EventEmitter();
-    child.stdout = new PassThrough();
-    child.stderr = new PassThrough();
-    child.stdin = new PassThrough();
-    child.kill = () => {
-      setImmediate(() => {
-        child.emit('close', 143, 'SIGTERM');
-      });
-    };
-    const isResume = args.includes('resume');
-    setImmediate(async () => {
-      if (runCount === 0) {
-        if (onBeforeLimit) {
-          await onBeforeLimit();
-        }
-        child.stdout.write(
-          JSON.stringify({ type: 'thread.started', thread_id: 'thread-1' }) +
-            '\n' +
-            JSON.stringify({ type: 'error', message: "You've hit your usage limit." }) +
-            '\n'
-        );
-        child.stdout.end();
-        child.emit('close', 1, null);
-      } else {
-        child.stdout.write(
-          JSON.stringify({ type: 'thread.started', thread_id: 'thread-1' }) +
-            '\n' +
-            JSON.stringify({
-              type: 'item.completed',
-              item: { id: 'item_1', type: 'agent_message', text: isResume ? 'RESUME' : 'OK' }
-            }) +
-            '\n'
-        );
-        child.stdout.end();
-        child.emit('close', 0, null);
-      }
-      runCount += 1;
-    });
-    return child;
-  };
-}
+
 describe('Orchestrator auto-rotate', () => {
-  it('auto-rotates accounts on usage limit and resumes', async () => {
-    const orchHome = await createTempDir();
-    const codexHome = path.join(orchHome, 'codex-home');
-    await fs.mkdir(codexHome, { recursive: true });
-    await fs.writeFile(path.join(codexHome, 'auth.json'), JSON.stringify({ token: 'primary' }, null, 2));
-    const exec = createMockExec({ branches: ['main'] });
-    const spawnCalls = [];
-    const spawn = buildSpawnWithUsageLimit({ spawnCalls });
-
-    const orchestrator = new Orchestrator({
-      orchHome,
-      codexHome,
-      exec,
-      spawn,
-      now: () => '2025-12-19T00:00:00.000Z'
-    });
-
-    await orchestrator.addAccount({
-      label: 'Secondary',
-      authJson: JSON.stringify({ token: 'secondary' })
-    });
-
-    const env = await orchestrator.createEnv({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' });
-    const task = await orchestrator.createTask({
-      envId: env.envId,
-      ref: 'main',
-      prompt: 'Do work'
-    });
-
-    const completed = await waitForTaskStatus(orchestrator, task.taskId, 'completed');
-    expect(completed.autoRotateCount).toBe(1);
-    expect(spawnCalls.length).toBe(2);
-
-    const activeAuth = JSON.parse(await fs.readFile(path.join(codexHome, 'auth.json'), 'utf8'));
-    expect(activeAuth).toEqual({ token: 'secondary' });
-  });
   it('does not auto-rotate when usage limit appears in agent output of a successful run', async () => {
     const orchHome = await createTempDir();
     const codexHome = path.join(orchHome, 'codex-home');

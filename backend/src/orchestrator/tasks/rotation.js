@@ -1,4 +1,7 @@
-const { readJson, writeJson } = require('../../storage');
+const os = require('node:os');
+const path = require('node:path');
+const fs = require('node:fs/promises');
+const { readJson, writeJson, pathExists, removePath } = require('../../storage');
 const { isUsageLimitError } = require('../logs');
 
 function shouldRotate({ prompt, result }) {
@@ -12,6 +15,47 @@ function shouldRotate({ prompt, result }) {
     return false;
   }
   return result.usageLimit ?? isUsageLimitError(result.stdout);
+}
+
+function hasRemainingUsage(rateLimits) {
+  if (!rateLimits || typeof rateLimits !== 'object') {
+    return false;
+  }
+  const windows = Object.values(rateLimits).filter(
+    (entry) => entry && typeof entry === 'object' && typeof entry.usedPercent === 'number'
+  );
+  if (windows.length === 0) {
+    return false;
+  }
+  return windows.every((entry) => entry.usedPercent < 100);
+}
+
+async function fetchRateLimitsForAccount(orchestrator, accountId) {
+  const authPath = orchestrator.accountStore.accountAuthPath(accountId);
+  if (!(await pathExists(authPath))) {
+    return null;
+  }
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-account-'));
+  try {
+    await fs.copyFile(authPath, path.join(tempDir, 'auth.json'));
+    return await orchestrator.fetchAccountRateLimitsForHome(tempDir);
+  } finally {
+    await removePath(tempDir);
+  }
+}
+
+async function findUsableAccount(orchestrator, accountIds) {
+  for (const accountId of accountIds) {
+    try {
+      const rateLimits = await fetchRateLimitsForAccount(orchestrator, accountId);
+      if (hasRemainingUsage(rateLimits)) {
+        return accountId;
+      }
+    } catch {
+      // Skip accounts when usage limits cannot be read.
+    }
+  }
+  return null;
 }
 
 function attachTaskRotationMethods(Orchestrator) {
@@ -51,7 +95,14 @@ function attachTaskRotationMethods(Orchestrator) {
       return;
     }
 
-    await this.accountStore.rotateActiveAccount();
+    const accounts = await this.accountStore.listAccounts();
+    const candidateIds = accounts.accounts.slice(1).map((account) => account.id);
+    const nextAccountId = await findUsableAccount(this, candidateIds);
+    if (!nextAccountId) {
+      return;
+    }
+
+    await this.accountStore.setActiveAccount(nextAccountId);
     meta.autoRotateCount = attempts + 1;
     meta.updatedAt = this.now();
     meta.status = 'running';

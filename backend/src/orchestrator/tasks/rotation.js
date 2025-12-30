@@ -60,7 +60,23 @@ async function fetchRateLimitsForAccount(orchestrator, accountId) {
     );
     return await orchestrator.fetchAccountRateLimitsForHome(codexHome);
   } finally {
-    await removePath(tempDir);
+    try {
+      await removePath(tempDir);
+    } catch (error) {
+      // Best-effort cleanup; permission errors shouldn't block rotation.
+      try {
+        console.log(
+          JSON.stringify({
+            event: 'auto-rotate',
+            at: orchestrator.now(),
+            reason: 'cleanup_failed',
+            error: error?.message || String(error)
+          })
+        );
+      } catch {
+        // Ignore logging failures.
+      }
+    }
   }
 }
 

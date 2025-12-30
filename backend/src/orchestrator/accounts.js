@@ -168,7 +168,13 @@ function attachAccountMethods(Orchestrator) {
   };
 
   Orchestrator.prototype.fetchAccountRateLimits = async function fetchAccountRateLimits() {
-    const env = buildRateLimitEnv(this.codexHome);
+    return this.fetchAccountRateLimitsForHome(this.codexHome);
+  };
+
+  Orchestrator.prototype.fetchAccountRateLimitsForHome = async function fetchAccountRateLimitsForHome(
+    codexHome
+  ) {
+    const env = buildRateLimitEnv(codexHome);
     const child = this.spawn('codex-docker', ['app-server'], {
       env,
       stdio: ['pipe', 'pipe', 'pipe']

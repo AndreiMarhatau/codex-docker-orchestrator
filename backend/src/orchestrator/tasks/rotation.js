@@ -50,10 +50,15 @@ async function fetchRateLimitsForAccount(orchestrator, accountId) {
   const tempRoot = path.join(orchestrator.orchHome || os.tmpdir(), 'tmp');
   await fs.mkdir(tempRoot, { recursive: true });
   const tempDir = await fs.mkdtemp(path.join(tempRoot, 'codex-account-'));
+  const codexHome = path.join(tempDir, '.codex');
   try {
-    await fs.copyFile(authPath, path.join(tempDir, 'auth.json'));
-    await fs.writeFile(path.join(tempDir, 'config.toml'), 'cli_auth_credentials_store = "file"\n');
-    return await orchestrator.fetchAccountRateLimitsForHome(tempDir);
+    await fs.mkdir(codexHome, { recursive: true });
+    await fs.copyFile(authPath, path.join(codexHome, 'auth.json'));
+    await fs.writeFile(
+      path.join(codexHome, 'config.toml'),
+      'cli_auth_credentials_store = "file"\n'
+    );
+    return await orchestrator.fetchAccountRateLimitsForHome(codexHome);
   } finally {
     await removePath(tempDir);
   }

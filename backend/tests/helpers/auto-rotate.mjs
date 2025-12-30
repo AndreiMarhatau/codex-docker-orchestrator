@@ -63,15 +63,14 @@ function attachAppServerResponder(child, options, rateLimitsByToken) {
   });
 }
 
-function emitUsageLimit(child, stream = 'stdout') {
-  const target = stream === 'stderr' ? child.stderr : child.stdout;
-  target.write(
+function emitUsageLimit(child) {
+  child.stdout.write(
     JSON.stringify({ type: 'thread.started', thread_id: 'thread-1' }) +
       '\n' +
       JSON.stringify({ type: 'error', message: "You've hit your usage limit." }) +
       '\n'
   );
-  target.end();
+  child.stdout.end();
   child.emit('close', 1, null);
 }
 
@@ -89,12 +88,7 @@ function emitSuccess(child, isResume) {
   child.emit('close', 0, null);
 }
 
-export function buildSpawnWithUsageLimit({
-  spawnCalls,
-  onBeforeLimit,
-  rateLimitsByToken = {},
-  usageLimitStream = 'stdout'
-}) {
+export function buildSpawnWithUsageLimit({ spawnCalls, onBeforeLimit, rateLimitsByToken = {} }) {
   let runCount = 0;
   return (command, args, options = {}) => {
     spawnCalls.push({ command, args, options });
@@ -109,7 +103,7 @@ export function buildSpawnWithUsageLimit({
         if (onBeforeLimit) {
           await onBeforeLimit();
         }
-        emitUsageLimit(child, usageLimitStream);
+        emitUsageLimit(child);
       } else {
         emitSuccess(child, isResume);
       }

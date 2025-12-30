@@ -107,7 +107,7 @@ async function updateRunMeta({ taskId, runLabel, result, prompt, now, taskMetaPa
   const threadId = result.threadId || parseThreadId(combinedOutput);
   const resolvedThreadId = threadId || meta.threadId || null;
   const stopped = result.stopped === true;
-  const usageLimit = isUsageLimitError(combinedOutput);
+  const usageLimit = isUsageLimitError(result.stdout);
   const success = !stopped && result.code === 0 && !!resolvedThreadId;
   const currentTime = now();
   const artifactsDir = runArtifactsDir(taskId, runLabel);

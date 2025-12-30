@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const path = require('node:path');
 
 function createRateLimitPayloads() {
   const initRequestId = 1;
@@ -28,14 +29,14 @@ function sendJsonLine(child, payload, onError) {
 
 function buildRateLimitEnv(codexHome) {
   const env = { ...process.env, CODEX_HOME: codexHome };
-  env.HOME = codexHome;
-  env.XDG_CONFIG_HOME = codexHome;
-  env.XDG_DATA_HOME = codexHome;
-  env.XDG_STATE_HOME = codexHome;
-  delete env.CODEX_MOUNT_PATHS;
-  delete env.CODEX_MOUNT_PATHS_RO;
-  if (fs.existsSync(codexHome)) {
-    env.CODEX_MOUNT_PATHS = codexHome;
+  env.HOME = path.dirname(codexHome);
+  const existingMounts = env.CODEX_MOUNT_PATHS || '';
+  const mountParts = existingMounts.split(':').filter(Boolean);
+  if (fs.existsSync(codexHome) && !mountParts.includes(codexHome)) {
+    mountParts.push(codexHome);
+  }
+  if (mountParts.length > 0) {
+    env.CODEX_MOUNT_PATHS = mountParts.join(':');
   }
   return env;
 }

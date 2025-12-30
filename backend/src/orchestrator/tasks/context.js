@@ -27,14 +27,7 @@ async function resolveImagePath(uploadsRoot, imagePath) {
   return resolvedPath;
 }
 
-function buildAgentsFile({
-  taskId,
-  runLabel,
-  contextRepos,
-  baseFile,
-  hostDockerFile,
-  extraInstructions
-}) {
+function buildAgentsFile({ taskId, runLabel, contextRepos, baseFile, hostDockerFile }) {
   const contextSection = buildContextReposSection(contextRepos);
   const sections = [];
   if (baseFile) {
@@ -51,9 +44,6 @@ function buildAgentsFile({
   }
   if (contextSection) {
     sections.push(contextSection.trimEnd());
-  }
-  if (extraInstructions && extraInstructions.trim()) {
-    sections.push(extraInstructions.trimEnd());
   }
   if (sections.length === 0) {
     return null;
@@ -151,8 +141,7 @@ function attachTaskContextMethods(Orchestrator) {
     taskId,
     runLabel,
     useHostDockerSocket,
-    contextRepos,
-    extraInstructions
+    contextRepos
   }) {
     const baseFile =
       this.orchAgentsFile && fs.existsSync(this.orchAgentsFile) ? this.orchAgentsFile : null;
@@ -161,7 +150,7 @@ function attachTaskContextMethods(Orchestrator) {
         ? this.hostDockerAgentsFile
         : null;
     const contextSection = buildContextReposSection(contextRepos);
-    const shouldCombine = Boolean(useHostDockerSocket || contextSection || extraInstructions);
+    const shouldCombine = Boolean(useHostDockerSocket || contextSection);
     if (!shouldCombine) {
       return baseFile;
     }
@@ -171,8 +160,7 @@ function attachTaskContextMethods(Orchestrator) {
       runLabel,
       contextRepos,
       baseFile,
-      hostDockerFile: includeHostDocker ? hostDockerFile : null,
-      extraInstructions
+      hostDockerFile: includeHostDocker ? hostDockerFile : null
     });
     return agentsFile;
   };

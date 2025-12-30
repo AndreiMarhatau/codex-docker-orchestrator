@@ -23,10 +23,6 @@ function attachTaskResumeMethods(Orchestrator) {
     const hasPrompt = typeof prompt === 'string' && prompt.length > 0;
     const hasCodexPromptOverride = Object.prototype.hasOwnProperty.call(options, 'codexPrompt');
     const codexPrompt = hasCodexPromptOverride ? options.codexPrompt : prompt;
-    const resumeInstructions =
-      hasCodexPromptOverride && codexPrompt === '' && hasPrompt
-        ? `# Resume hint\n\nThe previous user request was:\n\n${prompt}\n\nContinue from where you left off.`
-        : null;
     meta.updatedAt = this.now();
     meta.status = 'running';
     if (hasPrompt) {
@@ -70,8 +66,7 @@ function attachTaskResumeMethods(Orchestrator) {
       mountPaths: [env.mirrorPath, ...(dockerSocketPath ? [dockerSocketPath] : [])],
       mountPathsRo: contextRepos.map((repo) => repo.worktreePath),
       contextRepos,
-      useHostDockerSocket: shouldUseHostDockerSocket,
-      agentsAppendInstructions: resumeInstructions
+      useHostDockerSocket: shouldUseHostDockerSocket
     });
     return meta;
   };

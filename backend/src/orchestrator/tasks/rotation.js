@@ -17,6 +17,18 @@ function shouldRotate({ prompt, result }) {
   return result.usageLimit ?? isUsageLimitError(result.stdout);
 }
 
+function summarizeRateLimits(rateLimits) {
+  if (!rateLimits || typeof rateLimits !== 'object') {
+    return null;
+  }
+  const getUsedPercent = (window) =>
+    window && typeof window.usedPercent === 'number' ? window.usedPercent : null;
+  return {
+    primaryUsedPercent: getUsedPercent(rateLimits.primary),
+    secondaryUsedPercent: getUsedPercent(rateLimits.secondary)
+  };
+}
+
 function hasRemainingUsage(rateLimits) {
   if (!rateLimits || typeof rateLimits !== 'object') {
     return false;
@@ -45,17 +57,41 @@ async function fetchRateLimitsForAccount(orchestrator, accountId) {
 }
 
 async function findUsableAccount(orchestrator, accountIds) {
+  const diagnostics = [];
   for (const accountId of accountIds) {
     try {
       const rateLimits = await fetchRateLimitsForAccount(orchestrator, accountId);
-      if (hasRemainingUsage(rateLimits)) {
-        return accountId;
+      const eligible = hasRemainingUsage(rateLimits);
+      diagnostics.push({
+        accountId,
+        eligible,
+        rateLimits: summarizeRateLimits(rateLimits)
+      });
+      if (eligible) {
+        return { accountId, diagnostics };
       }
-    } catch {
-      // Skip accounts when usage limits cannot be read.
+    } catch (error) {
+      diagnostics.push({
+        accountId,
+        eligible: false,
+        error: error?.message || 'Unable to read rate limits.'
+      });
     }
   }
-  return null;
+  return { accountId: null, diagnostics };
+}
+
+function logAutoRotate(orchestrator, payload) {
+  try {
+    const entry = {
+      event: 'auto-rotate',
+      at: orchestrator.now(),
+      ...payload
+    };
+    console.log(JSON.stringify(entry));
+  } catch {
+    // Avoid throwing during rotation flow.
+  }
 }
 
 function attachTaskRotationMethods(Orchestrator) {
@@ -65,11 +101,13 @@ function attachTaskRotationMethods(Orchestrator) {
     }
     const meta = result.meta || (await readJson(this.taskMetaPath(taskId)));
     if (!meta.threadId) {
+      logAutoRotate(this, { taskId, reason: 'missing_thread_id' });
       return;
     }
     const lastRun = meta.runs?.[meta.runs.length - 1];
     const activeAccount = await this.accountStore.getActiveAccount();
     if (!activeAccount?.id) {
+      logAutoRotate(this, { taskId, reason: 'no_active_account' });
       return;
     }
 
@@ -79,11 +117,22 @@ function attachTaskRotationMethods(Orchestrator) {
       await writeJson(this.taskMetaPath(taskId), meta);
     }
     if (!lastRun?.accountId || lastRun.accountId !== activeAccount.id) {
+      logAutoRotate(this, {
+        taskId,
+        reason: 'active_account_mismatch',
+        lastRunAccountId: lastRun?.accountId || null,
+        activeAccountId: activeAccount.id
+      });
       return;
     }
 
     const accountCount = await this.accountStore.countAccounts();
     if (accountCount < 2) {
+      logAutoRotate(this, {
+        taskId,
+        reason: 'insufficient_accounts',
+        accountCount
+      });
       return;
     }
     const maxRotations =
@@ -92,17 +141,35 @@ function attachTaskRotationMethods(Orchestrator) {
         : this.maxAccountRotations;
     const attempts = meta.autoRotateCount || 0;
     if (attempts >= maxRotations) {
+      logAutoRotate(this, {
+        taskId,
+        reason: 'rotation_limit_reached',
+        attempts,
+        maxRotations
+      });
       return;
     }
 
     const accounts = await this.accountStore.listAccounts();
     const candidateIds = accounts.accounts.slice(1).map((account) => account.id);
-    const nextAccountId = await findUsableAccount(this, candidateIds);
+    const { accountId: nextAccountId, diagnostics } = await findUsableAccount(this, candidateIds);
     if (!nextAccountId) {
+      logAutoRotate(this, {
+        taskId,
+        reason: 'no_eligible_account',
+        candidateIds,
+        diagnostics
+      });
       return;
     }
 
     await this.accountStore.setActiveAccount(nextAccountId);
+    logAutoRotate(this, {
+      taskId,
+      reason: 'rotated',
+      fromAccountId: activeAccount.id,
+      toAccountId: nextAccountId
+    });
     meta.autoRotateCount = attempts + 1;
     meta.updatedAt = this.now();
     meta.status = 'running';

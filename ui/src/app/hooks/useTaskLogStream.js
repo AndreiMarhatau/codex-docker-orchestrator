@@ -1,29 +1,33 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { apiUrl } from '../../api.js';
 
 function useTaskLogStream({ selectedTaskId, taskDetail, setTaskDetail }) {
   const logStreamRef = useRef(null);
+  const latestRunId = useMemo(
+    () => taskDetail?.runs?.[taskDetail.runs.length - 1]?.runId || '',
+    [taskDetail?.runs]
+  );
+  const status = taskDetail?.status || '';
 
   useEffect(() => {
-    if (!selectedTaskId || !taskDetail) {
+    if (!selectedTaskId || !status) {
       return;
     }
-    if (taskDetail.status !== 'running' && taskDetail.status !== 'stopping') {
+    if (status !== 'running' && status !== 'stopping') {
       if (logStreamRef.current) {
         logStreamRef.current.close();
         logStreamRef.current = null;
       }
       return;
     }
-    const latestRun = taskDetail.runs?.[taskDetail.runs.length - 1];
-    if (!latestRun) {
+    if (!latestRunId) {
       return;
     }
     if (logStreamRef.current) {
       logStreamRef.current.close();
     }
     const eventSource = new EventSource(
-      apiUrl(`/api/tasks/${selectedTaskId}/logs/stream?runId=${latestRun.runId}`)
+      apiUrl(`/api/tasks/${selectedTaskId}/logs/stream?runId=${latestRunId}`)
     );
     logStreamRef.current = eventSource;
     eventSource.onmessage = (event) => {
@@ -55,11 +59,11 @@ function useTaskLogStream({ selectedTaskId, taskDetail, setTaskDetail }) {
     };
     return () => {
       eventSource.close();
-      if (logStreamRef.current === eventSource) {
-        logStreamRef.current = null;
-      }
-    };
-  }, [selectedTaskId, setTaskDetail, taskDetail]);
+    if (logStreamRef.current === eventSource) {
+      logStreamRef.current = null;
+    }
+  };
+  }, [latestRunId, selectedTaskId, setTaskDetail, status]);
 }
 
 export default useTaskLogStream;

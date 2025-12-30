@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiRequest } from '../../api.js';
 import { emptyResumeConfig } from '../constants.js';
 import useTaskLogStream from './useTaskLogStream.js';
@@ -13,32 +13,35 @@ function useTaskDetail({ tasks, selectedTaskId, setError, setSelectedTaskId }) {
   const [resumeDockerTouched, setResumeDockerTouched] = useState(false);
   const resumeDefaultsTaskIdRef = useRef('');
 
-  async function refreshTaskDetail(taskId) {
-    if (!taskId) {
-      return;
-    }
-    try {
-      const detail = await apiRequest(`/api/tasks/${taskId}`);
-      let diff = null;
-      try {
-        diff = await apiRequest(`/api/tasks/${taskId}/diff`);
-      } catch (diffError) {
-        if (diffError.status !== 404) {
-          throw diffError;
-        }
-      }
-      setTaskDetail(detail);
-      setTaskDiff(diff);
-    } catch (err) {
-      if (err.status === 404) {
-        setSelectedTaskId('');
-        setTaskDetail(null);
-        setTaskDiff(null);
+  const refreshTaskDetail = useCallback(
+    async (taskId) => {
+      if (!taskId) {
         return;
       }
-      throw err;
-    }
-  }
+      try {
+        const detail = await apiRequest(`/api/tasks/${taskId}`);
+        let diff = null;
+        try {
+          diff = await apiRequest(`/api/tasks/${taskId}/diff`);
+        } catch (diffError) {
+          if (diffError.status !== 404) {
+            throw diffError;
+          }
+        }
+        setTaskDetail(detail);
+        setTaskDiff(diff);
+      } catch (err) {
+        if (err.status === 404) {
+          setSelectedTaskId('');
+          setTaskDetail(null);
+          setTaskDiff(null);
+          return;
+        }
+        throw err;
+      }
+    },
+    [setSelectedTaskId]
+  );
 
   useEffect(() => {
     if (!selectedTaskId) {

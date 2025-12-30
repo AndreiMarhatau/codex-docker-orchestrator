@@ -4,7 +4,10 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
+    file \
+    build-essential \
     gpg \
+    procps \
   && mkdir -p /etc/apt/keyrings \
   && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     | dd of=/etc/apt/keyrings/githubcli-archive-keyring.gpg \
@@ -22,18 +25,17 @@ RUN git config --system credential.helper "!/usr/bin/gh auth git-credential"
 
 WORKDIR /app
 
-ARG CODEX_DOCKER_REF=latest
-RUN if [ "${CODEX_DOCKER_REF}" = "latest" ]; then \
-      CODEX_DOCKER_REF="$(git ls-remote --tags --sort="v:refname" https://github.com/AndreiMarhatau/codex-docker.git \
-        | awk -F/ '/refs\\/tags\\// && $NF !~ /\\^\\{\\}$/{print $NF}' \
-        | tail -n1)"; \
-    fi \
-  && if [ -z "${CODEX_DOCKER_REF}" ]; then \
-      CODEX_DOCKER_REF="main"; \
-    fi \
-  && git clone --depth 1 --branch "${CODEX_DOCKER_REF}" \
-    https://github.com/AndreiMarhatau/codex-docker.git /opt/codex-docker \
-  && ln -s /opt/codex-docker/codex-docker /usr/local/bin/codex-docker
+RUN useradd -m -s /bin/bash linuxbrew
+ENV HOMEBREW_PREFIX=/home/linuxbrew/.linuxbrew
+ENV PATH="${HOMEBREW_PREFIX}/bin:${HOMEBREW_PREFIX}/sbin:${PATH}"
+ENV HOMEBREW_NO_ANALYTICS=1
+ENV HOMEBREW_NO_AUTO_UPDATE=1
+
+USER linuxbrew
+RUN NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" \
+  && brew tap andreimarhatau/codex-docker \
+  && brew install codex-docker
+USER root
 
 COPY backend/package*.json ./backend/
 COPY ui/package*.json ./ui/

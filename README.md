@@ -120,5 +120,4 @@ If the image is private, run `docker login ghcr.io` first.
 - Git HTTPS auth is reused by mounting your host `~/.gitconfig` and `~/.config/gh` via the home mount.
 
 ### Notes
-- `codex-docker` is baked into the image. By default it resolves the latest tag at build time.
-- To pin a specific release or branch, set `CODEX_DOCKER_REF` during build.
+- `codex-docker` is installed via Homebrew from the `andreimarhatau/codex-docker` tap during build.

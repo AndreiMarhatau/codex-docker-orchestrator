@@ -53,10 +53,6 @@ async function fetchRateLimitsForAccount(orchestrator, accountId) {
   const codexHome = path.join(tempDir, '.codex');
   try {
     await fs.mkdir(codexHome, { recursive: true });
-    // Precreate writable parents so root-owned children can be deleted later.
-    const skillsDir = path.join(codexHome, 'skills');
-    await fs.mkdir(skillsDir, { recursive: true, mode: 0o777 });
-    await fs.chmod(skillsDir, 0o777);
     await fs.copyFile(authPath, path.join(codexHome, 'auth.json'));
     await fs.writeFile(
       path.join(codexHome, 'config.toml'),
@@ -65,6 +61,7 @@ async function fetchRateLimitsForAccount(orchestrator, accountId) {
     return await orchestrator.fetchAccountRateLimitsForHome(codexHome);
   } finally {
     try {
+      await orchestrator.ensureOwnership(tempDir);
       await removePath(tempDir);
     } catch (error) {
       // Best-effort cleanup; permission errors shouldn't block rotation.

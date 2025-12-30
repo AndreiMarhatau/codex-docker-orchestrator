@@ -27,7 +27,14 @@ async function resolveImagePath(uploadsRoot, imagePath) {
   return resolvedPath;
 }
 
-function buildAgentsFile({ taskId, runLabel, contextRepos, baseFile, hostDockerFile }) {
+function buildAgentsFile({
+  taskId,
+  runLabel,
+  contextRepos,
+  baseFile,
+  hostDockerFile,
+  extraInstructions
+}) {
   const contextSection = buildContextReposSection(contextRepos);
   const sections = [];
   if (baseFile) {
@@ -44,6 +51,9 @@ function buildAgentsFile({ taskId, runLabel, contextRepos, baseFile, hostDockerF
   }
   if (contextSection) {
     sections.push(contextSection.trimEnd());
+  }
+  if (extraInstructions && extraInstructions.trim()) {
+    sections.push(extraInstructions.trimEnd());
   }
   if (sections.length === 0) {
     return null;
@@ -141,7 +151,8 @@ function attachTaskContextMethods(Orchestrator) {
     taskId,
     runLabel,
     useHostDockerSocket,
-    contextRepos
+    contextRepos,
+    extraInstructions
   }) {
     const baseFile =
       this.orchAgentsFile && fs.existsSync(this.orchAgentsFile) ? this.orchAgentsFile : null;
@@ -150,7 +161,7 @@ function attachTaskContextMethods(Orchestrator) {
         ? this.hostDockerAgentsFile
         : null;
     const contextSection = buildContextReposSection(contextRepos);
-    const shouldCombine = Boolean(useHostDockerSocket || contextSection);
+    const shouldCombine = Boolean(useHostDockerSocket || contextSection || extraInstructions);
     if (!shouldCombine) {
       return baseFile;
     }
@@ -160,7 +171,8 @@ function attachTaskContextMethods(Orchestrator) {
       runLabel,
       contextRepos,
       baseFile,
-      hostDockerFile: includeHostDocker ? hostDockerFile : null
+      hostDockerFile: includeHostDocker ? hostDockerFile : null,
+      extraInstructions
     });
     return agentsFile;
   };

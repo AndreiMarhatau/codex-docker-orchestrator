@@ -203,7 +203,8 @@ function attachTaskRotationMethods(Orchestrator) {
     await this.resumeTask(taskId, prompt, {
       model: meta.model,
       reasoningEffort: meta.reasoningEffort,
-      useHostDockerSocket: meta.useHostDockerSocket
+      useHostDockerSocket: meta.useHostDockerSocket,
+      codexPrompt: ''
     });
   };
 }

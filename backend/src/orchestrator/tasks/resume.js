@@ -20,9 +20,18 @@ function attachTaskResumeMethods(Orchestrator) {
     await this.ensureOwnership(env.mirrorPath);
 
     const runLabel = nextRunLabel(meta.runs.length + 1);
+    const hasPrompt = typeof prompt === 'string' && prompt.length > 0;
+    const hasCodexPromptOverride = Object.prototype.hasOwnProperty.call(options, 'codexPrompt');
+    const codexPrompt = hasCodexPromptOverride ? options.codexPrompt : prompt;
+    const resumeInstructions =
+      hasCodexPromptOverride && codexPrompt === '' && hasPrompt
+        ? `# Resume hint\n\nThe previous user request was:\n\n${prompt}\n\nContinue from where you left off.`
+        : null;
     meta.updatedAt = this.now();
     meta.status = 'running';
-    meta.lastPrompt = prompt;
+    if (hasPrompt) {
+      meta.lastPrompt = prompt;
+    }
     if (hasDockerSocketOverride) {
       meta.useHostDockerSocket = shouldUseHostDockerSocket;
     }
@@ -47,7 +56,7 @@ function attachTaskResumeMethods(Orchestrator) {
     await writeJson(this.taskMetaPath(taskId), meta);
     await this.ensureActiveAuth();
     const args = buildCodexArgs({
-      prompt,
+      prompt: codexPrompt,
       model: runModel,
       reasoningEffort: runReasoningEffort,
       resumeThreadId: meta.threadId
@@ -61,7 +70,8 @@ function attachTaskResumeMethods(Orchestrator) {
       mountPaths: [env.mirrorPath, ...(dockerSocketPath ? [dockerSocketPath] : [])],
       mountPathsRo: contextRepos.map((repo) => repo.worktreePath),
       contextRepos,
-      useHostDockerSocket: shouldUseHostDockerSocket
+      useHostDockerSocket: shouldUseHostDockerSocket,
+      agentsAppendInstructions: resumeInstructions
     });
     return meta;
   };

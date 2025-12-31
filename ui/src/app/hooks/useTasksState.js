@@ -3,14 +3,13 @@ import { MODEL_CUSTOM_VALUE } from '../constants.js';
 import { getGitStatusDisplay } from '../git-helpers.js';
 import { getEffortOptionsForModel } from '../model-helpers.js';
 import useNow from './useNow.js';
-import useScrollTop from './useScrollTop.js';
 import useTaskActions from './useTaskActions.js';
 import useTaskDetail from './useTaskDetail.js';
 import useTaskFormState from './useTaskFormState.js';
 import useTaskImages from './useTaskImages.js';
 import useTaskSelection from './useTaskSelection.js';
 
-function useTasksState({ activeTab, envs, refreshAll, setError, setLoading, tasks }) {
+function useTasksState({ envs, refreshAll, setError, setLoading, tasks }) {
   const selection = useTaskSelection();
   const formState = useTaskFormState({ envs, selectedTaskId: selection.selectedTaskId });
   const images = useTaskImages();
@@ -84,7 +83,6 @@ function useTasksState({ activeTab, envs, refreshAll, setError, setLoading, task
   }, [detail.taskDetail, tasks]);
 
   const now = useNow(hasActiveRuns);
-  const showScrollTop = useScrollTop(selection.selectedTaskId, activeTab);
 
   const taskStats = useMemo(() => {
     const total = tasks.length;
@@ -110,7 +108,6 @@ function useTasksState({ activeTab, envs, refreshAll, setError, setLoading, task
     images,
     now,
     selection,
-    showScrollTop,
     taskStats,
     visibleTasks
   };

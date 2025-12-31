@@ -10,7 +10,6 @@ function useAppState() {
   const data = useAppData();
   const tabState = useActiveTab();
   const tasksState = useTasksState({
-    activeTab: tabState.activeTab,
     envs: data.envs,
     refreshAll: data.refreshAll,
     setError: data.setError,

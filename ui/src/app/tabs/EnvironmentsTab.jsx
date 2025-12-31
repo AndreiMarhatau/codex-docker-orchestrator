@@ -18,7 +18,7 @@ function EnvironmentsTab({ data, envState }) {
   return (
     <Box className="section-shell fade-in">
       <Card className="panel-card">
-        <CardContent>
+        <CardContent className="panel-content">
           <Stack spacing={3}>
             <EnvironmentHeader
               envs={envs}

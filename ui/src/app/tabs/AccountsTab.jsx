@@ -10,7 +10,7 @@ function AccountsTab({ accountsState, data }) {
     <Box className="section-shell fade-in">
       <Stack spacing={2}>
         <Card className="panel-card">
-          <CardContent>
+          <CardContent className="panel-content">
             <Stack spacing={2}>
               <AccountsHeader accountsState={accountsState} data={data} />
               <UsageLimits accountsState={accountsState} />

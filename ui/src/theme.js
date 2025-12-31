@@ -29,19 +29,19 @@ const getPalette = (mode, isDark) => ({
 });
 
 const getTypography = () => ({
-  fontFamily: '"Space Grotesk", "IBM Plex Sans", sans-serif',
+  fontFamily: '"Bricolage Grotesque", "IBM Plex Sans", sans-serif',
   h1: {
-    fontFamily: '"Fraunces", "Space Grotesk", serif',
+    fontFamily: '"Fraunces", "Bricolage Grotesque", serif',
     fontWeight: 600,
     letterSpacing: '-0.02em'
   },
   h2: {
-    fontFamily: '"Fraunces", "Space Grotesk", serif',
+    fontFamily: '"Fraunces", "Bricolage Grotesque", serif',
     fontWeight: 600,
     letterSpacing: '-0.02em'
   },
   h3: {
-    fontFamily: '"Fraunces", "Space Grotesk", serif',
+    fontFamily: '"Fraunces", "Bricolage Grotesque", serif',
     fontWeight: 600,
     letterSpacing: '-0.01em'
   },
@@ -66,15 +66,13 @@ const getComponents = (isDark) => ({
     styleOverrides: {
       root: {
         border: isDark
-          ? '1px solid rgba(148, 163, 184, 0.16)'
-          : '1px solid rgba(17, 24, 39, 0.08)',
+          ? '1px solid rgba(148, 163, 184, 0.2)'
+          : '1px solid rgba(17, 24, 39, 0.12)',
         boxShadow: isDark
-          ? '0 24px 60px rgba(2, 6, 23, 0.7)'
-          : '0 24px 60px rgba(15, 23, 42, 0.08)',
-        backgroundImage: isDark
-          ? 'linear-gradient(160deg, rgba(15, 23, 32, 0.9), rgba(17, 24, 39, 0.95))'
-          : 'linear-gradient(160deg, rgba(255, 255, 255, 0.95), rgba(249, 250, 251, 0.98))',
-        backdropFilter: 'blur(6px)'
+          ? '0 18px 40px rgba(2, 6, 23, 0.55)'
+          : '0 18px 40px rgba(15, 23, 42, 0.12)',
+        backgroundImage: 'none',
+        backdropFilter: 'blur(12px)'
       }
     }
   },
@@ -82,36 +80,32 @@ const getComponents = (isDark) => ({
     styleOverrides: {
       root: {
         textTransform: 'none',
-        borderRadius: 999,
-        paddingLeft: 18,
-        paddingRight: 18
+        borderRadius: 14,
+        paddingLeft: 16,
+        paddingRight: 16
       },
       contained: {
         boxShadow: isDark
-          ? '0 12px 30px rgba(15, 23, 42, 0.5)'
-          : '0 12px 30px rgba(15, 23, 42, 0.12)'
+          ? '0 12px 30px rgba(15, 23, 42, 0.4)'
+          : '0 12px 30px rgba(15, 23, 42, 0.18)'
       }
     }
   },
   MuiTabs: {
     styleOverrides: {
       root: {
-        borderRadius: 999,
-        padding: 4,
+        borderRadius: 16,
+        padding: 2,
         minHeight: 0,
-        background: isDark
-          ? 'rgba(15, 23, 42, 0.7)'
-          : 'rgba(255, 255, 255, 0.75)',
-        border: isDark
-          ? '1px solid rgba(148, 163, 184, 0.2)'
-          : '1px solid rgba(15, 23, 42, 0.08)'
+        background: 'transparent',
+        border: 'none'
       },
       indicator: {
         height: '100%',
-        borderRadius: 999,
+        borderRadius: 14,
         background: isDark
-          ? 'linear-gradient(120deg, rgba(94, 234, 212, 0.2), rgba(14, 116, 110, 0.3))'
-          : 'linear-gradient(120deg, rgba(15, 118, 110, 0.18), rgba(249, 115, 22, 0.22))'
+          ? 'linear-gradient(120deg, rgba(94, 234, 212, 0.18), rgba(14, 116, 110, 0.35))'
+          : 'linear-gradient(120deg, rgba(15, 118, 110, 0.14), rgba(249, 115, 22, 0.2))'
       }
     }
   },
@@ -121,9 +115,10 @@ const getComponents = (isDark) => ({
         textTransform: 'none',
         fontWeight: 600,
         minHeight: 0,
-        padding: '10px 18px',
-        borderRadius: 999,
-        zIndex: 1
+        padding: '10px 16px',
+        borderRadius: 14,
+        zIndex: 1,
+        transition: 'color 0.2s ease'
       }
     }
   },

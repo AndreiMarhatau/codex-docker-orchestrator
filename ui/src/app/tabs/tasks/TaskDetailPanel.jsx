@@ -1,4 +1,4 @@
-import { Button, IconButton, Stack, Tooltip, Typography } from '@mui/material';
+import { Box, Button, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
 import TaskDetailHeader from './detail/TaskDetailHeader.jsx';
 import TaskDiff from './detail/TaskDiff.jsx';
@@ -8,15 +8,11 @@ import TaskRuns from './detail/TaskRuns.jsx';
 function TaskDetailPanel({ data, tasksState }) {
   const { refreshAll } = data;
   const { selection } = tasksState;
+  const hasTaskDetail = Boolean(tasksState.detail.taskDetail);
 
   return (
-    <Stack spacing={2}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={1}
-        alignItems={{ xs: 'flex-start', sm: 'center' }}
-        justifyContent="space-between"
-      >
+    <Box className="task-detail-shell">
+      <Box className="task-detail-top">
         <Stack direction="row" spacing={1} alignItems="center">
           <Tooltip title="Back to tasks">
             <IconButton
@@ -35,19 +31,21 @@ function TaskDetailPanel({ data, tasksState }) {
         <Button size="small" variant="outlined" onClick={refreshAll}>
           Refresh
         </Button>
-      </Stack>
-      {!tasksState.detail.taskDetail && (
-        <Typography color="text.secondary">Loading task details...</Typography>
-      )}
-      {tasksState.detail.taskDetail && (
-        <Stack spacing={2}>
-          <TaskDetailHeader tasksState={tasksState} />
-          <TaskDiff tasksState={tasksState} />
-          <TaskRuns tasksState={tasksState} />
-          <TaskResumeControls loading={data.loading} tasksState={tasksState} />
-        </Stack>
-      )}
-    </Stack>
+      </Box>
+      <Box className="task-detail-body">
+        {!hasTaskDetail && (
+          <Typography color="text.secondary">Loading task details...</Typography>
+        )}
+        {hasTaskDetail && (
+          <Stack spacing={2}>
+            <TaskDetailHeader tasksState={tasksState} />
+            <TaskDiff tasksState={tasksState} />
+            <TaskRuns tasksState={tasksState} />
+            <TaskResumeControls loading={data.loading} tasksState={tasksState} />
+          </Stack>
+        )}
+      </Box>
+    </Box>
   );
 }
 

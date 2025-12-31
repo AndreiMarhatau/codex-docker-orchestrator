@@ -15,15 +15,11 @@ function TaskDetailHeader({ tasksState }) {
 
   return (
     <>
-      <Stack spacing={0.5}>
-        <Typography fontWeight={600}>{taskDetail.branchName}</Typography>
-        <Tooltip title={taskDetail.repoUrl || ''}>
-          <Typography color="text.secondary">
-            {formatRepoDisplay(taskDetail.repoUrl) || taskDetail.repoUrl}
-          </Typography>
-        </Tooltip>
-        <Typography className="mono">{taskDetail.taskId}</Typography>
-      </Stack>
+      <Tooltip title={taskDetail.repoUrl || ''}>
+        <Typography color="text.secondary" variant="body2">
+          {formatRepoDisplay(taskDetail.repoUrl) || taskDetail.repoUrl}
+        </Typography>
+      </Tooltip>
       <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
         <StatusIcon status={taskDetail.status} />
         <Chip label={`ref: ${taskDetail.ref}`} size="small" />

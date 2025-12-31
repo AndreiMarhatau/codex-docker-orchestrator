@@ -177,8 +177,8 @@ body {
   padding: 0;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 220px);
-  height: calc(100dvh - 220px);
+  height: calc(100vh - 160px);
+  height: calc(100dvh - 160px);
   min-height: 0;
 }
 
@@ -289,11 +289,11 @@ body {
 .task-detail-shell {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   flex: 1;
   min-height: 0;
   height: 100%;
-  padding: 20px;
+  padding: 16px;
   overflow: hidden;
 }
 
@@ -302,8 +302,16 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
   border-bottom: 1px solid var(--panel-border);
+}
+
+.task-detail-top .panel-title {
+  font-size: 1.05rem;
+}
+
+.task-detail-top .mono {
+  font-size: 0.78rem;
 }
 
 .task-detail-tabs {
@@ -322,12 +330,12 @@ body {
 .task-detail-pane {
   height: 100%;
   overflow: auto;
-  padding: 16px;
+  padding: 12px;
 }
 
 .task-detail-actions {
   border-top: 1px solid var(--panel-border);
-  padding-top: 12px;
+  padding-top: 8px;
 }
 
 .task-resume-textarea {
@@ -356,16 +364,16 @@ body {
   }
 
   .panel-content--flush {
-    height: calc(100vh - 200px);
-    height: calc(100dvh - 200px);
+    height: calc(100vh - 140px);
+    height: calc(100dvh - 140px);
   }
 
   .task-detail-shell {
-    padding: 16px;
+    padding: 14px;
   }
 
   .task-detail-pane {
-    padding: 14px;
+    padding: 12px;
   }
 }
 
@@ -379,12 +387,12 @@ body {
   }
 
   .panel-content--flush {
-    height: calc(100vh - 180px);
-    height: calc(100dvh - 180px);
+    height: calc(100vh - 120px);
+    height: calc(100dvh - 120px);
   }
 
   .task-detail-shell {
-    padding: 14px;
+    padding: 12px;
   }
 }
 

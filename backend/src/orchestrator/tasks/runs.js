@@ -53,9 +53,6 @@ function attachTaskRunMethods(Orchestrator) {
     });
 
     if (child.stdin) {
-      if (typeof prompt === 'string' && prompt.length > 0) {
-        child.stdin.write(prompt);
-      }
       child.stdin.end();
     }
 

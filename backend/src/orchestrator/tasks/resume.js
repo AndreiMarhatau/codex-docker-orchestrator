@@ -20,9 +20,14 @@ function attachTaskResumeMethods(Orchestrator) {
     await this.ensureOwnership(env.mirrorPath);
 
     const runLabel = nextRunLabel(meta.runs.length + 1);
+    const hasPrompt = typeof prompt === 'string' && prompt.length > 0;
+    const hasCodexPromptOverride = Object.prototype.hasOwnProperty.call(options, 'codexPrompt');
+    const codexPrompt = hasCodexPromptOverride ? options.codexPrompt : prompt;
     meta.updatedAt = this.now();
     meta.status = 'running';
-    meta.lastPrompt = prompt;
+    if (hasPrompt) {
+      meta.lastPrompt = prompt;
+    }
     if (hasDockerSocketOverride) {
       meta.useHostDockerSocket = shouldUseHostDockerSocket;
     }
@@ -47,7 +52,7 @@ function attachTaskResumeMethods(Orchestrator) {
     await writeJson(this.taskMetaPath(taskId), meta);
     await this.ensureActiveAuth();
     const args = buildCodexArgs({
-      prompt,
+      prompt: codexPrompt,
       model: runModel,
       reasoningEffort: runReasoningEffort,
       resumeThreadId: meta.threadId

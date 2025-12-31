@@ -83,17 +83,16 @@ it(
     await user.click(screen.getByLabelText('Remove task task-2'));
 
     await user.click(screen.getByText('feature/refactor'));
-    expect(await screen.findByText('Task details')).toBeInTheDocument();
+    expect((await screen.findAllByText('task-1')).length).toBeGreaterThan(0);
     expect(screen.getByText('Agent messages')).toBeInTheDocument();
     expect(screen.getByText('output.png')).toBeInTheDocument();
     expect(screen.getByText('report.txt')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Show diff' }));
+    await user.click(screen.getByRole('tab', { name: 'Diff' }));
+    await user.click(await screen.findByRole('button', { name: 'Show diff' }));
     expect(screen.getByText('diff content')).toBeInTheDocument();
 
-    Object.defineProperty(window, 'scrollY', { value: 500, writable: true });
-    window.dispatchEvent(new Event('scroll'));
-    await user.click(await screen.findByLabelText('Scroll to top'));
+    await user.click(screen.getByRole('tab', { name: 'Overview' }));
 
     const modelOverrideSelect = screen.getByLabelText('Model override');
     await user.click(modelOverrideSelect);
@@ -107,11 +106,19 @@ it(
     await user.type(screen.getByLabelText('Custom model'), 'resume-model');
     await user.type(screen.getByLabelText('Custom reasoning effort'), 'low');
 
-    await user.type(screen.getByLabelText('Resume prompt'), 'Continue with more detail.');
+    await user.click(screen.getByRole('button', { name: 'Ask for changes' }));
+    await user.type(
+      screen.getByLabelText('Continuation prompt'),
+      'Continue with more detail.'
+    );
     await user.click(screen.getByLabelText('Use host Docker socket for this run'));
     await user.click(screen.getByRole('button', { name: 'Continue task' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Ask for changes' })).not.toBeInTheDocument()
+    );
     await user.click(screen.getByRole('button', { name: 'Push' }));
-    const removeTaskButtons = screen.getAllByLabelText('Remove task');
+    await user.click(screen.getByLabelText('Back to tasks'));
+    const removeTaskButtons = screen.getAllByLabelText(/Remove task/);
     await user.click(removeTaskButtons[removeTaskButtons.length - 1]);
 
     await user.click(screen.getByRole('tab', { name: 'Environments' }));
@@ -144,5 +151,5 @@ it(
 
     await user.click(screen.getByRole('tab', { name: 'Settings' }));
   },
-  30000
+  45000
 );

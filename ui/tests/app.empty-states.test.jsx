@@ -84,6 +84,7 @@ it(
 
     await user.click(await screen.findByText('feature/empty'));
     expect(await screen.findByText('No logs yet.')).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Diff' }));
     expect(screen.getByText('Diff unavailable: no base')).toBeInTheDocument();
   },
   15000

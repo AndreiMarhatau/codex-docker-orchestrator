@@ -98,7 +98,7 @@ const taskDetail = {
       ]
     }
   ],
-  gitStatus: { hasChanges: false, dirty: false },
+  gitStatus: { hasChanges: true, pushed: false, dirty: false },
   useHostDockerSocket: true
 };
 const taskDiff = {

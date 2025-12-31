@@ -177,8 +177,8 @@ body {
   padding: 0;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 160px);
-  height: calc(100dvh - 160px);
+  height: calc(100vh - 130px);
+  height: calc(100dvh - 130px);
   min-height: 0;
 }
 
@@ -289,11 +289,11 @@ body {
 .task-detail-shell {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   flex: 1;
   min-height: 0;
   height: 100%;
-  padding: 16px;
+  padding: 12px;
   overflow: hidden;
 }
 
@@ -301,8 +301,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 6px;
+  gap: 8px;
+  padding-bottom: 4px;
   border-bottom: 1px solid var(--panel-border);
 }
 
@@ -330,12 +330,12 @@ body {
 .task-detail-pane {
   height: 100%;
   overflow: auto;
-  padding: 12px;
+  padding: 8px;
 }
 
 .task-detail-actions {
   border-top: 1px solid var(--panel-border);
-  padding-top: 8px;
+  padding-top: 6px;
 }
 
 .task-resume-textarea {
@@ -364,16 +364,16 @@ body {
   }
 
   .panel-content--flush {
-    height: calc(100vh - 140px);
-    height: calc(100dvh - 140px);
+    height: calc(100vh - 110px);
+    height: calc(100dvh - 110px);
   }
 
   .task-detail-shell {
-    padding: 14px;
+    padding: 10px;
   }
 
   .task-detail-pane {
-    padding: 12px;
+    padding: 8px;
   }
 }
 
@@ -387,12 +387,12 @@ body {
   }
 
   .panel-content--flush {
-    height: calc(100vh - 120px);
-    height: calc(100dvh - 120px);
+    height: calc(100vh - 100px);
+    height: calc(100dvh - 100px);
   }
 
   .task-detail-shell {
-    padding: 12px;
+    padding: 8px;
   }
 }
 

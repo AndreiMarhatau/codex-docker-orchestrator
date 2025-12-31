@@ -5,11 +5,14 @@ import TasksOverview from './tasks/TasksOverview.jsx';
 
 function TasksTab({ data, envState, tasksState }) {
   const { selectedTaskId } = tasksState.selection;
+  const panelContentClass = selectedTaskId
+    ? 'panel-content panel-content--flush'
+    : 'panel-content';
 
   return (
     <Box className="section-shell fade-in">
       <Card className="panel-card">
-        <CardContent>
+        <CardContent className={panelContentClass}>
           {!selectedTaskId ? (
             <TasksOverview data={data} envState={envState} tasksState={tasksState} />
           ) : (

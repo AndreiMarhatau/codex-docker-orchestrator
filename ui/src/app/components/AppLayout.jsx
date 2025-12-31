@@ -15,45 +15,49 @@ function AppLayout({ accountsState, data, envState, tabState, tasksState }) {
 
   return (
     <Box className="app-shell">
-      <Tabs
-        value={activeTab}
-        onChange={(event, value) => setActiveTab(value)}
-        textColor="primary"
-        indicatorColor="primary"
-        aria-label="Orchestrator sections"
-        variant="scrollable"
-        scrollButtons="auto"
-        allowScrollButtonsMobile
-        sx={{
-          alignSelf: 'flex-start',
-          maxWidth: '100%',
-          '.MuiTabs-flexContainer': {
-            gap: 1
-          },
-          '.MuiTab-root': {
-            minWidth: 'auto'
-          }
-        }}
-      >
-        <Tab icon={<FolderOpenOutlinedIcon />} iconPosition="start" label="Environments" />
-        <Tab
-          icon={<ListAltOutlinedIcon />}
-          iconPosition="start"
-          label="Tasks"
-          onClick={() => {
-            if (activeTab === 1 && selectedTaskId) {
-              handleBackToTasks();
+      <Box className="app-header">
+        <Tabs
+          className="app-tabs"
+          value={activeTab}
+          onChange={(event, value) => setActiveTab(value)}
+          textColor="primary"
+          indicatorColor="primary"
+          aria-label="Orchestrator sections"
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+          sx={{
+            maxWidth: '100%',
+            '.MuiTabs-flexContainer': {
+              gap: 0.75
+            },
+            '.MuiTab-root': {
+              minWidth: 'auto'
             }
           }}
-        />
-        <Tab icon={<AccountCircleOutlinedIcon />} iconPosition="start" label="Accounts" />
-        <Tab icon={<SettingsOutlinedIcon />} iconPosition="start" label="Settings" />
-      </Tabs>
+        >
+          <Tab icon={<FolderOpenOutlinedIcon />} iconPosition="start" label="Environments" />
+          <Tab
+            icon={<ListAltOutlinedIcon />}
+            iconPosition="start"
+            label="Tasks"
+            onClick={() => {
+              if (activeTab === 1 && selectedTaskId) {
+                handleBackToTasks();
+              }
+            }}
+          />
+          <Tab icon={<AccountCircleOutlinedIcon />} iconPosition="start" label="Accounts" />
+          <Tab icon={<SettingsOutlinedIcon />} iconPosition="start" label="Settings" />
+        </Tabs>
+      </Box>
 
-      {activeTab === 0 && <EnvironmentsTab data={data} envState={envState} />}
-      {activeTab === 1 && <TasksTab data={data} envState={envState} tasksState={tasksState} />}
-      {activeTab === 2 && <AccountsTab accountsState={accountsState} data={data} />}
-      {activeTab === 3 && <SettingsTab />}
+      <Box className="app-main">
+        {activeTab === 0 && <EnvironmentsTab data={data} envState={envState} />}
+        {activeTab === 1 && <TasksTab data={data} envState={envState} tasksState={tasksState} />}
+        {activeTab === 2 && <AccountsTab accountsState={accountsState} data={data} />}
+        {activeTab === 3 && <SettingsTab />}
+      </Box>
 
       {error && (
         <Card sx={{ mt: 3 }}>

@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   Checkbox,
   FormControlLabel,
@@ -53,46 +54,48 @@ function TaskResumeControls({ loading, tasksState }) {
           <WarningAmberIcon color="warning" fontSize="small" />
         </Tooltip>
       </Stack>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-        <Button
-          variant="contained"
-          onClick={actions.handleResumeTask}
-          disabled={loading || !detail.resumePrompt.trim()}
-        >
-          Continue task
-        </Button>
-        <Button variant="outlined" onClick={actions.handlePushTask} disabled={loading}>
-          Push
-        </Button>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Tooltip title="Stop task">
-            <span>
-              <Button
-                color="error"
-                onClick={() => actions.handleStopTask(taskDetail.taskId)}
-                disabled={loading || taskDetail.status !== 'running'}
-                aria-label="Stop task"
-                startIcon={<StopCircleOutlinedIcon />}
-              >
-                Stop task
-              </Button>
-            </span>
-          </Tooltip>
-          <Tooltip title="Remove task">
-            <span>
-              <Button
-                color="secondary"
-                onClick={() => actions.handleDeleteTask(taskDetail.taskId)}
-                disabled={loading}
-                aria-label="Remove task"
-                startIcon={<DeleteOutlineIcon />}
-              >
-                Remove task
-              </Button>
-            </span>
-          </Tooltip>
+      <Box className="task-resume-actions">
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <Button
+            variant="contained"
+            onClick={actions.handleResumeTask}
+            disabled={loading || !detail.resumePrompt.trim()}
+          >
+            Continue task
+          </Button>
+          <Button variant="outlined" onClick={actions.handlePushTask} disabled={loading}>
+            Push
+          </Button>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Tooltip title="Stop task">
+              <span>
+                <Button
+                  color="error"
+                  onClick={() => actions.handleStopTask(taskDetail.taskId)}
+                  disabled={loading || taskDetail.status !== 'running'}
+                  aria-label="Stop task"
+                  startIcon={<StopCircleOutlinedIcon />}
+                >
+                  Stop task
+                </Button>
+              </span>
+            </Tooltip>
+            <Tooltip title="Remove task">
+              <span>
+                <Button
+                  color="secondary"
+                  onClick={() => actions.handleDeleteTask(taskDetail.taskId)}
+                  disabled={loading}
+                  aria-label="Remove task"
+                  startIcon={<DeleteOutlineIcon />}
+                >
+                  Remove task
+                </Button>
+              </span>
+            </Tooltip>
+          </Stack>
         </Stack>
-      </Stack>
+      </Box>
     </Stack>
   );
 }

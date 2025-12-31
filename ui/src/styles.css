@@ -1,14 +1,12 @@
 :root {
   color-scheme: light dark;
-  --app-bg: radial-gradient(circle at 18% 12%, rgba(252, 211, 77, 0.2), transparent 45%),
-    radial-gradient(circle at 92% 0%, rgba(45, 212, 191, 0.18), transparent 50%),
-    linear-gradient(140deg, #f3ede3 0%, #f7f3ec 45%, #f1f5f4 100%);
+  --app-bg: #f5f3ef;
   --app-text: #1f1b16;
-  --panel-bg: rgba(255, 255, 255, 0.92);
+  --panel-bg: #ffffff;
   --panel-border: rgba(17, 24, 39, 0.12);
-  --panel-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
-  --panel-strong: rgba(255, 255, 255, 0.98);
-  --panel-muted: rgba(248, 245, 240, 0.86);
+  --panel-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --panel-strong: #ffffff;
+  --panel-muted: #f6f3ee;
   --muted-text: #4b4f47;
   --mono-text: #1f2937;
   --log-bg: #0b1220;
@@ -19,15 +17,13 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --app-bg: radial-gradient(circle at 18% 12%, rgba(251, 191, 36, 0.16), transparent 45%),
-      radial-gradient(circle at 92% 0%, rgba(45, 212, 191, 0.14), transparent 50%),
-      linear-gradient(140deg, #0b1116 0%, #0f171f 55%, #0f1724 100%);
+    --app-bg: #0b1116;
     --app-text: #f8fafc;
-    --panel-bg: rgba(12, 18, 28, 0.92);
+    --panel-bg: #101826;
     --panel-border: rgba(148, 163, 184, 0.22);
-    --panel-shadow: 0 22px 50px rgba(2, 6, 23, 0.62);
-    --panel-strong: rgba(16, 24, 36, 0.96);
-    --panel-muted: rgba(12, 18, 28, 0.78);
+    --panel-shadow: 0 12px 30px rgba(2, 6, 23, 0.5);
+    --panel-strong: #101826;
+    --panel-muted: #0f1723;
     --muted-text: #cbd5e1;
     --mono-text: #e2e8f0;
     --log-bg: #050b1d;
@@ -44,31 +40,13 @@ body {
   min-height: 100vh;
 }
 
-body::before,
-body::after {
-  content: '';
-  position: fixed;
-  inset: -8vh -10vw auto auto;
-  width: 58vw;
-  height: 58vw;
-  background: radial-gradient(circle, rgba(20, 184, 166, 0.2), transparent 60%);
-  opacity: 0.8;
-  z-index: -1;
-  pointer-events: none;
-}
-
-body::after {
-  inset: auto auto -22vh -18vw;
-  background: radial-gradient(circle, rgba(250, 204, 21, 0.18), transparent 60%);
-}
-
 .app-shell {
   max-width: 1340px;
   margin: 0 auto;
   padding: 24px 18px 72px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
 }
 
 .app-header {
@@ -76,12 +54,11 @@ body::after {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 10px 14px;
-  border-radius: 22px;
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  box-shadow: var(--panel-shadow);
-  backdrop-filter: blur(14px);
+  padding: 2px 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
   position: sticky;
   top: 16px;
   z-index: 5;
@@ -94,7 +71,7 @@ body::after {
 .app-main {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
 }
 
 .hero-card {

@@ -103,9 +103,7 @@ const getComponents = (isDark) => ({
       indicator: {
         height: '100%',
         borderRadius: 14,
-        background: isDark
-          ? 'linear-gradient(120deg, rgba(94, 234, 212, 0.18), rgba(14, 116, 110, 0.35))'
-          : 'linear-gradient(120deg, rgba(15, 118, 110, 0.14), rgba(249, 115, 22, 0.2))'
+        background: isDark ? 'rgba(94, 234, 212, 0.18)' : 'rgba(15, 118, 110, 0.12)'
       }
     }
   },

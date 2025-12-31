@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App.jsx';
-import { accounts, envs, imageInfo, rateLimits, tasks } from './app-fixtures.js';
+import { accounts, envs, rateLimits } from './app-fixtures.js';
 import mockApi from './helpers/mock-api.js';
 
 it(
@@ -116,27 +116,6 @@ it(
     await user.click(await screen.findByText('feature/one-type'));
     expect(await screen.findByText('report.txt')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open' })).toBeInTheDocument();
-  },
-  15000
-);
-
-it(
-  'shows image loading state',
-  async () => {
-    mockApi({
-      '/api/envs': envs,
-      '/api/tasks': tasks,
-      '/api/accounts': accounts,
-      '/api/settings/image': {
-        body: imageInfo,
-        delay: 300
-      }
-    });
-    const user = userEvent.setup();
-    render(<App />);
-
-    await user.click(await screen.findByRole('tab', { name: 'Settings' }));
-    expect(await screen.findByText('Loading image details...')).toBeInTheDocument();
   },
   15000
 );

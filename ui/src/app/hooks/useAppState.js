@@ -4,7 +4,6 @@ import useActiveTab from './useActiveTab.js';
 import useAppData from './useAppData.js';
 import useEnvironmentState from './useEnvironmentState.js';
 import usePolling from './usePolling.js';
-import useSettingsState from './useSettingsState.js';
 import useTasksState from './useTasksState.js';
 
 function useAppState() {
@@ -34,7 +33,6 @@ function useAppState() {
     setError: data.setError,
     setLoading: data.setLoading
   });
-  const settingsState = useSettingsState({ setError: data.setError });
 
   usePolling({
     refreshAll: data.refreshAll,
@@ -49,18 +47,10 @@ function useAppState() {
     accountsState.refreshRateLimits().catch(() => {});
   }, [tabState.activeTab, accountsState.activeAccount?.id]);
 
-  useEffect(() => {
-    if (tabState.activeTab !== 3) {
-      return;
-    }
-    settingsState.refreshImageInfo().catch(() => {});
-  }, [tabState.activeTab]);
-
   return {
     accountsState,
     data,
     envState,
-    settingsState,
     tabState,
     tasksState
   };

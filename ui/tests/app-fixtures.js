@@ -123,11 +123,4 @@ const rateLimits = {
   credits: { hasCredits: true, balance: '$20' },
   planType: 'team'
 };
-const imageInfo = {
-  imageName: 'codex:latest',
-  imageCreatedAt: '2024-01-01T00:00:00Z',
-  imageId: 'sha256:abc123',
-  present: true
-};
-
-export { accounts, envs, imageInfo, rateLimits, taskDetail, taskDiff, tasks };
+export { accounts, envs, rateLimits, taskDetail, taskDiff, tasks };

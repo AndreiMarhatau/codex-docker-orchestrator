@@ -4,7 +4,6 @@ const { Orchestrator } = require('./orchestrator');
 const { createHealthRouter } = require('./app/routes/health');
 const { createEnvsRouter } = require('./app/routes/envs');
 const { createAccountsRouter } = require('./app/routes/accounts');
-const { createSettingsRouter } = require('./app/routes/settings');
 const { createUploadsRouter } = require('./app/routes/uploads');
 const { createTasksRouter } = require('./app/routes/tasks');
 
@@ -22,7 +21,6 @@ function createApp({ orchestrator = new Orchestrator() } = {}) {
   app.use('/api', createHealthRouter());
   app.use('/api', createEnvsRouter(orchestrator));
   app.use('/api', createAccountsRouter(orchestrator));
-  app.use('/api', createSettingsRouter(orchestrator));
   app.use('/api', createUploadsRouter(orchestrator));
   app.use('/api', createTasksRouter(orchestrator));
 

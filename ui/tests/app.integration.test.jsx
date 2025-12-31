@@ -1,15 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App.jsx';
-import {
-  accounts,
-  envs,
-  imageInfo,
-  rateLimits,
-  taskDetail,
-  taskDiff,
-  tasks
-} from './app-fixtures.js';
+import { accounts, envs, rateLimits, taskDetail, taskDiff, tasks } from './app-fixtures.js';
 import mockApi from './helpers/mock-api.js';
 
 it(
@@ -30,12 +22,10 @@ it(
       'POST /api/accounts/rotate': accounts,
       'POST /api/accounts/acct-2/activate': accounts,
       'DELETE /api/accounts/acct-2': accounts,
-      'POST /api/settings/image/pull': imageInfo,
       '/api/accounts/rate-limits': {
         rateLimits,
         fetchedAt: '2024-01-01T00:00:00Z'
       },
-      '/api/settings/image': imageInfo,
       [`/api/tasks/${taskDetail.taskId}`]: taskDetail,
       [`/api/tasks/${taskDetail.taskId}/diff`]: taskDiff
     });
@@ -153,9 +143,6 @@ it(
     await user.click(removeAccountButtons[removeAccountButtons.length - 1]);
 
     await user.click(screen.getByRole('tab', { name: 'Settings' }));
-    expect(await screen.findByText('Codex Docker Image')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Update image' }));
-    await user.click(screen.getByRole('button', { name: 'Refresh' }));
   },
   30000
 );

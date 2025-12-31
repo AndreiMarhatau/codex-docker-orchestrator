@@ -20,12 +20,6 @@ it(
           secondary: null
         },
         fetchedAt: ''
-      },
-      '/api/settings/image': {
-        imageName: 'codex:latest',
-        imageCreatedAt: '2024-01-01T00:00:00Z',
-        imageId: '',
-        present: false
       }
     });
     const user = userEvent.setup();
@@ -45,7 +39,6 @@ it(
     expect(screen.getByText('No accounts yet. Add one to enable rotation.')).toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: 'Settings' }));
-    expect(await screen.findByText('Image not found locally. Pull to download it.')).toBeInTheDocument();
   },
   15000
 );

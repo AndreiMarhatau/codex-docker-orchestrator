@@ -8,7 +8,7 @@ import EnvironmentsTab from '../tabs/EnvironmentsTab.jsx';
 import SettingsTab from '../tabs/SettingsTab.jsx';
 import TasksTab from '../tabs/TasksTab.jsx';
 
-function AppLayout({ accountsState, data, envState, settingsState, tabState, tasksState }) {
+function AppLayout({ accountsState, data, envState, tabState, tasksState }) {
   const { activeTab, setActiveTab } = tabState;
   const { error } = data;
   const { handleBackToTasks, selectedTaskId } = tasksState.selection;
@@ -53,7 +53,7 @@ function AppLayout({ accountsState, data, envState, settingsState, tabState, tas
       {activeTab === 0 && <EnvironmentsTab data={data} envState={envState} />}
       {activeTab === 1 && <TasksTab data={data} envState={envState} tasksState={tasksState} />}
       {activeTab === 2 && <AccountsTab accountsState={accountsState} data={data} />}
-      {activeTab === 3 && <SettingsTab settingsState={settingsState} />}
+      {activeTab === 3 && <SettingsTab />}
 
       {error && (
         <Card sx={{ mt: 3 }}>

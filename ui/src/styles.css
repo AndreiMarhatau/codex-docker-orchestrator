@@ -175,6 +175,11 @@ body {
 
 .panel-content--flush {
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 220px);
+  height: calc(100dvh - 220px);
+  min-height: 0;
 }
 
 .panel-title {
@@ -285,9 +290,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: 520px;
-  max-height: calc(100vh - 260px);
+  flex: 1;
+  min-height: 0;
+  height: 100%;
   padding: 20px;
+  overflow: hidden;
 }
 
 .task-detail-top {
@@ -348,9 +355,12 @@ body {
     top: 12px;
   }
 
+  .panel-content--flush {
+    height: calc(100vh - 200px);
+    height: calc(100dvh - 200px);
+  }
+
   .task-detail-shell {
-    min-height: auto;
-    max-height: none;
     padding: 16px;
   }
 
@@ -366,6 +376,11 @@ body {
 
   .panel-content {
     padding: 18px;
+  }
+
+  .panel-content--flush {
+    height: calc(100vh - 180px);
+    height: calc(100dvh - 180px);
   }
 
   .task-detail-shell {

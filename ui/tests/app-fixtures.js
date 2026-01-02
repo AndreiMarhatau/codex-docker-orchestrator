@@ -18,7 +18,8 @@ const tasks = [
     createdAt: '2024-01-02T12:00:00Z',
     runs: [],
     threadId: 'thread-1',
-    useHostDockerSocket: true
+    useHostDockerSocket: true,
+    gitStatus: { hasChanges: false, pushed: true, dirty: false }
   },
   {
     taskId: 'task-2',
@@ -32,7 +33,8 @@ const tasks = [
     createdAt: '2024-01-02T12:00:00Z',
     runs: [{ runId: 'run-2', status: 'running', startedAt: '2024-01-02T12:00:00Z' }],
     threadId: 'thread-2',
-    useHostDockerSocket: false
+    useHostDockerSocket: false,
+    gitStatus: { hasChanges: true, pushed: false, dirty: false }
   }
 ];
 const accounts = {

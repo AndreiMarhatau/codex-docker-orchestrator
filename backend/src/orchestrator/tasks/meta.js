@@ -45,7 +45,8 @@ function attachTaskMetaMethods(Orchestrator) {
         continue;
       }
       const meta = await readJson(metaPath);
-      tasks.push(meta);
+      const gitStatus = await this.getTaskGitStatus(meta);
+      tasks.push({ ...meta, gitStatus });
     }
     tasks.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
     return tasks;

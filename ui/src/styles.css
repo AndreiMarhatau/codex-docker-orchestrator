@@ -13,6 +13,19 @@
   --log-text: #e2e8f0;
   --pill-bg: rgba(15, 118, 110, 0.14);
   --pill-text: #0b5b52;
+  --diff-line-bg: rgba(148, 163, 184, 0.18);
+  --diff-line-text: #475569;
+  --diff-line-border: rgba(15, 23, 42, 0.08);
+  --diff-row-border: rgba(15, 23, 42, 0.06);
+  --diff-add-bg: rgba(22, 163, 74, 0.14);
+  --diff-add-gutter-bg: rgba(22, 163, 74, 0.22);
+  --diff-add-text: #166534;
+  --diff-del-bg: rgba(220, 38, 38, 0.14);
+  --diff-del-gutter-bg: rgba(220, 38, 38, 0.22);
+  --diff-del-text: #991b1b;
+  --diff-hunk-bg: rgba(59, 130, 246, 0.12);
+  --diff-hunk-text: #1e3a8a;
+  --diff-meta-bg: rgba(148, 163, 184, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -30,6 +43,19 @@
     --log-text: #e2e8f0;
     --pill-bg: rgba(94, 234, 212, 0.18);
     --pill-text: #5eead4;
+    --diff-line-bg: rgba(148, 163, 184, 0.16);
+    --diff-line-text: #94a3b8;
+    --diff-line-border: rgba(148, 163, 184, 0.16);
+    --diff-row-border: rgba(148, 163, 184, 0.12);
+    --diff-add-bg: rgba(34, 197, 94, 0.18);
+    --diff-add-gutter-bg: rgba(34, 197, 94, 0.26);
+    --diff-add-text: #86efac;
+    --diff-del-bg: rgba(239, 68, 68, 0.2);
+    --diff-del-gutter-bg: rgba(239, 68, 68, 0.28);
+    --diff-del-text: #fca5a5;
+    --diff-hunk-bg: rgba(59, 130, 246, 0.2);
+    --diff-hunk-text: #bfdbfe;
+    --diff-meta-bg: rgba(148, 163, 184, 0.18);
   }
 }
 
@@ -234,7 +260,15 @@ body {
 }
 
 .diff-box {
+  background: var(--panel-muted);
+  color: var(--mono-text);
+  border-radius: 14px;
+  border: 1px solid var(--panel-border);
+  overflow: auto;
   max-height: 380px;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 0.78rem;
 }
 
 .log-summary {
@@ -254,6 +288,87 @@ body {
   color: var(--muted-text);
   font-weight: 500;
   font-size: 0.85rem;
+}
+
+.diff-stats {
+  display: inline-flex;
+  gap: 8px;
+  margin-left: 8px;
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.diff-add {
+  color: var(--diff-add-text);
+}
+
+.diff-del {
+  color: var(--diff-del-text);
+}
+
+.diff-table {
+  min-width: 100%;
+}
+
+.diff-row {
+  display: grid;
+  grid-template-columns: 52px 52px 1fr;
+}
+
+.diff-cell {
+  padding: 3px 10px;
+  border-bottom: 1px solid var(--diff-row-border);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diff-line {
+  text-align: right;
+  background: var(--diff-line-bg);
+  color: var(--diff-line-text);
+  border-right: 1px solid var(--diff-line-border);
+  user-select: none;
+}
+
+.diff-content {
+  color: inherit;
+}
+
+.diff-add .diff-content {
+  background: var(--diff-add-bg);
+}
+
+.diff-add .diff-line {
+  background: var(--diff-add-gutter-bg);
+  color: var(--diff-add-text);
+}
+
+.diff-del .diff-content {
+  background: var(--diff-del-bg);
+}
+
+.diff-del .diff-line {
+  background: var(--diff-del-gutter-bg);
+  color: var(--diff-del-text);
+}
+
+.diff-hunk .diff-content,
+.diff-hunk .diff-line {
+  background: var(--diff-hunk-bg);
+  color: var(--diff-hunk-text);
+  font-weight: 600;
+}
+
+.diff-meta .diff-content,
+.diff-meta .diff-line {
+  background: var(--diff-meta-bg);
+  color: var(--muted-text);
+  font-style: italic;
+}
+
+.git-status-icon {
+  display: inline-flex;
+  align-items: center;
 }
 
 .artifact-grid {

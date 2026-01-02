@@ -31,15 +31,17 @@ class Orchestrator {
     this.fetch = options.fetch || global.fetch;
     this.imageName = options.imageName || process.env.IMAGE_NAME || DEFAULT_IMAGE_NAME;
     this.orchSkillTemplate =
-      options.orchSkillTemplate ||
-      process.env.ORCH_SKILL_TEMPLATE ||
-      process.env.ORCH_AGENTS_FILE ||
-      DEFAULT_ORCH_SKILL_TEMPLATE;
+      options.orchSkillTemplate || process.env.ORCH_SKILL_TEMPLATE || DEFAULT_ORCH_SKILL_TEMPLATE;
     this.hostDockerSkillFile =
       options.hostDockerSkillFile ||
       process.env.ORCH_HOST_DOCKER_SKILL_FILE ||
-      process.env.ORCH_HOST_DOCKER_AGENTS_FILE ||
       DEFAULT_HOST_DOCKER_SKILL_FILE;
+    if (process.env.ORCH_AGENTS_FILE || process.env.ORCH_HOST_DOCKER_AGENTS_FILE) {
+      throw new Error(
+        'Legacy env vars ORCH_AGENTS_FILE and ORCH_HOST_DOCKER_AGENTS_FILE are no longer supported. ' +
+          'Use ORCH_SKILL_TEMPLATE or ORCH_HOST_DOCKER_SKILL_FILE instead.'
+      );
+    }
     this.getUid =
       options.getUid ||
       (() => (typeof process.getuid === 'function' ? process.getuid() : null));

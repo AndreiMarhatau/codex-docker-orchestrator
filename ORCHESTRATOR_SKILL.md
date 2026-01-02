@@ -1,3 +1,10 @@
+---
+name: {{SKILL_NAME}}
+description: Guidance that applies to codex-docker-orchestrator tasks, including task finishing rules.
+metadata:
+  short-description: Codex orchestrator task finishing rules
+---
+
 # Task finishing
 
 - If you made any changes, always create a git commit before replying.

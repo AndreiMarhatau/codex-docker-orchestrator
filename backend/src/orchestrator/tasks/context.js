@@ -27,16 +27,72 @@ async function resolveImagePath(uploadsRoot, imagePath) {
   return resolvedPath;
 }
 
-function buildAgentsFile({ taskId, runLabel, contextRepos, baseFile, hostDockerFile }) {
+function createSkillId() {
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 1e9);
+  return `${timestamp}-${random}`;
+}
+
+function renderSkillTemplate(templateContent, skillName) {
+  const trimmed = templateContent.trimEnd();
+  if (trimmed.includes('{{SKILL_NAME}}')) {
+    return trimmed.replace(/{{SKILL_NAME}}/g, skillName);
+  }
+  const frontmatterMatch = trimmed.match(/^---\n([\s\S]*?)\n---\n?/);
+  if (frontmatterMatch) {
+    const frontmatter = frontmatterMatch[1];
+    const hasName = /^name:\s*.+$/m.test(frontmatter);
+    const updatedFrontmatter = hasName
+      ? frontmatter.replace(/^name:\s*.*$/m, `name: ${skillName}`)
+      : `name: ${skillName}\n${frontmatter}`;
+    return trimmed.replace(frontmatterMatch[1], updatedFrontmatter);
+  }
+  const header = [
+    '---',
+    `name: ${skillName}`,
+    'description: Orchestrator guidance injected by codex-docker-orchestrator.',
+    'metadata:',
+    '  short-description: Codex orchestrator guidance',
+    '---',
+    ''
+  ].join('\n');
+  return `${header}${trimmed}`;
+}
+
+function cleanupOrchestratorSkills(codexHome) {
+  const skillsDir = path.join(codexHome, 'skills');
+  if (!fs.existsSync(skillsDir)) {
+    return;
+  }
+  for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !entry.name.startsWith('codex-orchestrator-')) {
+      continue;
+    }
+    const targetPath = path.join(skillsDir, entry.name);
+    try {
+      fs.rmSync(targetPath, { recursive: true, force: true });
+    } catch (error) {
+      // Best-effort: stale skills should not block runs.
+    }
+  }
+}
+
+function buildSkillFile({
+  codexHome,
+  skillTemplate,
+  hostDockerFile,
+  contextRepos,
+  useHostDockerSocket
+}) {
   const contextSection = buildContextReposSection(contextRepos);
   const sections = [];
-  if (baseFile) {
-    const baseContent = fs.readFileSync(baseFile, 'utf8').trimEnd();
+  if (skillTemplate) {
+    const baseContent = fs.readFileSync(skillTemplate, 'utf8').trimEnd();
     if (baseContent) {
       sections.push(baseContent);
     }
   }
-  if (hostDockerFile) {
+  if (useHostDockerSocket && hostDockerFile) {
     const hostContent = fs.readFileSync(hostDockerFile, 'utf8').trimEnd();
     if (hostContent) {
       sections.push(hostContent);
@@ -48,10 +104,15 @@ function buildAgentsFile({ taskId, runLabel, contextRepos, baseFile, hostDockerF
   if (sections.length === 0) {
     return null;
   }
+  const skillId = createSkillId();
+  const skillName = `codex-orchestrator-guidance-${skillId}`;
+  const skillDir = path.join(codexHome, 'skills', `codex-orchestrator-${skillId}`);
+  fs.mkdirSync(skillDir, { recursive: true });
   const combined = `${sections.join('\n\n')}\n`;
-  const targetPath = path.join(this.taskLogsDir(taskId), `${runLabel}.agents.md`);
-  fs.writeFileSync(targetPath, combined, 'utf8');
-  return targetPath;
+  const skillContent = renderSkillTemplate(combined, skillName);
+  const skillPath = path.join(skillDir, 'SKILL.md');
+  fs.writeFileSync(skillPath, skillContent, 'utf8');
+  return skillPath;
 }
 
 function attachTaskContextMethods(Orchestrator) {
@@ -137,32 +198,54 @@ function attachTaskContextMethods(Orchestrator) {
     return resolved;
   };
 
-  Orchestrator.prototype.buildAgentsAppendFile = function buildAgentsAppendFile({
+  Orchestrator.prototype.buildRunSkill = function buildRunSkill({
     taskId,
     runLabel,
     useHostDockerSocket,
     contextRepos
   }) {
-    const baseFile =
-      this.orchAgentsFile && fs.existsSync(this.orchAgentsFile) ? this.orchAgentsFile : null;
-    const hostDockerFile =
-      this.hostDockerAgentsFile && fs.existsSync(this.hostDockerAgentsFile)
-        ? this.hostDockerAgentsFile
+    const skillTemplate =
+      this.orchSkillTemplate && fs.existsSync(this.orchSkillTemplate)
+        ? this.orchSkillTemplate
         : null;
-    const contextSection = buildContextReposSection(contextRepos);
-    const shouldCombine = Boolean(useHostDockerSocket || contextSection);
-    if (!shouldCombine) {
-      return baseFile;
-    }
-    const includeHostDocker = Boolean(useHostDockerSocket && hostDockerFile);
-    const agentsFile = buildAgentsFile.call(this, {
+    const hostDockerFile =
+      this.hostDockerSkillFile && fs.existsSync(this.hostDockerSkillFile)
+        ? this.hostDockerSkillFile
+        : null;
+    cleanupOrchestratorSkills(this.codexHome);
+    const skillPath = buildSkillFile({
+      codexHome: this.codexHome,
       taskId,
       runLabel,
+      skillTemplate,
+      hostDockerFile,
       contextRepos,
-      baseFile,
-      hostDockerFile: includeHostDocker ? hostDockerFile : null
+      useHostDockerSocket
     });
-    return agentsFile;
+    if (skillPath) {
+      const logCopy = path.join(this.taskLogsDir(taskId), `${runLabel}.skill.md`);
+      try {
+        fs.copyFileSync(skillPath, logCopy);
+      } catch (error) {
+        // Best-effort: logs should not block runs.
+      }
+    }
+    return skillPath;
+  };
+
+  Orchestrator.prototype.cleanupRunSkill = function cleanupRunSkill(skillPath) {
+    if (!skillPath) {
+      return;
+    }
+    const skillDir = path.dirname(skillPath);
+    if (!skillDir.startsWith(this.codexHome)) {
+      return;
+    }
+    try {
+      fs.rmSync(skillDir, { recursive: true, force: true });
+    } catch (error) {
+      // Best-effort: stale skills should not block cleanup.
+    }
   };
 }
 

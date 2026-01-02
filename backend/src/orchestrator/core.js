@@ -7,8 +7,8 @@ const { AccountStore } = require('../accounts');
 const {
   DEFAULT_ORCH_HOME,
   DEFAULT_IMAGE_NAME,
-  DEFAULT_ORCH_AGENTS_FILE,
-  DEFAULT_HOST_DOCKER_AGENTS_FILE,
+  DEFAULT_ORCH_SKILL_TEMPLATE,
+  DEFAULT_HOST_DOCKER_SKILL_FILE,
   DEFAULT_GIT_CREDENTIAL_HELPER,
   DEFAULT_ACCOUNT_ROTATION_LIMIT
 } = require('./constants');
@@ -30,12 +30,16 @@ class Orchestrator {
     this.now = options.now || (() => new Date().toISOString());
     this.fetch = options.fetch || global.fetch;
     this.imageName = options.imageName || process.env.IMAGE_NAME || DEFAULT_IMAGE_NAME;
-    this.orchAgentsFile =
-      options.orchAgentsFile || process.env.ORCH_AGENTS_FILE || DEFAULT_ORCH_AGENTS_FILE;
-    this.hostDockerAgentsFile =
-      options.hostDockerAgentsFile ||
+    this.orchSkillTemplate =
+      options.orchSkillTemplate ||
+      process.env.ORCH_SKILL_TEMPLATE ||
+      process.env.ORCH_AGENTS_FILE ||
+      DEFAULT_ORCH_SKILL_TEMPLATE;
+    this.hostDockerSkillFile =
+      options.hostDockerSkillFile ||
+      process.env.ORCH_HOST_DOCKER_SKILL_FILE ||
       process.env.ORCH_HOST_DOCKER_AGENTS_FILE ||
-      DEFAULT_HOST_DOCKER_AGENTS_FILE;
+      DEFAULT_HOST_DOCKER_SKILL_FILE;
     this.getUid =
       options.getUid ||
       (() => (typeof process.getuid === 'function' ? process.getuid() : null));

@@ -1,4 +1,4 @@
-# Host Docker Socket
+## Host Docker Socket
 
 - The host Docker socket is mounted, so Docker commands act on the host.
 - You may use Docker commands as needed to complete the task.

@@ -25,8 +25,7 @@ describe('run helpers env', () => {
       codexHome,
       artifactsDir,
       mountPaths: [sharedPath, '/tmp/missing'],
-      mountPathsRo: [sharedPath],
-      agentsAppendFile: null
+      mountPathsRo: [sharedPath]
     });
 
     expect(env.CODEX_MOUNT_PATHS).toContain(codexHome);
@@ -48,8 +47,7 @@ describe('run helpers env', () => {
       codexHome,
       artifactsDir,
       mountPaths: [],
-      mountPathsRo: [],
-      agentsAppendFile: null
+      mountPathsRo: []
     });
 
     expect(env.CODEX_MOUNT_PATHS).toContain(codexHome);

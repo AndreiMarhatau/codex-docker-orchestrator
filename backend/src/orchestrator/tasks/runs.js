@@ -32,7 +32,7 @@ function attachTaskRunMethods(Orchestrator) {
     const stderrPath = path.join(this.taskLogsDir(taskId), `${runLabel}.stderr`);
     const logStream = fs.createWriteStream(logPath, { flags: 'a' });
     const stderrStream = fs.createWriteStream(stderrPath, { flags: 'a' });
-    const agentsAppendFile = this.buildAgentsAppendFile({
+    const runSkillPath = this.buildRunSkill({
       taskId,
       runLabel,
       useHostDockerSocket,
@@ -43,8 +43,7 @@ function attachTaskRunMethods(Orchestrator) {
       codexHome: this.codexHome,
       artifactsDir,
       mountPaths,
-      mountPathsRo,
-      agentsAppendFile
+      mountPathsRo
     });
     const child = this.spawn('codex-docker', args, {
       cwd,
@@ -56,7 +55,7 @@ function attachTaskRunMethods(Orchestrator) {
       child.stdin.end();
     }
 
-    const runState = { child, stopRequested: false, stopTimeout: null };
+    const runState = { child, stopRequested: false, stopTimeout: null, runSkillPath };
     this.running.set(taskId, runState);
 
     const tracker = createOutputTracker({ logStream, stderrStream });
@@ -69,6 +68,7 @@ function attachTaskRunMethods(Orchestrator) {
       if (runState.stopTimeout) {
         clearTimeout(runState.stopTimeout);
       }
+      this.cleanupRunSkill(runState.runSkillPath);
       this.running.delete(taskId);
       const result = tracker.getResult();
       result.code = code ?? 1;

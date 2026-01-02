@@ -5,7 +5,7 @@ const { ensureDir } = require('../../storage');
 const { invalidImageError, invalidContextError } = require('../errors');
 const { normalizeOptionalString } = require('../utils');
 const { resolveRefInRepo } = require('../git');
-const { buildContextReposSection } = require('../context');
+const { buildSkillFile, cleanupOrchestratorSkills } = require('./skills');
 
 async function resolveImagePath(uploadsRoot, imagePath) {
   if (typeof imagePath !== 'string' || !imagePath.trim()) {
@@ -25,33 +25,6 @@ async function resolveImagePath(uploadsRoot, imagePath) {
     throw invalidImageError(`Image not found: ${imagePath}`);
   }
   return resolvedPath;
-}
-
-function buildAgentsFile({ taskId, runLabel, contextRepos, baseFile, hostDockerFile }) {
-  const contextSection = buildContextReposSection(contextRepos);
-  const sections = [];
-  if (baseFile) {
-    const baseContent = fs.readFileSync(baseFile, 'utf8').trimEnd();
-    if (baseContent) {
-      sections.push(baseContent);
-    }
-  }
-  if (hostDockerFile) {
-    const hostContent = fs.readFileSync(hostDockerFile, 'utf8').trimEnd();
-    if (hostContent) {
-      sections.push(hostContent);
-    }
-  }
-  if (contextSection) {
-    sections.push(contextSection.trimEnd());
-  }
-  if (sections.length === 0) {
-    return null;
-  }
-  const combined = `${sections.join('\n\n')}\n`;
-  const targetPath = path.join(this.taskLogsDir(taskId), `${runLabel}.agents.md`);
-  fs.writeFileSync(targetPath, combined, 'utf8');
-  return targetPath;
 }
 
 function attachTaskContextMethods(Orchestrator) {
@@ -137,32 +110,54 @@ function attachTaskContextMethods(Orchestrator) {
     return resolved;
   };
 
-  Orchestrator.prototype.buildAgentsAppendFile = function buildAgentsAppendFile({
+  Orchestrator.prototype.buildRunSkill = function buildRunSkill({
     taskId,
     runLabel,
     useHostDockerSocket,
     contextRepos
   }) {
-    const baseFile =
-      this.orchAgentsFile && fs.existsSync(this.orchAgentsFile) ? this.orchAgentsFile : null;
-    const hostDockerFile =
-      this.hostDockerAgentsFile && fs.existsSync(this.hostDockerAgentsFile)
-        ? this.hostDockerAgentsFile
+    const skillTemplate =
+      this.orchSkillTemplate && fs.existsSync(this.orchSkillTemplate)
+        ? this.orchSkillTemplate
         : null;
-    const contextSection = buildContextReposSection(contextRepos);
-    const shouldCombine = Boolean(useHostDockerSocket || contextSection);
-    if (!shouldCombine) {
-      return baseFile;
-    }
-    const includeHostDocker = Boolean(useHostDockerSocket && hostDockerFile);
-    const agentsFile = buildAgentsFile.call(this, {
+    const hostDockerFile =
+      this.hostDockerSkillFile && fs.existsSync(this.hostDockerSkillFile)
+        ? this.hostDockerSkillFile
+        : null;
+    cleanupOrchestratorSkills(this.codexHome);
+    const skillPath = buildSkillFile({
+      codexHome: this.codexHome,
       taskId,
       runLabel,
+      skillTemplate,
+      hostDockerFile,
       contextRepos,
-      baseFile,
-      hostDockerFile: includeHostDocker ? hostDockerFile : null
+      useHostDockerSocket
     });
-    return agentsFile;
+    if (skillPath) {
+      const logCopy = path.join(this.taskLogsDir(taskId), `${runLabel}.skill.md`);
+      try {
+        fs.copyFileSync(skillPath, logCopy);
+      } catch (error) {
+        // Best-effort: logs should not block runs.
+      }
+    }
+    return skillPath;
+  };
+
+  Orchestrator.prototype.cleanupRunSkill = function cleanupRunSkill(skillPath) {
+    if (!skillPath) {
+      return;
+    }
+    const skillDir = path.dirname(skillPath);
+    if (!skillDir.startsWith(this.codexHome)) {
+      return;
+    }
+    try {
+      fs.rmSync(skillDir, { recursive: true, force: true });
+    } catch (error) {
+      // Best-effort: stale skills should not block cleanup.
+    }
   };
 }
 

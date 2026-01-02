@@ -8,6 +8,17 @@ import { waitForTaskStatus } from '../helpers/wait.mjs';
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
 
+async function readLatestSkillContent(orchHome, orchestrator, taskId) {
+  const metaPath = path.join(orchHome, 'tasks', taskId, 'meta.json');
+  const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
+  const lastRun = meta.runs.at(-1);
+  if (!lastRun) {
+    throw new Error('No runs found.');
+  }
+  const skillLogPath = path.join(orchestrator.taskLogsDir(taskId), `${lastRun.runId}.skill.md`);
+  return fs.readFile(skillLogPath, 'utf8');
+}
+
 describe('Orchestrator task context', () => {
   it('mounts context repos read-only and injects instructions', async () => {
     const orchHome = await createTempDir();
@@ -43,17 +54,16 @@ describe('Orchestrator task context', () => {
     const contextPath = orchestrator.taskContextWorktree(task.taskId, contextEnv.repoUrl, contextEnv.envId);
     expect(mountRo.split(':')).toContain(contextPath);
 
-    const agentsFile = runCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
-    expect(agentsFile).toBeTruthy();
-    const agentsContent = await fs.readFile(agentsFile, 'utf8');
-    expect(agentsContent).toContain('Read-only reference repositories');
-    expect(agentsContent).toContain(contextPath);
+    const skillContent = await readLatestSkillContent(orchHome, orchestrator, task.taskId);
+    expect(skillContent).toContain('Read-only reference repositories');
+    expect(skillContent).toContain(contextPath);
   });
 
   it('mounts docker socket when enabled and skips when disabled', async () => {
     const orchHome = await createTempDir();
     const exec = createMockExec({ branches: ['main'] });
     const spawn = createMockSpawn();
+    const codexHome = path.join(orchHome, 'codex-home');
     const socketDir = await createTempDir();
     const socketPath = path.join(socketDir, 'docker.sock');
     await fs.writeFile(socketPath, '');
@@ -62,6 +72,7 @@ describe('Orchestrator task context', () => {
     try {
       const orchestrator = new Orchestrator({
         orchHome,
+        codexHome,
         exec,
         spawn
       });
@@ -78,10 +89,8 @@ describe('Orchestrator task context', () => {
       const createCall = spawn.calls.find((call) => call.command === 'codex-docker');
       const createMounts = createCall.options?.env?.CODEX_MOUNT_PATHS || '';
       expect(createMounts.split(':')).toContain(socketPath);
-      const createAgentsFile = createCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
-      expect(createAgentsFile).toBeTruthy();
-      const createAgentsContent = await fs.readFile(createAgentsFile, 'utf8');
-      expect(createAgentsContent).toContain('Host Docker Socket');
+      const createSkillContent = await readLatestSkillContent(orchHome, orchestrator, task.taskId);
+      expect(createSkillContent).toContain('Host Docker Socket');
 
       await orchestrator.resumeTask(task.taskId, 'Continue', { useHostDockerSocket: false });
       await waitForTaskStatus(orchestrator, task.taskId, 'completed');
@@ -90,10 +99,8 @@ describe('Orchestrator task context', () => {
       const resumeCall = resumeCalls[1];
       const resumeMounts = resumeCall.options?.env?.CODEX_MOUNT_PATHS || '';
       expect(resumeMounts.split(':')).not.toContain(socketPath);
-      const resumeAgentsFile = resumeCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
-      expect(resumeAgentsFile).toBeTruthy();
-      const resumeAgentsContent = await fs.readFile(resumeAgentsFile, 'utf8');
-      expect(resumeAgentsContent).not.toContain('Host Docker Socket');
+      const resumeSkillContent = await readLatestSkillContent(orchHome, orchestrator, task.taskId);
+      expect(resumeSkillContent).not.toContain('Host Docker Socket');
 
       const metaPath = path.join(orchHome, 'tasks', task.taskId, 'meta.json');
       const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));

@@ -7,7 +7,7 @@ metadata:
 
 # Task Finishing
 
-- If you made any changes, always create a git commit before replying.
+- If you made any changes, always create a git commit after you verified everything and is ready to reply to the user.
 - Stage all changes with `git add -A` and use a concise commit message.
 - If there are no changes, do not create a commit.
 - Configure git email to `codex@openai.com` and username to `Codex Agent`.

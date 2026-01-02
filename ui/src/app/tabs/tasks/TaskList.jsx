@@ -13,9 +13,45 @@ import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined';
 import StatusIcon from '../../components/StatusIcon.jsx';
 import { STATUS_CONFIG } from '../../constants.js';
 import { formatDuration, formatTimestamp } from '../../formatters.js';
+import { getGitStatusDisplay } from '../../git-helpers.js';
 import { formatEffortDisplay, formatModelDisplay } from '../../model-helpers.js';
 import { formatRepoDisplay } from '../../repo-helpers.js';
 import { getElapsedMs, getLatestRun } from '../../task-helpers.js';
+
+function GitStatusIcon({ gitStatus }) {
+  const gitStatusDisplay = getGitStatusDisplay(gitStatus);
+  const GitIcon = gitStatusDisplay?.icon;
+  if (!GitIcon) {
+    return null;
+  }
+  return (
+    <Tooltip title={gitStatusDisplay.tooltip}>
+      <span className="git-status-icon">
+        <GitIcon fontSize="small" color={gitStatusDisplay.color} />
+      </span>
+    </Tooltip>
+  );
+}
+
+function RunningDurationChip({ task, now }) {
+  if (task.status !== 'running' && task.status !== 'stopping') {
+    return null;
+  }
+  const latestRun = getLatestRun(task);
+  const durationMs = getElapsedMs(latestRun?.startedAt || task.createdAt, null, now);
+  if (durationMs === null) {
+    return null;
+  }
+  const statusLabel = STATUS_CONFIG[task.status]?.label.toLowerCase() || 'running';
+  return (
+    <Chip
+      size="small"
+      variant="outlined"
+      icon={<AccessTimeIcon fontSize="small" />}
+      label={`${statusLabel} ${formatDuration(durationMs)}`}
+    />
+  );
+}
 
 function TaskList({ data, tasksState }) {
   const { loading } = data;
@@ -46,7 +82,10 @@ function TaskList({ data, tasksState }) {
                   justifyContent="space-between"
                 >
                   <Typography fontWeight={600}>{task.branchName}</Typography>
-                  <StatusIcon status={task.status} />
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <GitStatusIcon gitStatus={task.gitStatus} />
+                    <StatusIcon status={task.status} />
+                  </Stack>
                 </Stack>
                 <Tooltip title={task.repoUrl || ''}>
                   <Typography color="text.secondary">
@@ -68,28 +107,7 @@ function TaskList({ data, tasksState }) {
                     />
                   )}
                   <Chip size="small" label={`created ${formatTimestamp(task.createdAt)}`} />
-                  {(task.status === 'running' || task.status === 'stopping') &&
-                    (() => {
-                      const latestRun = getLatestRun(task);
-                      const durationMs = getElapsedMs(
-                        latestRun?.startedAt || task.createdAt,
-                        null,
-                        now
-                      );
-                      if (durationMs === null) {
-                        return null;
-                      }
-                      const statusLabel =
-                        STATUS_CONFIG[task.status]?.label.toLowerCase() || 'running';
-                      return (
-                        <Chip
-                          size="small"
-                          variant="outlined"
-                          icon={<AccessTimeIcon fontSize="small" />}
-                          label={`${statusLabel} ${formatDuration(durationMs)}`}
-                        />
-                      );
-                    })()}
+                  <RunningDurationChip task={task} now={now} />
                 </Stack>
                 <Stack direction="row" spacing={0.5} alignItems="center">
                   <Tooltip title="Stop task">

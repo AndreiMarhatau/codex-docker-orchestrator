@@ -1,6 +1,9 @@
-## When to apply
-
-- Use this skill whenever you need to run Docker commands.
+---
+name: {{SKILL_NAME}}
+description: Use this skill when you need to run Docker commands on the host.
+metadata:
+  short-description: Use when running Docker commands
+---
 
 ## Host Docker Socket
 

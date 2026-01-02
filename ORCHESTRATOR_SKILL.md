@@ -1,13 +1,9 @@
 ---
 name: {{SKILL_NAME}}
-description: Guidance that applies when finishing tasks, including task finishing rules.
+description: Use this skill when you are finishing tasks; it contains task finishing rules.
 metadata:
-  short-description: Task finishing rules
+  short-description: Use when finishing tasks
 ---
-
-# When to apply
-
-- Use this skill whenever you are finishing tasks.
 
 # Task Finishing
 

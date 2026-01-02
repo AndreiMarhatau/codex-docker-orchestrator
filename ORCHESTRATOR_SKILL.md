@@ -1,11 +1,15 @@
 ---
 name: {{SKILL_NAME}}
-description: Guidance that applies to codex-docker-orchestrator tasks, including task finishing rules.
+description: Guidance that applies when finishing tasks, including task finishing rules.
 metadata:
-  short-description: Codex orchestrator task finishing rules
+  short-description: Task finishing rules
 ---
 
-# Task finishing
+# When to apply
+
+- Use this skill whenever you are finishing tasks.
+
+# Task Finishing
 
 - If you made any changes, always create a git commit before replying.
 - Stage all changes with `git add -A` and use a concise commit message.

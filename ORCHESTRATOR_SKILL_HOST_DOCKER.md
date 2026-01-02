@@ -1,3 +1,7 @@
+## When to apply
+
+- Use this skill whenever you need to run Docker commands.
+
 ## Host Docker Socket
 
 - The host Docker socket is mounted, so Docker commands act on the host.

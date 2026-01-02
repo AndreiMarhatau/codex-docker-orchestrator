@@ -36,12 +36,6 @@ class Orchestrator {
       options.hostDockerSkillFile ||
       process.env.ORCH_HOST_DOCKER_SKILL_FILE ||
       DEFAULT_HOST_DOCKER_SKILL_FILE;
-    if (process.env.ORCH_AGENTS_FILE || process.env.ORCH_HOST_DOCKER_AGENTS_FILE) {
-      throw new Error(
-        'Legacy env vars ORCH_AGENTS_FILE and ORCH_HOST_DOCKER_AGENTS_FILE are no longer supported. ' +
-          'Use ORCH_SKILL_TEMPLATE or ORCH_HOST_DOCKER_SKILL_FILE instead.'
-      );
-    }
     this.getUid =
       options.getUid ||
       (() => (typeof process.getuid === 'function' ? process.getuid() : null));

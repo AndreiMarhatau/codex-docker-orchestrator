@@ -40,7 +40,6 @@ function TaskDetailPanel({ data, tasksState }) {
   }, [detail.taskDetail?.gitStatus]);
 
   const taskTitle = detail.taskDetail?.branchName || 'Task details';
-  const taskId = detail.taskDetail?.taskId;
 
   return (
     <Box className="task-detail-shell">
@@ -60,7 +59,6 @@ function TaskDetailPanel({ data, tasksState }) {
             <Typography variant="h6" className="panel-title">
               {taskTitle}
             </Typography>
-            {taskId && <Typography className="mono">{taskId}</Typography>}
           </Stack>
         </Stack>
         <Button size="small" variant="outlined" onClick={refreshAll}>

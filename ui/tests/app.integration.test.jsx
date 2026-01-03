@@ -83,7 +83,6 @@ it(
     await user.click(screen.getByLabelText('Remove task task-2'));
 
     await user.click(screen.getByText('feature/refactor'));
-    expect((await screen.findAllByText('task-1')).length).toBeGreaterThan(0);
     expect(screen.getByText('Agent messages')).toBeInTheDocument();
     expect(screen.getByText('output.png')).toBeInTheDocument();
     expect(screen.getByText('report.txt')).toBeInTheDocument();

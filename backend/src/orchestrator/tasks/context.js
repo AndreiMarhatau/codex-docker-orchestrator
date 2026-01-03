@@ -5,7 +5,7 @@ const { ensureDir } = require('../../storage');
 const { invalidImageError, invalidContextError } = require('../errors');
 const { normalizeOptionalString } = require('../utils');
 const { resolveRefInRepo } = require('../git');
-const { buildSkillFile, cleanupOrchestratorSkills } = require('./skills');
+const { buildSkillFile } = require('./skills');
 
 async function resolveImagePath(uploadsRoot, imagePath) {
   if (typeof imagePath !== 'string' || !imagePath.trim()) {
@@ -124,7 +124,6 @@ function attachTaskContextMethods(Orchestrator) {
       this.hostDockerSkillFile && fs.existsSync(this.hostDockerSkillFile)
         ? this.hostDockerSkillFile
         : null;
-    cleanupOrchestratorSkills(this.codexHome);
     const skillPath = buildSkillFile({
       codexHome: this.codexHome,
       taskId,
@@ -149,15 +148,7 @@ function attachTaskContextMethods(Orchestrator) {
     if (!skillPath) {
       return;
     }
-    const skillDir = path.dirname(skillPath);
-    if (!skillDir.startsWith(this.codexHome)) {
-      return;
-    }
-    try {
-      fs.rmSync(skillDir, { recursive: true, force: true });
-    } catch (error) {
-      // Best-effort: stale skills should not block cleanup.
-    }
+    // Keep per-task skill names stable across runs; removed during task cleanup.
   };
 }
 

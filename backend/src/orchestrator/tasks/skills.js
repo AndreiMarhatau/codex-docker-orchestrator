@@ -2,7 +2,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { buildContextReposSection } = require('../context');
 
-function createSkillId() {
+function createSkillId(taskId) {
+  if (typeof taskId === 'string' && taskId.trim()) {
+    const normalized = taskId.trim();
+    const sanitized = normalized.replace(/[^a-zA-Z0-9._-]/g, '-');
+    if (sanitized) {
+      return sanitized;
+    }
+  }
   const timestamp = Date.now();
   const random = Math.floor(Math.random() * 1e9);
   return `${timestamp}-${random}`;
@@ -52,7 +59,20 @@ function cleanupOrchestratorSkills(codexHome) {
   }
 }
 
-function buildSkillFile({ codexHome, skillTemplate, hostDockerFile, contextRepos, useHostDockerSocket }) {
+function cleanupTaskSkill(codexHome, taskId) {
+  if (!codexHome || !taskId) {
+    return;
+  }
+  const skillId = createSkillId(taskId);
+  const skillDir = path.join(codexHome, 'skills', `codex-orchestrator-${skillId}`);
+  try {
+    fs.rmSync(skillDir, { recursive: true, force: true });
+  } catch (error) {
+    // Best-effort: stale skills should not block cleanup.
+  }
+}
+
+function buildSkillFile({ codexHome, taskId, skillTemplate, hostDockerFile, contextRepos, useHostDockerSocket }) {
   const contextSection = buildContextReposSection(contextRepos);
   const sections = [];
   if (skillTemplate) {
@@ -73,7 +93,7 @@ function buildSkillFile({ codexHome, skillTemplate, hostDockerFile, contextRepos
   if (sections.length === 0) {
     return null;
   }
-  const skillId = createSkillId();
+  const skillId = createSkillId(taskId);
   const skillName = `codex-orchestrator-guidance-${skillId}`;
   const skillDir = path.join(codexHome, 'skills', `codex-orchestrator-${skillId}`);
   fs.mkdirSync(skillDir, { recursive: true });
@@ -86,5 +106,6 @@ function buildSkillFile({ codexHome, skillTemplate, hostDockerFile, contextRepos
 
 module.exports = {
   buildSkillFile,
-  cleanupOrchestratorSkills
+  cleanupOrchestratorSkills,
+  cleanupTaskSkill
 };

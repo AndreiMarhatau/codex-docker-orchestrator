@@ -1,4 +1,5 @@
 const { readJson, removePath, pathExists } = require('../../storage');
+const { cleanupTaskSkill } = require('./skills');
 
 async function removeWorktree({ exec, mirrorPath, worktreePath }) {
   const result = await exec('git', [
@@ -66,6 +67,7 @@ function attachTaskCleanupMethods(Orchestrator) {
       worktreePath
     });
     await removePath(this.taskDir(taskId));
+    cleanupTaskSkill(this.codexHome, taskId);
   };
 
   Orchestrator.prototype.pushTask = async function pushTask(taskId) {

@@ -82,7 +82,7 @@ working and reuses your host Codex + GitHub credentials.
 ```
 This script detects the Docker socket (macOS + Linux), sets the needed env vars, and runs
 `docker compose up`. It also sets `TMPDIR` to a host-mounted path so `codex-docker` can mount
-temporary files without mount issues, and so orchestrator-generated skills remain visible.
+the generated `AGENTS.override.md` file.
 On macOS it runs the container as root by default to avoid Docker socket permission errors.
 Set `ORCH_FORCE_ROOT=0` if you want to run as your host user instead.
 
@@ -117,7 +117,6 @@ If the image is private, run `docker login ghcr.io` first.
 - The orchestrator uses `docker` and `codex-docker` from inside the container.
 - We mount your host home at the same absolute path, so `codex-docker` can bind-mount paths correctly.
 - Codex credentials are reused by mounting your host `~/.codex` via the home mount.
-- Orchestrator guidance is injected as a randomized Codex skill under `~/.codex/skills`.
 - Git HTTPS auth is reused by mounting your host `~/.gitconfig` and `~/.config/gh` via the home mount.
 
 ### Notes

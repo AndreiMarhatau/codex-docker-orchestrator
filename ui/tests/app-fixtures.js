@@ -19,7 +19,12 @@ const tasks = [
     runs: [],
     threadId: 'thread-1',
     useHostDockerSocket: true,
-    gitStatus: { hasChanges: false, pushed: true, dirty: false }
+    gitStatus: {
+      hasChanges: false,
+      pushed: true,
+      dirty: false,
+      diffStats: { additions: 0, deletions: 0 }
+    }
   },
   {
     taskId: 'task-2',
@@ -34,7 +39,12 @@ const tasks = [
     runs: [{ runId: 'run-2', status: 'running', startedAt: '2024-01-02T12:00:00Z' }],
     threadId: 'thread-2',
     useHostDockerSocket: false,
-    gitStatus: { hasChanges: true, pushed: false, dirty: false }
+    gitStatus: {
+      hasChanges: true,
+      pushed: false,
+      dirty: false,
+      diffStats: { additions: 12, deletions: 4 }
+    }
   }
 ];
 const accounts = {
@@ -100,7 +110,12 @@ const taskDetail = {
       ]
     }
   ],
-  gitStatus: { hasChanges: true, pushed: false, dirty: false },
+  gitStatus: {
+    hasChanges: true,
+    pushed: false,
+    dirty: false,
+    diffStats: { additions: 12, deletions: 4 }
+  },
   useHostDockerSocket: true
 };
 const taskDiff = {

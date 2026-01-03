@@ -34,6 +34,37 @@ async function readDirtyStatus(exec, worktreePath) {
   return dirtyResult.stdout.trim().length > 0;
 }
 
+async function readDiffStats(exec, worktreePath, baseSha) {
+  if (!baseSha) {
+    return null;
+  }
+  const diffResult = await exec('git', [
+    '-C',
+    worktreePath,
+    'diff',
+    '--numstat',
+    `${baseSha}...HEAD`
+  ]);
+  if (diffResult.code !== 0) {
+    return null;
+  }
+  const lines = diffResult.stdout.trim().split('\n').filter(Boolean);
+  let additions = 0;
+  let deletions = 0;
+  for (const line of lines) {
+    const [addRaw, delRaw] = line.split('\t');
+    const add = Number(addRaw);
+    const del = Number(delRaw);
+    if (!Number.isNaN(add)) {
+      additions += add;
+    }
+    if (!Number.isNaN(del)) {
+      deletions += del;
+    }
+  }
+  return { additions, deletions };
+}
+
 function attachTaskMetaMethods(Orchestrator) {
   Orchestrator.prototype.listTasks = async function listTasks() {
     await this.init();
@@ -73,10 +104,12 @@ function attachTaskMetaMethods(Orchestrator) {
     const status = {
       hasChanges: null,
       pushed: null,
-      dirty: null
+      dirty: null,
+      diffStats: null
     };
 
     status.dirty = await readDirtyStatus(this.exec, meta.worktreePath);
+    status.diffStats = await readDiffStats(this.exec, meta.worktreePath, meta.baseSha);
 
     if (meta.baseSha) {
       const diffResult = await this.exec('git', [

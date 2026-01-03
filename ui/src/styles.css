@@ -371,6 +371,13 @@ body {
   align-items: center;
 }
 
+.task-diff-stats {
+  display: inline-flex;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
 .artifact-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

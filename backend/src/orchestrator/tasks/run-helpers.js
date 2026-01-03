@@ -47,9 +47,12 @@ function resolveMountPaths(paths) {
   return unique;
 }
 
-function buildRunEnv({ codexHome, artifactsDir, mountPaths, mountPathsRo }) {
+function buildRunEnv({ codexHome, artifactsDir, mountPaths, mountPathsRo, agentsAppendFile }) {
   const env = { ...process.env };
   ensureCodexHome(env, codexHome);
+  if (agentsAppendFile) {
+    env.CODEX_AGENTS_APPEND_FILE = agentsAppendFile;
+  }
   env.CODEX_ARTIFACTS_DIR = artifactsDir;
   const rwMounts = resolveMountPaths([codexHome, artifactsDir, ...mountPaths]);
   addMountPaths(env, 'CODEX_MOUNT_PATHS', rwMounts);

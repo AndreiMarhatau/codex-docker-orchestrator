@@ -33,6 +33,29 @@ function GitStatusIcon({ gitStatus }) {
   );
 }
 
+function GitDiffStats({ gitStatus }) {
+  const additions = gitStatus?.diffStats?.additions ?? 0;
+  const deletions = gitStatus?.diffStats?.deletions ?? 0;
+  if (!additions && !deletions) {
+    return null;
+  }
+  const tooltipParts = [];
+  if (additions) {
+    tooltipParts.push(`+${additions} additions`);
+  }
+  if (deletions) {
+    tooltipParts.push(`-${deletions} deletions`);
+  }
+  return (
+    <Tooltip title={`Diff since base commit: ${tooltipParts.join(', ')}`}>
+      <span className="task-diff-stats">
+        {additions > 0 && <span className="diff-add">+{additions}</span>}
+        {deletions > 0 && <span className="diff-del">-{deletions}</span>}
+      </span>
+    </Tooltip>
+  );
+}
+
 function RunningDurationChip({ task, now }) {
   if (task.status !== 'running' && task.status !== 'stopping') {
     return null;
@@ -84,6 +107,7 @@ function TaskList({ data, tasksState }) {
                   <Typography fontWeight={600}>{task.branchName}</Typography>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <GitStatusIcon gitStatus={task.gitStatus} />
+                    <GitDiffStats gitStatus={task.gitStatus} />
                     <StatusIcon status={task.status} />
                   </Stack>
                 </Stack>

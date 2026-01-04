@@ -34,7 +34,35 @@ function normalizeContextReposInput(contextRepos) {
   });
 }
 
+function normalizeAttachmentUploadsInput(fileUploads) {
+  if (fileUploads === undefined) {
+    return null;
+  }
+  if (!Array.isArray(fileUploads)) {
+    throw new Error('fileUploads must be an array');
+  }
+  return fileUploads.map((entry, index) => {
+    if (!entry || typeof entry !== 'object') {
+      throw new Error(`fileUploads[${index}] must be an object`);
+    }
+    const uploadPath = typeof entry.path === 'string' ? entry.path.trim() : '';
+    if (!uploadPath) {
+      throw new Error(`fileUploads[${index}].path is required`);
+    }
+    const originalName = typeof entry.originalName === 'string' ? entry.originalName.trim() : '';
+    const size = Number.isFinite(entry.size) ? entry.size : null;
+    const mimeType = typeof entry.mimeType === 'string' ? entry.mimeType.trim() : '';
+    return {
+      path: uploadPath,
+      originalName: originalName || null,
+      size,
+      mimeType: mimeType || null
+    };
+  });
+}
+
 module.exports = {
   isSupportedImageFile,
+  normalizeAttachmentUploadsInput,
   normalizeContextReposInput
 };

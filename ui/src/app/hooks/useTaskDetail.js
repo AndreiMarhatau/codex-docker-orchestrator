@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiRequest } from '../../api.js';
 import { emptyResumeConfig } from '../constants.js';
+import useTaskFiles from './useTaskFiles.js';
 import useTaskLogStream from './useTaskLogStream.js';
 
 function useTaskDetail({ tasks, selectedTaskId, setError, setSelectedTaskId }) {
@@ -11,6 +12,8 @@ function useTaskDetail({ tasks, selectedTaskId, setError, setSelectedTaskId }) {
   const [resumeConfig, setResumeConfig] = useState(emptyResumeConfig);
   const [resumeUseHostDockerSocket, setResumeUseHostDockerSocket] = useState(false);
   const [resumeDockerTouched, setResumeDockerTouched] = useState(false);
+  const resumeFiles = useTaskFiles();
+  const [resumeAttachmentRemovals, setResumeAttachmentRemovals] = useState([]);
   const resumeDefaultsTaskIdRef = useRef('');
 
   const refreshTaskDetail = useCallback(
@@ -49,6 +52,8 @@ function useTaskDetail({ tasks, selectedTaskId, setError, setSelectedTaskId }) {
       setTaskDiff(null);
       setRevealedDiffs({});
       setResumeConfig(emptyResumeConfig);
+      resumeFiles.handleClearTaskFiles();
+      setResumeAttachmentRemovals([]);
       return;
     }
     refreshTaskDetail(selectedTaskId).catch((err) => setError(err.message));
@@ -59,6 +64,8 @@ function useTaskDetail({ tasks, selectedTaskId, setError, setSelectedTaskId }) {
       resumeDefaultsTaskIdRef.current = '';
       setResumeUseHostDockerSocket(false);
       setResumeDockerTouched(false);
+      resumeFiles.handleClearTaskFiles();
+      setResumeAttachmentRemovals([]);
       return;
     }
     if (resumeDefaultsTaskIdRef.current === selectedTaskId) {
@@ -89,21 +96,34 @@ function useTaskDetail({ tasks, selectedTaskId, setError, setSelectedTaskId }) {
     setRevealedDiffs((prev) => ({ ...prev, [path]: true }));
   }
 
+  function toggleResumeAttachmentRemoval(name) {
+    setResumeAttachmentRemovals((prev) => {
+      if (prev.includes(name)) {
+        return prev.filter((entry) => entry !== name);
+      }
+      return [...prev, name];
+    });
+  }
+
   return {
     refreshTaskDetail,
     revealDiff,
     revealedDiffs,
+    resumeAttachmentRemovals,
     resumeConfig,
     resumeDockerTouched,
+    resumeFiles,
     resumePrompt,
     resumeUseHostDockerSocket,
+    setResumeAttachmentRemovals,
     setResumeConfig,
     setResumeDockerTouched,
     setResumePrompt,
     setResumeUseHostDockerSocket,
     setTaskDetail,
     taskDetail,
-    taskDiff
+    taskDiff,
+    toggleResumeAttachmentRemoval
   };
 }
 

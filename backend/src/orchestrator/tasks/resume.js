@@ -11,6 +11,7 @@ function attachTaskResumeMethods(Orchestrator) {
       throw new Error('Cannot resume task without a thread_id. Rerun the task to generate one.');
     }
     const contextRepos = Array.isArray(meta.contextRepos) ? meta.contextRepos : [];
+    const attachments = Array.isArray(meta.attachments) ? meta.attachments : [];
     const hasDockerSocketOverride = typeof options.useHostDockerSocket === 'boolean';
     const shouldUseHostDockerSocket = hasDockerSocketOverride
       ? options.useHostDockerSocket
@@ -57,6 +58,8 @@ function attachTaskResumeMethods(Orchestrator) {
       reasoningEffort: runReasoningEffort,
       resumeThreadId: meta.threadId
     });
+    const attachmentsDir = this.taskAttachmentsDir(taskId);
+    const hasAttachments = attachments.length > 0;
     this.startCodexRun({
       taskId,
       runLabel,
@@ -64,8 +67,12 @@ function attachTaskResumeMethods(Orchestrator) {
       cwd: meta.worktreePath,
       args,
       mountPaths: [env.mirrorPath, ...(dockerSocketPath ? [dockerSocketPath] : [])],
-      mountPathsRo: contextRepos.map((repo) => repo.worktreePath),
+      mountPathsRo: [
+        ...contextRepos.map((repo) => repo.worktreePath),
+        ...(hasAttachments ? [attachmentsDir] : [])
+      ],
       contextRepos,
+      attachments,
       useHostDockerSocket: shouldUseHostDockerSocket
     });
     return meta;

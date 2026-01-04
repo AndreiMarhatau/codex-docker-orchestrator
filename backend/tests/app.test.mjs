@@ -95,7 +95,9 @@ describe('API', () => {
     expect(rateRes.body.rateLimits.primary.resetsAt).toBe(1730947200);
     expect(rateRes.body.fetchedAt).toBeTruthy();
   });
+});
 
+describe('API uploads', () => {
   it('uploads images and attaches them to new tasks', async () => {
     const { app, orchHome, spawn } = await createTestApp();
 
@@ -127,36 +129,41 @@ describe('API', () => {
     expect(spawn.calls[0].options.env.CODEX_MOUNT_PATHS).toContain(uploadedPath);
   });
 
-  it('attaches context repos to tasks', async () => {
-    const { app, spawn } = await createTestApp();
+  it('uploads files and attaches them to new tasks', async () => {
+    const { app, orchHome, spawn } = await createTestApp();
 
-    const primaryEnvRes = await request(app)
+    const envRes = await request(app)
       .post('/api/envs')
       .send({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' })
       .expect(201);
-    const contextEnvRes = await request(app)
-      .post('/api/envs')
-      .send({ repoUrl: 'git@example.com:context.git', defaultBranch: 'main' })
+
+    const tempDir = await createTempDir();
+    const textPath = path.join(tempDir, 'note.txt');
+    await fs.writeFile(textPath, 'hello');
+
+    const uploadRes = await request(app)
+      .post('/api/uploads/files')
+      .attach('files', textPath)
       .expect(201);
 
+    const uploadInfo = uploadRes.body.uploads[0];
     const taskRes = await request(app)
       .post('/api/tasks')
       .send({
-        envId: primaryEnvRes.body.envId,
+        envId: envRes.body.envId,
         ref: 'main',
         prompt: 'Do work',
-        contextRepos: [{ envId: contextEnvRes.body.envId, ref: 'main' }]
+        fileUploads: [uploadInfo]
       })
       .expect(201);
 
-    expect(taskRes.body.contextRepos).toHaveLength(1);
-    expect(taskRes.body.contextRepos[0].envId).toBe(contextEnvRes.body.envId);
-    expect(taskRes.body.contextRepos[0].worktreePath).toBeTruthy();
+    expect(taskRes.body.attachments).toHaveLength(1);
+    const attachmentPath = taskRes.body.attachments[0].path;
+    const attachmentsDir = path.join(orchHome, 'tasks', taskRes.body.taskId, 'attachments');
+    expect(attachmentPath.startsWith(attachmentsDir)).toBe(true);
 
     const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
-    expect(runCall.options.env.CODEX_MOUNT_PATHS_RO).toContain(
-      taskRes.body.contextRepos[0].worktreePath
-    );
+    expect(runCall.options.env.CODEX_MOUNT_PATHS_RO).toContain(attachmentsDir);
   });
 
   it('rejects tasks with invalid image paths', async () => {

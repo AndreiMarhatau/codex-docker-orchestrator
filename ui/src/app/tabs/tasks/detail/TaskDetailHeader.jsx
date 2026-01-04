@@ -2,7 +2,7 @@ import { Chip, Stack, Tooltip, Typography } from '@mui/material';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import StatusIcon from '../../../components/StatusIcon.jsx';
 import { STATUS_CONFIG } from '../../../constants.js';
-import { formatDuration } from '../../../formatters.js';
+import { formatBytes, formatDuration } from '../../../formatters.js';
 import { formatEffortDisplay, formatModelDisplay } from '../../../model-helpers.js';
 import { formatRepoDisplay } from '../../../repo-helpers.js';
 import { getElapsedMs, getLatestRun } from '../../../task-helpers.js';
@@ -79,6 +79,34 @@ function TaskDetailHeader({ tasksState }) {
                 {repo.worktreePath && (
                   <Typography className="mono" color="text.secondary">
                     {repo.worktreePath}
+                  </Typography>
+                )}
+              </Stack>
+            ))}
+          </Stack>
+        </Stack>
+      )}
+      {taskDetail.attachments?.length > 0 && (
+        <Stack spacing={1}>
+          <Typography variant="subtitle2">Task files (read-only)</Typography>
+          <Stack spacing={1}>
+            {taskDetail.attachments.map((file, index) => (
+              <Stack
+                key={`${file.name || 'file'}-${index}`}
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                alignItems={{ xs: 'flex-start', sm: 'center' }}
+                sx={{ flexWrap: 'wrap' }}
+              >
+                <Typography color="text.secondary">
+                  {file.originalName || file.name}
+                </Typography>
+                {Number.isFinite(file.size) && (
+                  <Chip size="small" label={formatBytes(file.size)} />
+                )}
+                {file.path && (
+                  <Typography className="mono" color="text.secondary">
+                    {file.path}
                   </Typography>
                 )}
               </Stack>

@@ -17,6 +17,25 @@ function buildContextReposSection(contextRepos) {
   return lines.join('\n');
 }
 
+function buildAttachmentsSection(attachments) {
+  if (!Array.isArray(attachments) || attachments.length === 0) {
+    return '';
+  }
+  const lines = [
+    '# User-uploaded files',
+    '',
+    'The following files were uploaded for this task:',
+    ...attachments.map((file) => {
+      const label = file?.name || file?.originalName || 'unknown';
+      const pathLabel = file?.path || 'unknown';
+      return `- ${label} at ${pathLabel}`;
+    }),
+    '',
+    'These files persist across runs. Do not modify them directly; copy them into the repo if needed.'
+  ];
+  return lines.join('\n');
+}
+
 function buildCodexArgs({ prompt, model, reasoningEffort, imageArgs = [], resumeThreadId }) {
   const args = ['exec', '--dangerously-bypass-approvals-and-sandbox', '--json'];
   if (model) {
@@ -34,6 +53,7 @@ function buildCodexArgs({ prompt, model, reasoningEffort, imageArgs = [], resume
 }
 
 module.exports = {
+  buildAttachmentsSection,
   buildContextReposSection,
   buildCodexArgs
 };

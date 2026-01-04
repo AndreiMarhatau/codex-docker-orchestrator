@@ -110,6 +110,14 @@ const taskDetail = {
       ]
     }
   ],
+  attachments: [
+    {
+      name: 'requirements.txt',
+      originalName: 'requirements.txt',
+      path: '/tmp/task-uploads/requirements.txt',
+      size: 240
+    }
+  ],
   gitStatus: {
     hasChanges: true,
     pushed: false,

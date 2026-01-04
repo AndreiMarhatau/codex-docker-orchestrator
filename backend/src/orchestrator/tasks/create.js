@@ -54,6 +54,7 @@ function buildTaskMeta({
   branchName,
   worktreePath,
   contextRepos,
+  attachments,
   model,
   reasoningEffort,
   useHostDockerSocket,
@@ -71,6 +72,7 @@ function buildTaskMeta({
     branchName,
     worktreePath,
     contextRepos,
+    attachments,
     model,
     reasoningEffort,
     useHostDockerSocket,
@@ -99,6 +101,7 @@ function attachTaskCreateMethods(Orchestrator) {
     ref,
     prompt,
     imagePaths,
+    fileUploads,
     model,
     reasoningEffort,
     useHostDockerSocket,
@@ -123,6 +126,7 @@ function attachTaskCreateMethods(Orchestrator) {
     const branchName = await checkoutTaskBranch(this, worktreePath, taskId);
 
     await ensureDir(this.runArtifactsDir(taskId, runLabel));
+    const attachments = await this.prepareTaskAttachments(taskId, fileUploads);
     const now = this.now();
     const activeAccount = await this.accountStore.getActiveAccount();
     const meta = buildTaskMeta({
@@ -134,6 +138,7 @@ function attachTaskCreateMethods(Orchestrator) {
       branchName,
       worktreePath,
       contextRepos: resolvedContextRepos,
+      attachments,
       model: normalizedModel,
       reasoningEffort: normalizedReasoningEffort,
       useHostDockerSocket: shouldUseHostDockerSocket,
@@ -152,6 +157,8 @@ function attachTaskCreateMethods(Orchestrator) {
       reasoningEffort: normalizedReasoningEffort,
       imageArgs
     });
+    const attachmentsDir = this.taskAttachmentsDir(taskId);
+    const hasAttachments = attachments.length > 0;
     this.startCodexRun({
       taskId,
       runLabel,
@@ -163,8 +170,12 @@ function attachTaskCreateMethods(Orchestrator) {
         ...resolvedImagePaths,
         ...(dockerSocketPath ? [dockerSocketPath] : [])
       ],
-      mountPathsRo: resolvedContextRepos.map((repo) => repo.worktreePath),
+      mountPathsRo: [
+        ...resolvedContextRepos.map((repo) => repo.worktreePath),
+        ...(hasAttachments ? [attachmentsDir] : [])
+      ],
       contextRepos: resolvedContextRepos,
+      attachments,
       useHostDockerSocket: shouldUseHostDockerSocket
     });
     return meta;

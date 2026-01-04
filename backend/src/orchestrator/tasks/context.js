@@ -5,7 +5,7 @@ const { ensureDir } = require('../../storage');
 const { invalidImageError, invalidContextError } = require('../errors');
 const { normalizeOptionalString } = require('../utils');
 const { resolveRefInRepo } = require('../git');
-const { buildContextReposSection } = require('../context');
+const { buildAttachmentsSection, buildContextReposSection } = require('../context');
 
 async function resolveImagePath(uploadsRoot, imagePath) {
   if (typeof imagePath !== 'string' || !imagePath.trim()) {
@@ -27,8 +27,16 @@ async function resolveImagePath(uploadsRoot, imagePath) {
   return resolvedPath;
 }
 
-function buildAgentsFile({ taskId, runLabel, contextRepos, baseFile, hostDockerFile }) {
+function buildAgentsFile({
+  taskId,
+  runLabel,
+  contextRepos,
+  attachments,
+  baseFile,
+  hostDockerFile
+}) {
   const contextSection = buildContextReposSection(contextRepos);
+  const attachmentsSection = buildAttachmentsSection(attachments);
   const sections = [];
   if (baseFile) {
     const baseContent = fs.readFileSync(baseFile, 'utf8').trimEnd();
@@ -44,6 +52,9 @@ function buildAgentsFile({ taskId, runLabel, contextRepos, baseFile, hostDockerF
   }
   if (contextSection) {
     sections.push(contextSection.trimEnd());
+  }
+  if (attachmentsSection) {
+    sections.push(attachmentsSection.trimEnd());
   }
   if (sections.length === 0) {
     return null;
@@ -141,7 +152,8 @@ function attachTaskContextMethods(Orchestrator) {
     taskId,
     runLabel,
     useHostDockerSocket,
-    contextRepos
+    contextRepos,
+    attachments
   }) {
     const baseFile =
       this.orchAgentsFile && fs.existsSync(this.orchAgentsFile) ? this.orchAgentsFile : null;
@@ -150,7 +162,8 @@ function attachTaskContextMethods(Orchestrator) {
         ? this.hostDockerAgentsFile
         : null;
     const contextSection = buildContextReposSection(contextRepos);
-    const shouldCombine = Boolean(useHostDockerSocket || contextSection);
+    const attachmentsSection = buildAttachmentsSection(attachments);
+    const shouldCombine = Boolean(useHostDockerSocket || contextSection || attachmentsSection);
     if (!shouldCombine) {
       return baseFile;
     }
@@ -159,6 +172,7 @@ function attachTaskContextMethods(Orchestrator) {
       taskId,
       runLabel,
       contextRepos,
+      attachments,
       baseFile,
       hostDockerFile: includeHostDocker ? hostDockerFile : null
     });

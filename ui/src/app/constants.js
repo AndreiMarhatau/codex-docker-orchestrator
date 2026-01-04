@@ -44,6 +44,7 @@ const emptyAccountForm = {
 };
 const emptyContextRepo = { envId: '', ref: '' };
 const MAX_TASK_IMAGES = 5;
+const MAX_TASK_FILES = 10;
 const STATUS_CONFIG = {
   running: {
     label: 'Running',
@@ -94,6 +95,7 @@ export {
   MODEL_CUSTOM_VALUE,
   MODEL_EFFORTS,
   MODEL_OPTIONS,
+  MAX_TASK_FILES,
   MAX_TASK_IMAGES,
   STATUS_CONFIG,
   emptyAccountForm,

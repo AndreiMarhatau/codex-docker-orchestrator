@@ -8,6 +8,7 @@ const { attachTaskResumeMethods } = require('./resume');
 const { attachTaskRunMethods } = require('./runs');
 
 function attachTaskMethods(Orchestrator) {
+  attachTaskAttachmentMethods(Orchestrator);
   attachTaskMetaMethods(Orchestrator);
   attachTaskLogMethods(Orchestrator);
   attachTaskContextMethods(Orchestrator);
@@ -21,3 +22,4 @@ function attachTaskMethods(Orchestrator) {
 module.exports = {
   attachTaskMethods
 };
+const { attachTaskAttachmentMethods } = require('./attachments');

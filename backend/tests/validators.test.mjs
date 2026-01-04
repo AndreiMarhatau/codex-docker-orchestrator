@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { normalizeContextReposInput, isSupportedImageFile } = require('../src/app/validators');
+const {
+  normalizeAttachmentUploadsInput,
+  normalizeContextReposInput,
+  isSupportedImageFile
+} = require('../src/app/validators');
 
 describe('validators', () => {
   it('normalizes context repo input', () => {
@@ -18,5 +22,18 @@ describe('validators', () => {
     expect(isSupportedImageFile({ mimetype: 'image/png', originalname: 'a.bin' })).toBe(true);
     expect(isSupportedImageFile({ mimetype: 'application/octet-stream', originalname: 'a.jpg' })).toBe(true);
     expect(isSupportedImageFile({ mimetype: 'text/plain', originalname: 'a.txt' })).toBe(false);
+  });
+
+  it('normalizes attachment uploads input', () => {
+    expect(normalizeAttachmentUploadsInput(undefined)).toBe(null);
+    expect(() => normalizeAttachmentUploadsInput('bad')).toThrow(/fileUploads/);
+    expect(() => normalizeAttachmentUploadsInput([{}])).toThrow(/path/);
+    expect(
+      normalizeAttachmentUploadsInput([
+        { path: '/tmp/file.txt', originalName: 'file.txt', size: 10, mimeType: 'text/plain' }
+      ])
+    ).toEqual([
+      { path: '/tmp/file.txt', originalName: 'file.txt', size: 10, mimeType: 'text/plain' }
+    ]);
   });
 });

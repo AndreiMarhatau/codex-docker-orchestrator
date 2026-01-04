@@ -1,7 +1,7 @@
 import { Button, Chip, Stack, Typography } from '@mui/material';
 import { formatBytes } from '../../../formatters.js';
 
-function TaskFormAttachments({ images, loading, maxImages }) {
+function TaskFormAttachments({ files, images, loading, maxFiles, maxImages }) {
   return (
     <>
       <Typography variant="subtitle2">Attachments</Typography>
@@ -28,7 +28,27 @@ function TaskFormAttachments({ images, loading, maxImages }) {
             Up to {maxImages} images, used only for the initial request.
           </Typography>
         </Stack>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center">
+          <Button
+            variant="outlined"
+            component="label"
+            disabled={loading || files.taskFileUploading || files.taskFiles.length >= maxFiles}
+          >
+            Add files
+            <input
+              ref={files.taskFileInputRef}
+              type="file"
+              hidden
+              multiple
+              onChange={files.handleTaskFilesSelected}
+            />
+          </Button>
+          <Typography color="text.secondary">
+            Up to {maxFiles} files, mounted read-only for the task duration.
+          </Typography>
+        </Stack>
         {images.taskImageError && <Typography color="error">{images.taskImageError}</Typography>}
+        {files.taskFileError && <Typography color="error">{files.taskFileError}</Typography>}
         {images.taskImages.length > 0 && (
           <Stack spacing={1}>
             <Stack direction="row" spacing={1} flexWrap="wrap">
@@ -47,6 +67,27 @@ function TaskFormAttachments({ images, loading, maxImages }) {
               disabled={loading || images.taskImageUploading}
             >
               Clear images
+            </Button>
+          </Stack>
+        )}
+        {files.taskFiles.length > 0 && (
+          <Stack spacing={1}>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              {files.taskFiles.map((file, index) => (
+                <Chip
+                  key={`${file.name}-${index}`}
+                  label={`${file.name} (${formatBytes(file.size)})`}
+                  onDelete={() => files.handleRemoveTaskFile(index)}
+                />
+              ))}
+            </Stack>
+            <Button
+              size="small"
+              color="secondary"
+              onClick={files.handleClearTaskFiles}
+              disabled={loading || files.taskFileUploading}
+            >
+              Clear files
             </Button>
           </Stack>
         )}

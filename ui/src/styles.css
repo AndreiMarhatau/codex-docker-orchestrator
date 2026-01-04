@@ -244,6 +244,11 @@ body {
   font-size: 0.8rem;
 }
 
+.log-box--full {
+  max-height: none;
+  overflow: visible;
+}
+
 .log-box pre {
   margin: 0;
   white-space: pre-wrap;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -21,10 +21,45 @@ function TaskDetailPanel({ data, tasksState }) {
   const { detail, selection } = tasksState;
   const hasTaskDetail = Boolean(detail.taskDetail);
   const [activeTab, setActiveTab] = useState(0);
+  const overviewPaneRef = useRef(null);
+  const stickToBottomRef = useRef(true);
 
   useEffect(() => {
     setActiveTab(0);
   }, [selection.selectedTaskId]);
+
+  const runLogs = detail.taskDetail?.runLogs || [];
+  const logUpdateToken = useMemo(() => {
+    if (runLogs.length === 0) {
+      return 'empty';
+    }
+    const lastRun = runLogs[runLogs.length - 1];
+    const lastEntry = lastRun?.entries?.[lastRun.entries.length - 1];
+    return `${runLogs.length}:${lastRun?.runId ?? 'none'}:${lastRun?.entries?.length ?? 0}:${lastEntry?.id ?? lastEntry?.timestamp ?? 'none'}`;
+  }, [runLogs]);
+
+  useEffect(() => {
+    if (activeTab !== 0 || !hasTaskDetail) {
+      return;
+    }
+    const node = overviewPaneRef.current;
+    if (!node) {
+      return;
+    }
+    stickToBottomRef.current = true;
+    node.scrollTop = node.scrollHeight;
+  }, [activeTab, hasTaskDetail, selection.selectedTaskId]);
+
+  useEffect(() => {
+    if (activeTab !== 0 || !hasTaskDetail) {
+      return;
+    }
+    const node = overviewPaneRef.current;
+    if (!node || !stickToBottomRef.current) {
+      return;
+    }
+    node.scrollTop = node.scrollHeight;
+  }, [activeTab, hasTaskDetail, logUpdateToken]);
 
   const isRunning = useMemo(() => {
     const status = detail.taskDetail?.status;
@@ -83,7 +118,19 @@ function TaskDetailPanel({ data, tasksState }) {
           </Box>
         )}
         {hasTaskDetail && activeTab === 0 && (
-          <Box className="task-detail-pane">
+          <Box
+            className="task-detail-pane"
+            onScroll={() => {
+              const node = overviewPaneRef.current;
+              if (!node) {
+                return;
+              }
+              const threshold = 24;
+              const distanceFromBottom = node.scrollHeight - node.scrollTop - node.clientHeight;
+              stickToBottomRef.current = distanceFromBottom <= threshold;
+            }}
+            ref={overviewPaneRef}
+          >
             <Stack spacing={2}>
               <TaskDetailHeader tasksState={tasksState} />
               <TaskRunOverrides tasksState={tasksState} />

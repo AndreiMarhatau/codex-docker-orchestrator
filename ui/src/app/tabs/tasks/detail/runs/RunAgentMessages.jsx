@@ -7,7 +7,7 @@ function RunAgentMessages({ agentMessages, runId }) {
         <span>Agent messages</span>
         <span className="log-meta">{runId}</span>
       </summary>
-      <Box className="log-box">
+      <Box className="log-box log-box--full">
         <pre>{agentMessages}</pre>
       </Box>
     </Box>

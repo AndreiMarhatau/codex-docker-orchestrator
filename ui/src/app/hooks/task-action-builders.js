@@ -90,6 +90,8 @@ function createHandleResumeTask({
   refreshTaskDetail,
   resumeAttachmentRemovals,
   resumeConfig,
+  resumeContextRepos,
+  resumeContextTouched,
   resumeFiles,
   resumePrompt,
   resumeUseHostDockerSocket,
@@ -98,6 +100,8 @@ function createHandleResumeTask({
   setLoading,
   setResumeAttachmentRemovals,
   setResumeConfig,
+  setResumeContextRepos,
+  setResumeContextTouched,
   setResumeDockerTouched,
   setResumePrompt
 }) {
@@ -120,19 +124,23 @@ function createHandleResumeTask({
       }
       const modelValue = resolveModelValue(resumeConfig.modelChoice, resumeConfig.customModel);
       const reasoningEffortValue = resolveReasoningEffortValue(resumeConfig);
+      const contextRepos = buildContextRepos(resumeContextRepos);
       await apiRequest(`/api/tasks/${selectedTaskId}/resume`, {
         method: 'POST',
         body: JSON.stringify({
           prompt: resumePrompt,
           model: modelValue || undefined,
           reasoningEffort: reasoningEffortValue || undefined,
-          useHostDockerSocket: resumeUseHostDockerSocket
+          useHostDockerSocket: resumeUseHostDockerSocket,
+          contextRepos: resumeContextTouched ? contextRepos : undefined
         })
       });
       resumeFiles.handleClearTaskFiles();
       setResumeAttachmentRemovals([]);
       setResumePrompt('');
       setResumeConfig(emptyResumeConfig);
+      setResumeContextRepos([]);
+      setResumeContextTouched(false);
       setResumeDockerTouched(false);
       await refreshAll();
       await refreshTaskDetail(selectedTaskId);

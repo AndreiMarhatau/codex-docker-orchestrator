@@ -112,5 +112,6 @@ function attachTaskCleanupMethods(Orchestrator) {
 }
 
 module.exports = {
-  attachTaskCleanupMethods
+  attachTaskCleanupMethods,
+  cleanupContextRepos
 };

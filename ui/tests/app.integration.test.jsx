@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App.jsx';
 import { accounts, envs, rateLimits, taskDetail, taskDiff, tasks } from './app-fixtures.js';
@@ -86,6 +86,9 @@ async function exerciseTaskDetail(user) {
     'Continue with more detail.'
   );
   const resumeDialog = screen.getByRole('dialog', { name: 'Ask for changes' });
+  const resumeRefInputs = within(resumeDialog).getAllByLabelText('Branch / tag / ref');
+  await user.clear(resumeRefInputs[0]);
+  await user.type(resumeRefInputs[0], 'release');
   const resumeFileInput = resumeDialog.querySelector('input[type="file"]');
   const resumeFile = new File(['notes'], 'notes.txt', { type: 'text/plain' });
   await user.upload(resumeFileInput, [resumeFile]);
@@ -104,9 +107,10 @@ async function exerciseTaskDetail(user) {
 async function exerciseEnvironmentsTab(user) {
   await user.click(screen.getByRole('tab', { name: 'Environments' }));
   expect(await screen.findByText('Create and manage repo sources for Codex runs.')).toBeInTheDocument();
-  expect(screen.getByText('1 environments')).toBeInTheDocument();
+  expect(screen.getByText('2 environments')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Sync now' }));
-  await user.click(screen.getByRole('button', { name: 'Remove' }));
+  const removeButtons = screen.getAllByRole('button', { name: 'Remove' });
+  await user.click(removeButtons[removeButtons.length - 1]);
 }
 
 async function exerciseAccountsTab(user) {

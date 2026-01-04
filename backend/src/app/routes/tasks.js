@@ -152,18 +152,31 @@ function createTasksRouter(orchestrator) {
   }));
 
   router.post('/tasks/:taskId/resume', asyncHandler(async (req, res) => {
-    const { prompt, model, reasoningEffort, useHostDockerSocket } = req.body;
+    const { prompt, model, reasoningEffort, useHostDockerSocket, contextRepos } = req.body;
     if (!prompt) {
       return res.status(400).send('prompt is required');
     }
     if (useHostDockerSocket !== undefined && typeof useHostDockerSocket !== 'boolean') {
       return res.status(400).send('useHostDockerSocket must be a boolean');
     }
-    const task = await orchestrator.resumeTask(req.params.taskId, prompt, {
+    const hasContextOverride = Object.prototype.hasOwnProperty.call(req.body, 'contextRepos');
+    let normalizedContextRepos = null;
+    if (hasContextOverride) {
+      try {
+        normalizedContextRepos = normalizeContextReposInput(contextRepos);
+      } catch (error) {
+        return res.status(400).send(error.message || 'Invalid task input');
+      }
+    }
+    const options = {
       model,
       reasoningEffort,
       useHostDockerSocket
-    });
+    };
+    if (hasContextOverride) {
+      options.contextRepos = normalizedContextRepos;
+    }
+    const task = await orchestrator.resumeTask(req.params.taskId, prompt, options);
     res.json(task);
   }));
 

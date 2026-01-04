@@ -14,7 +14,7 @@ function RunRequest({ run }) {
           <Chip size="small" label={`effort: ${formatEffortDisplay(run.reasoningEffort)}`} />
         </Stack>
       )}
-      <Box className="log-box">
+      <Box className="log-box log-box--full">
         <pre>{run.prompt || 'unknown'}</pre>
       </Box>
     </Box>

@@ -11,7 +11,11 @@ import useTaskSelection from './useTaskSelection.js';
 
 function useTasksState({ envs, refreshAll, setError, setLoading, tasks }) {
   const selection = useTaskSelection();
-  const formState = useTaskFormState({ envs, selectedTaskId: selection.selectedTaskId });
+  const formState = useTaskFormState({
+    envs,
+    selectedTaskId: selection.selectedTaskId,
+    tasks
+  });
   const images = useTaskImages();
   const detail = useTaskDetail({
     selectedTaskId: selection.selectedTaskId,

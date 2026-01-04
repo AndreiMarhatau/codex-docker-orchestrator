@@ -1,10 +1,21 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MODEL_CUSTOM_VALUE, emptyContextRepo, emptyTaskForm } from '../constants.js';
 import { getEffortOptionsForModel } from '../model-helpers.js';
 
-function useTaskFormState({ envs, selectedTaskId }) {
+function useTaskFormState({ envs, selectedTaskId, tasks }) {
   const [taskForm, setTaskForm] = useState(emptyTaskForm);
   const [showTaskForm, setShowTaskForm] = useState(false);
+  const wasTaskFormOpen = useRef(false);
+
+  const latestTaskEnvId = useMemo(() => {
+    if (!tasks.length) {
+      return '';
+    }
+    const sortedTasks = tasks
+      .slice()
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    return sortedTasks.find((task) => task.envId)?.envId || '';
+  }, [tasks]);
 
   const usedContextEnvIds = useMemo(
     () => taskForm.contextRepos.map((repo) => repo.envId).filter(Boolean),
@@ -16,6 +27,22 @@ function useTaskFormState({ envs, selectedTaskId }) {
       setShowTaskForm(false);
     }
   }, [selectedTaskId]);
+
+  useEffect(() => {
+    const isOpening = showTaskForm && !wasTaskFormOpen.current;
+    wasTaskFormOpen.current = showTaskForm;
+    if (!isOpening) {
+      return;
+    }
+    if (envs.length === 0) {
+      return;
+    }
+    const defaultEnvId =
+      latestTaskEnvId && envs.some((env) => env.envId === latestTaskEnvId)
+        ? latestTaskEnvId
+        : envs[0].envId;
+    setTaskForm((prev) => (prev.envId === defaultEnvId ? prev : { ...prev, envId: defaultEnvId }));
+  }, [envs, latestTaskEnvId, showTaskForm]);
 
   function handleTaskModelChoiceChange(value) {
     setTaskForm((prev) => {

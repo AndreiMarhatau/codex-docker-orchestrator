@@ -36,6 +36,10 @@ function attachPathMethods(Orchestrator) {
     return path.join(this.taskDir(taskId), 'context');
   };
 
+  Orchestrator.prototype.taskAttachmentsDir = function taskAttachmentsDir(taskId) {
+    return path.join(this.taskDir(taskId), 'attachments');
+  };
+
   Orchestrator.prototype.taskContextWorktree = function taskContextWorktree(
     taskId,
     repoUrl,

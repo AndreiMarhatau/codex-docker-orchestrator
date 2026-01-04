@@ -1,5 +1,5 @@
 import { Button, Collapse, Divider, Stack, Typography } from '@mui/material';
-import { MAX_TASK_IMAGES } from '../../constants.js';
+import { MAX_TASK_FILES, MAX_TASK_IMAGES } from '../../constants.js';
 import TaskFormAttachments from './form/TaskFormAttachments.jsx';
 import TaskFormBasics from './form/TaskFormBasics.jsx';
 import TaskFormContextRepos from './form/TaskFormContextRepos.jsx';
@@ -8,7 +8,7 @@ import TaskFormModel from './form/TaskFormModel.jsx';
 function TaskForm({ data, envState, tasksState }) {
   const { envs, loading } = data;
   const { selectedEnv } = envState;
-  const { actions, formState, images } = tasksState;
+  const { actions, files, formState, images } = tasksState;
 
   return (
     <Collapse in={formState.showTaskForm} unmountOnExit>
@@ -31,8 +31,10 @@ function TaskForm({ data, envState, tasksState }) {
         <TaskFormContextRepos envs={envs} formState={formState} loading={loading} />
         <Divider />
         <TaskFormAttachments
+          files={files}
           images={images}
           loading={loading}
+          maxFiles={MAX_TASK_FILES}
           maxImages={MAX_TASK_IMAGES}
         />
         <Button
@@ -40,12 +42,15 @@ function TaskForm({ data, envState, tasksState }) {
           onClick={actions.handleCreateTask}
           disabled={
             loading ||
+            files.taskFileUploading ||
             images.taskImageUploading ||
             !formState.taskForm.envId ||
             !formState.taskForm.prompt.trim()
           }
         >
-          {images.taskImageUploading ? 'Uploading images...' : 'Run task'}
+          {images.taskImageUploading || files.taskFileUploading
+            ? 'Uploading attachments...'
+            : 'Run task'}
         </Button>
       </Stack>
     </Collapse>

@@ -79,6 +79,14 @@ function useTasksState({ envs, refreshAll, setError, setLoading, tasks }) {
     taskImageInputRef: images.taskImageInputRef
   });
 
+  const listActions = useMemo(
+    () => ({
+      handleDeleteTask: actions.handleDeleteTask,
+      handleStopTask: actions.handleStopTask
+    }),
+    [actions.handleDeleteTask, actions.handleStopTask]
+  );
+
   const visibleTasks = useMemo(() => {
     const filtered = selection.taskFilterEnvId
       ? tasks.filter((task) => task.envId === selection.taskFilterEnvId)
@@ -125,6 +133,7 @@ function useTasksState({ envs, refreshAll, setError, setLoading, tasks }) {
     handleResumeModelChoiceChange,
     hasActiveRuns,
     images,
+    listActions,
     now,
     selection,
     taskStats,

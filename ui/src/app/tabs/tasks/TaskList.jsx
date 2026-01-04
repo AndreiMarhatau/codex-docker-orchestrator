@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import {
   Card,
   CardContent,
@@ -76,9 +77,16 @@ function RunningDurationChip({ task, now }) {
   );
 }
 
-function TaskList({ data, tasksState }) {
+function TaskList({
+  data,
+  handleDeleteTask,
+  handleStopTask,
+  now,
+  selectedTaskId,
+  setSelectedTaskId,
+  visibleTasks
+}) {
   const { loading } = data;
-  const { actions, now, selection, visibleTasks } = tasksState;
 
   return (
     <Stack spacing={2}>
@@ -91,10 +99,10 @@ function TaskList({ data, tasksState }) {
             key={task.taskId}
             className="task-card"
             sx={{
-              borderColor: task.taskId === selection.selectedTaskId ? 'primary.main' : 'divider',
+              borderColor: task.taskId === selectedTaskId ? 'primary.main' : 'divider',
               cursor: 'pointer'
             }}
-            onClick={() => selection.setSelectedTaskId(task.taskId)}
+            onClick={() => setSelectedTaskId(task.taskId)}
           >
             <CardContent>
               <Stack spacing={1}>
@@ -141,7 +149,7 @@ function TaskList({ data, tasksState }) {
                         color="error"
                         onClick={(event) => {
                           event.stopPropagation();
-                          actions.handleStopTask(task.taskId);
+                          handleStopTask(task.taskId);
                         }}
                         disabled={loading || task.status !== 'running'}
                         aria-label={`Stop task ${task.taskId}`}
@@ -157,7 +165,7 @@ function TaskList({ data, tasksState }) {
                         color="secondary"
                         onClick={(event) => {
                           event.stopPropagation();
-                          actions.handleDeleteTask(task.taskId);
+                          handleDeleteTask(task.taskId);
                         }}
                         disabled={loading}
                         aria-label={`Remove task ${task.taskId}`}
@@ -179,4 +187,4 @@ function TaskList({ data, tasksState }) {
   );
 }
 
-export default TaskList;
+export default memo(TaskList);

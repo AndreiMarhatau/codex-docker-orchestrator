@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiRequest } from '../../api.js';
 import { emptyResumeConfig } from '../constants.js';
+import useResumeContextRepos from './useResumeContextRepos.js';
 import useTaskFiles from './useTaskFiles.js';
 import useTaskLogStream from './useTaskLogStream.js';
 
@@ -15,6 +16,7 @@ function useTaskDetail({ tasks, selectedTaskId, setError, setSelectedTaskId }) {
   const resumeFiles = useTaskFiles();
   const [resumeAttachmentRemovals, setResumeAttachmentRemovals] = useState([]);
   const resumeDefaultsTaskIdRef = useRef('');
+  const resumeContextState = useResumeContextRepos({ selectedTaskId, taskDetail });
 
   const refreshTaskDetail = useCallback(
     async (taskId) => {
@@ -123,7 +125,8 @@ function useTaskDetail({ tasks, selectedTaskId, setError, setSelectedTaskId }) {
     setTaskDetail,
     taskDetail,
     taskDiff,
-    toggleResumeAttachmentRemoval
+    toggleResumeAttachmentRemoval,
+    ...resumeContextState
   };
 }
 

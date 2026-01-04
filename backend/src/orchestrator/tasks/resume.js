@@ -2,6 +2,7 @@ const { ensureDir, readJson, writeJson } = require('../../storage');
 const { buildCodexArgs } = require('../context');
 const { nextRunLabel, normalizeOptionalString } = require('../utils');
 const { buildRunEntry } = require('./run-entry');
+const { cleanupContextRepos } = require('./cleanup');
 
 function attachTaskResumeMethods(Orchestrator) {
   Orchestrator.prototype.resumeTask = async function resumeTask(taskId, prompt, options = {}) {
@@ -12,6 +13,14 @@ function attachTaskResumeMethods(Orchestrator) {
     }
     const contextRepos = Array.isArray(meta.contextRepos) ? meta.contextRepos : [];
     const attachments = Array.isArray(meta.attachments) ? meta.attachments : [];
+    const hasContextReposOverride = Object.prototype.hasOwnProperty.call(options, 'contextRepos');
+    let resolvedContextRepos = contextRepos;
+    if (hasContextReposOverride) {
+      const contextPlan = await this.prepareContextRepos(taskId, options.contextRepos || []);
+      await cleanupContextRepos(this, contextRepos);
+      resolvedContextRepos = await this.materializeContextRepos(contextPlan);
+      meta.contextRepos = resolvedContextRepos;
+    }
     const hasDockerSocketOverride = typeof options.useHostDockerSocket === 'boolean';
     const shouldUseHostDockerSocket = hasDockerSocketOverride
       ? options.useHostDockerSocket
@@ -68,10 +77,10 @@ function attachTaskResumeMethods(Orchestrator) {
       args,
       mountPaths: [env.mirrorPath, ...(dockerSocketPath ? [dockerSocketPath] : [])],
       mountPathsRo: [
-        ...contextRepos.map((repo) => repo.worktreePath),
+        ...resolvedContextRepos.map((repo) => repo.worktreePath),
         ...(hasAttachments ? [attachmentsDir] : [])
       ],
-      contextRepos,
+      contextRepos: resolvedContextRepos,
       attachments,
       useHostDockerSocket: shouldUseHostDockerSocket
     });

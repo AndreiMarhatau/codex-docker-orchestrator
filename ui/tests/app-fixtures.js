@@ -3,6 +3,11 @@ const envs = [
     envId: 'env-1',
     repoUrl: 'https://github.com/openai/codex.git',
     defaultBranch: 'main'
+  },
+  {
+    envId: 'env-2',
+    repoUrl: 'https://github.com/openai/reference.git',
+    defaultBranch: 'main'
   }
 ];
 const tasks = [
@@ -79,6 +84,7 @@ const taskDetail = {
   threadId: 'thread-1',
   contextRepos: [
     {
+      envId: 'env-2',
       repoUrl: 'https://github.com/openai/reference.git',
       ref: 'dev',
       worktreePath: '/tmp/reference'

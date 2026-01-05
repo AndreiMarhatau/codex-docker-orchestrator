@@ -1,10 +1,10 @@
 import {
-  createHandleCreateTask,
-  createHandleDeleteTask,
-  createHandlePushTask,
-  createHandleResumeTask,
-  createHandleStopTask
-} from './task-action-builders.js';
+  useCreateTaskHandler,
+  useDeleteTaskHandler,
+  usePushTaskHandler,
+  useResumeTaskHandler,
+  useStopTaskHandler
+} from './task-action-hooks.js';
 
 function useTaskActions({
   handleClearTaskImages,
@@ -41,65 +41,75 @@ function useTaskActions({
   taskFileInputRef,
   taskImageInputRef
 }) {
+  const handleCreateTask = useCreateTaskHandler({
+    handleClearTaskImages,
+    refreshAll,
+    setError,
+    setLoading,
+    setShowTaskForm,
+    setTaskForm,
+    setTaskFileError,
+    setTaskFileUploading,
+    setTaskImageError,
+    setTaskImageUploading,
+    setTaskFiles,
+    taskForm,
+    taskFiles,
+    taskImages,
+    taskFileInputRef,
+    taskImageInputRef
+  });
+
+  const handleDeleteTask = useDeleteTaskHandler({
+    refreshAll,
+    selectedTaskId,
+    setError,
+    setLoading,
+    setSelectedTaskId,
+    setTaskDetail
+  });
+
+  const handlePushTask = usePushTaskHandler({
+    refreshTaskDetail,
+    selectedTaskId,
+    setError,
+    setLoading
+  });
+
+  const handleResumeTask = useResumeTaskHandler({
+    refreshAll,
+    refreshTaskDetail,
+    resumeAttachmentRemovals,
+    resumeConfig,
+    resumeContextRepos,
+    resumeContextTouched,
+    resumeFiles,
+    resumePrompt,
+    resumeUseHostDockerSocket,
+    selectedTaskId,
+    setError,
+    setLoading,
+    setResumeAttachmentRemovals,
+    setResumeConfig,
+    setResumeContextRepos,
+    setResumeContextTouched,
+    setResumeDockerTouched,
+    setResumePrompt
+  });
+
+  const handleStopTask = useStopTaskHandler({
+    refreshTaskDetail,
+    selectedTaskId,
+    setError,
+    setLoading
+  });
+
   return {
-    handleCreateTask: createHandleCreateTask({
-      handleClearTaskImages,
-      refreshAll,
-      setError,
-      setLoading,
-      setShowTaskForm,
-      setTaskForm,
-      setTaskFileError,
-      setTaskFileUploading,
-      setTaskImageError,
-      setTaskImageUploading,
-      setTaskFiles,
-      taskForm,
-      taskFiles,
-      taskImages,
-      taskFileInputRef,
-      taskImageInputRef
-    }),
-    handleDeleteTask: createHandleDeleteTask({
-      refreshAll,
-      selectedTaskId,
-      setError,
-      setLoading,
-      setSelectedTaskId,
-      setTaskDetail
-    }),
-    handlePushTask: createHandlePushTask({
-      refreshTaskDetail,
-      selectedTaskId,
-      setError,
-      setLoading
-    }),
-    handleResumeTask: createHandleResumeTask({
-      refreshAll,
-      refreshTaskDetail,
-      resumeAttachmentRemovals,
-      resumeConfig,
-      resumeContextRepos,
-      resumeContextTouched,
-      resumeFiles,
-      resumePrompt,
-      resumeUseHostDockerSocket,
-      selectedTaskId,
-      setError,
-      setLoading,
-      setResumeAttachmentRemovals,
-      setResumeConfig,
-      setResumeContextRepos,
-      setResumeContextTouched,
-      setResumeDockerTouched,
-      setResumePrompt
-    }),
-    handleStopTask: createHandleStopTask({
-      refreshTaskDetail,
-      selectedTaskId,
-      setError,
-      setLoading
-    })
+    handleCreateTask,
+    handleDeleteTask,
+    handlePushTask,
+    handleResumeTask,
+    handleStopTask
   };
 }
 

@@ -12,7 +12,15 @@ function TasksOverview({ data, envState, tasksState }) {
       <TaskFilterBar data={data} tasksState={tasksState} />
       <TaskForm data={data} envState={envState} tasksState={tasksState} />
       <Divider />
-      <TaskList data={data} tasksState={tasksState} />
+      <TaskList
+        data={data}
+        handleDeleteTask={tasksState.listActions.handleDeleteTask}
+        handleStopTask={tasksState.listActions.handleStopTask}
+        now={tasksState.now}
+        selectedTaskId={tasksState.selection.selectedTaskId}
+        setSelectedTaskId={tasksState.selection.setSelectedTaskId}
+        visibleTasks={tasksState.visibleTasks}
+      />
     </Stack>
   );
 }

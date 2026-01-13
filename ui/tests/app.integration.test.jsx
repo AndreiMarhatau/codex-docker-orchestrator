@@ -118,11 +118,20 @@ async function exerciseAccountsTab(user) {
   expect(await screen.findByText('Usage limits')).toBeInTheDocument();
   expect(screen.getAllByText('Primary').length).toBeGreaterThan(0);
   expect(screen.getByText('Credits')).toBeInTheDocument();
+  const showAuthButtons = screen.getAllByRole('button', { name: 'Show auth.json' });
+  await user.click(showAuthButtons[0]);
+  expect(screen.getByText(/"token": "primary"/)).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Check usage limits' }));
   await waitFor(() =>
     expect(screen.getByRole('button', { name: 'Rotate now' })).toBeEnabled()
   );
   await user.click(screen.getByRole('button', { name: 'Rotate now' }));
+  const renameButtons = screen.getAllByRole('button', { name: 'Rename' });
+  await user.click(renameButtons[renameButtons.length - 1]);
+  await user.clear(screen.getByLabelText('New label'));
+  await user.type(screen.getByLabelText('New label'), 'Ops Renamed');
+  await user.click(screen.getByRole('button', { name: 'Save name' }));
+  expect(await screen.findByText('Ops Renamed')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'New account' }));
   await user.type(screen.getByLabelText('Account label'), 'Ops');
   fireEvent.change(screen.getByLabelText('auth.json contents'), {
@@ -166,6 +175,13 @@ it(
       'POST /api/accounts/rotate': accounts,
       'POST /api/accounts/acct-2/activate': accounts,
       'DELETE /api/accounts/acct-2': accounts,
+      'PATCH /api/accounts/acct-2': {
+        ...accounts,
+        accounts: accounts.accounts.map((account) => ({
+          ...account,
+          label: account.id === 'acct-2' ? 'Ops Renamed' : account.label
+        }))
+      },
       '/api/accounts/rate-limits': {
         rateLimits,
         fetchedAt: '2024-01-01T00:00:00Z'

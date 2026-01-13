@@ -48,7 +48,11 @@ function useAccountsState({ accountState, setAccountState, setError, setLoading 
         method: 'POST',
         body: JSON.stringify(accountForm)
       });
-      setAccountState(normalizeAccountState(payload));
+      if (payload?.accounts) {
+        setAccountState(normalizeAccountState(payload));
+      } else {
+        await refreshAccounts();
+      }
       setAccountForm(emptyAccountForm);
       setShowAccountForm(false);
     } catch (err) {
@@ -97,12 +101,29 @@ function useAccountsState({ accountState, setAccountState, setError, setLoading 
     }
   }
 
+  async function handleRenameAccount(accountId, label) {
+    setError('');
+    setLoading(true);
+    try {
+      const payload = await apiRequest(`/api/accounts/${accountId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ label })
+      });
+      setAccountState(normalizeAccountState(payload));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return {
     accountForm,
     activeAccount,
     handleActivateAccount,
     handleAddAccount,
     handleDeleteAccount,
+    handleRenameAccount,
     handleRotateAccount,
     rateLimits,
     rateLimitsError,

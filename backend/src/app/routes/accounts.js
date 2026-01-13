@@ -61,6 +61,15 @@ function createAccountsRouter(orchestrator) {
     }
   }));
 
+  router.patch('/accounts/:accountId', asyncHandler(async (req, res) => {
+    const { label } = req.body || {};
+    if (typeof label !== 'string') {
+      return res.status(400).send('label is required');
+    }
+    const accounts = await orchestrator.updateAccountLabel(req.params.accountId, label);
+    res.json(accounts);
+  }));
+
   return router;
 }
 

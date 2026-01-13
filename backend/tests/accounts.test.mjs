@@ -140,6 +140,32 @@ describe('AccountStore rotation and removal', () => {
   });
 });
 
+describe('AccountStore updates', () => {
+  it('includes auth.json content in account listings', async () => {
+    const orchHome = await createTempDir();
+    const codexHome = path.join(orchHome, 'codex-home');
+    await fs.mkdir(codexHome, { recursive: true });
+    const store = new AccountStore({ orchHome, codexHome });
+
+    await store.addAccount({ label: 'Primary', authJson: JSON.stringify({ token: 'x' }) });
+    const list = await store.listAccounts();
+    expect(list.accounts).toHaveLength(1);
+    expect(list.accounts[0].authJson).toContain('"token": "x"');
+  });
+
+  it('updates account labels', async () => {
+    const orchHome = await createTempDir();
+    const codexHome = path.join(orchHome, 'codex-home');
+    await fs.mkdir(codexHome, { recursive: true });
+    const store = new AccountStore({ orchHome, codexHome });
+
+    const created = await store.addAccount({ label: 'Primary', authJson: '{}' });
+    const list = await store.updateAccountLabel(created.id, 'Renamed');
+    const updated = list.accounts.find((account) => account.id === created.id);
+    expect(updated.label).toBe('Renamed');
+  });
+});
+
 describe('AccountStore errors', () => {
   it('returns placeholder when active account metadata is missing', async () => {
     const orchHome = await createTempDir();

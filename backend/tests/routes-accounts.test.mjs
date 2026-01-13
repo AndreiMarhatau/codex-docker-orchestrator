@@ -1,4 +1,4 @@
-import { describe, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createRequire } from 'node:module';
 import { createMockExec, createMockSpawn, createTempDir } from './helpers.mjs';
@@ -52,5 +52,19 @@ describe('accounts routes', () => {
     await request(app).post(`/api/accounts/${secondary.body.id}/activate`).expect(200);
     await request(app).post('/api/accounts/rotate').expect(200);
     await request(app).delete(`/api/accounts/${secondary.body.id}`).expect(200);
+  });
+
+  it('updates account labels', async () => {
+    const app = await createTestApp();
+    const created = await request(app)
+      .post('/api/accounts')
+      .send({ label: 'Primary', authJson: '{}' })
+      .expect(201);
+
+    const updateRes = await request(app)
+      .patch(`/api/accounts/${created.body.id}`)
+      .send({ label: 'Renamed' })
+      .expect(200);
+    expect(updateRes.body.accounts[0].label).toBe('Renamed');
   });
 });

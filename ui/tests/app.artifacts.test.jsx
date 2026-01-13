@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App.jsx';
 import { accounts, envs, rateLimits } from './app-fixtures.js';
@@ -54,6 +54,9 @@ it(
     });
     const user = userEvent.setup();
     render(<App />);
+    await waitFor(() =>
+      expect(screen.queryByText('Orchestrator locked')).not.toBeInTheDocument()
+    );
 
     await user.click(await screen.findByText('feature/empty-artifacts'));
     expect(await screen.findByText('No logs yet.')).toBeInTheDocument();
@@ -112,6 +115,9 @@ it(
     });
     const user = userEvent.setup();
     render(<App />);
+    await waitFor(() =>
+      expect(screen.queryByText('Orchestrator locked')).not.toBeInTheDocument()
+    );
 
     await user.click(await screen.findByText('feature/one-type'));
     expect(await screen.findByText('report.txt')).toBeInTheDocument();

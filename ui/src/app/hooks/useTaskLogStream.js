@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { apiUrl } from '../../api.js';
+import { apiUrlWithPassword } from '../../api.js';
 
 function useTaskLogStream({ selectedTaskId, taskDetail, setTaskDetail }) {
   const logStreamRef = useRef(null);
@@ -27,7 +27,7 @@ function useTaskLogStream({ selectedTaskId, taskDetail, setTaskDetail }) {
       logStreamRef.current.close();
     }
     const eventSource = new EventSource(
-      apiUrl(`/api/tasks/${selectedTaskId}/logs/stream?runId=${latestRunId}`)
+      apiUrlWithPassword(`/api/tasks/${selectedTaskId}/logs/stream?runId=${latestRunId}`)
     );
     logStreamRef.current = eventSource;
     eventSource.onmessage = (event) => {
@@ -59,10 +59,10 @@ function useTaskLogStream({ selectedTaskId, taskDetail, setTaskDetail }) {
     };
     return () => {
       eventSource.close();
-    if (logStreamRef.current === eventSource) {
-      logStreamRef.current = null;
-    }
-  };
+      if (logStreamRef.current === eventSource) {
+        logStreamRef.current = null;
+      }
+    };
   }, [latestRunId, selectedTaskId, setTaskDetail, status]);
 }
 

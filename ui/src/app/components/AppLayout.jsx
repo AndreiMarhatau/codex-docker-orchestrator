@@ -5,16 +5,18 @@ import ListAltOutlinedIcon from '@mui/icons-material/ListAltOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import AccountsTab from '../tabs/AccountsTab.jsx';
 import EnvironmentsTab from '../tabs/EnvironmentsTab.jsx';
+import AuthGate from './AuthGate.jsx';
 import SettingsTab from '../tabs/SettingsTab.jsx';
 import TasksTab from '../tabs/TasksTab.jsx';
 
-function AppLayout({ accountsState, data, envState, tabState, tasksState }) {
+function AppLayout({ accountsState, authState, data, envState, tabState, tasksState }) {
   const { activeTab, setActiveTab } = tabState;
   const { error } = data;
   const { handleBackToTasks, selectedTaskId } = tasksState.selection;
+  const locked = !authState.isUnlocked;
 
   return (
-    <Box className="app-shell">
+    <Box className={`app-shell${locked ? ' app-shell-locked' : ''}`}>
       <Box className="app-header">
         <Tabs
           className="app-tabs"
@@ -36,7 +38,12 @@ function AppLayout({ accountsState, data, envState, tabState, tasksState }) {
             }
           }}
         >
-          <Tab icon={<FolderOpenOutlinedIcon />} iconPosition="start" label="Environments" />
+          <Tab
+            icon={<FolderOpenOutlinedIcon />}
+            iconPosition="start"
+            label="Environments"
+            disabled={locked}
+          />
           <Tab
             icon={<ListAltOutlinedIcon />}
             iconPosition="start"
@@ -46,9 +53,20 @@ function AppLayout({ accountsState, data, envState, tabState, tasksState }) {
                 handleBackToTasks();
               }
             }}
+            disabled={locked}
           />
-          <Tab icon={<AccountCircleOutlinedIcon />} iconPosition="start" label="Accounts" />
-          <Tab icon={<SettingsOutlinedIcon />} iconPosition="start" label="Settings" />
+          <Tab
+            icon={<AccountCircleOutlinedIcon />}
+            iconPosition="start"
+            label="Accounts"
+            disabled={locked}
+          />
+          <Tab
+            icon={<SettingsOutlinedIcon />}
+            iconPosition="start"
+            label="Settings"
+            disabled={locked}
+          />
         </Tabs>
       </Box>
 
@@ -56,7 +74,7 @@ function AppLayout({ accountsState, data, envState, tabState, tasksState }) {
         {activeTab === 0 && <EnvironmentsTab data={data} envState={envState} />}
         {activeTab === 1 && <TasksTab data={data} envState={envState} tasksState={tasksState} />}
         {activeTab === 2 && <AccountsTab accountsState={accountsState} data={data} />}
-        {activeTab === 3 && <SettingsTab />}
+        {activeTab === 3 && <SettingsTab authState={authState} />}
       </Box>
 
       {error && (
@@ -66,6 +84,7 @@ function AppLayout({ accountsState, data, envState, tabState, tasksState }) {
           </CardContent>
         </Card>
       )}
+      {locked && <AuthGate authState={authState} />}
     </Box>
   );
 }

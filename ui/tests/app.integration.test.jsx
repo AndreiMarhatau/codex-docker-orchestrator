@@ -5,6 +5,7 @@ import { accounts, envs, rateLimits, taskDetail, taskDiff, tasks } from './app-f
 import mockApi from './helpers/mock-api.js';
 
 async function configureNewTask(user) {
+  expect(await screen.findByText('2 total')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'New task' }));
   expect(await screen.findByText('New task')).toBeInTheDocument();
 
@@ -175,6 +176,9 @@ it(
     });
     const user = userEvent.setup();
     render(<App />);
+    await waitFor(() =>
+      expect(screen.queryByText('Orchestrator locked')).not.toBeInTheDocument()
+    );
 
     expect(await screen.findByLabelText('Filter')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Environments' })).toBeInTheDocument();

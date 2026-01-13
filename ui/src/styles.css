@@ -75,6 +75,13 @@ body {
   gap: 12px;
 }
 
+.app-shell-locked .app-header,
+.app-shell-locked .app-main {
+  pointer-events: none;
+  opacity: 0.35;
+  filter: blur(1px);
+}
+
 .app-header {
   display: flex;
   align-items: center;
@@ -98,6 +105,32 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(circle at top, rgba(15, 118, 110, 0.18), transparent 55%),
+    rgba(15, 23, 42, 0.25);
+  backdrop-filter: blur(6px);
+  z-index: 30;
+}
+
+.auth-card {
+  width: min(420px, 100%);
+  box-shadow: var(--panel-shadow);
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+}
+
+.settings-card {
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  box-shadow: var(--panel-shadow);
 }
 
 .hero-card {

@@ -2,12 +2,14 @@ import { useEffect } from 'react';
 import useAccountsState from './useAccountsState.js';
 import useActiveTab from './useActiveTab.js';
 import useAppData from './useAppData.js';
+import useAuthState from './useAuthState.js';
 import useEnvironmentState from './useEnvironmentState.js';
 import usePolling from './usePolling.js';
 import useTasksState from './useTasksState.js';
 
 function useAppState() {
-  const data = useAppData();
+  const authState = useAuthState();
+  const data = useAppData({ enabled: authState.isUnlocked });
   const tabState = useActiveTab();
   const tasksState = useTasksState({
     envs: data.envs,
@@ -32,22 +34,36 @@ function useAppState() {
     setError: data.setError,
     setLoading: data.setLoading
   });
+  const { setSelectedTaskId } = tasksState.selection;
+  const { setTaskDetail } = tasksState.detail;
 
   usePolling({
+    enabled: authState.isUnlocked,
     refreshAll: data.refreshAll,
     refreshTaskDetail: tasksState.detail.refreshTaskDetail,
     selectedTaskId: tasksState.selection.selectedTaskId
   });
 
   useEffect(() => {
+    if (!authState.isUnlocked) {
+      return;
+    }
     if (tabState.activeTab !== 2) {
       return;
     }
     accountsState.refreshRateLimits().catch(() => {});
-  }, [tabState.activeTab, accountsState.activeAccount?.id]);
+  }, [authState.isUnlocked, tabState.activeTab, accountsState.activeAccount?.id]);
+
+  useEffect(() => {
+    if (!authState.isUnlocked) {
+      setSelectedTaskId('');
+      setTaskDetail(null);
+    }
+  }, [authState.isUnlocked, setSelectedTaskId, setTaskDetail]);
 
   return {
     accountsState,
+    authState,
     data,
     envState,
     tabState,

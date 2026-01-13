@@ -154,6 +154,10 @@ function attachAccountMethods(Orchestrator) {
     return this.listAccounts();
   };
 
+  Orchestrator.prototype.updateAccountLabel = async function updateAccountLabel(accountId, label) {
+    return this.accountStore.updateAccountLabel(accountId, label);
+  };
+
   Orchestrator.prototype.getAccountRateLimits = async function getAccountRateLimits() {
     const activeAccount = await this.accountStore.getActiveAccount();
     if (!activeAccount?.id) {

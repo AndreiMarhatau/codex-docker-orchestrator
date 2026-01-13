@@ -72,29 +72,31 @@ class AccountStore {
     return state;
   }
   async saveState(state) { await writeJson(this.statePath(), state); }
-
   async listAccounts() {
     const state = await this.loadState();
     const accountMap = new Map(state.accounts.map((account) => [account.id, account]));
-    const ordered = state.queue
-      .map((id, index) => {
+    const ordered = await Promise.all(
+      state.queue.map(async (id, index) => {
         const account = accountMap.get(id);
         if (!account) {
           return null;
         }
+        let authJson = '';
+        try {
+          authJson = await fs.readFile(this.accountAuthPath(id), 'utf8');
+        } catch (error) {
+          authJson = '';
+        }
         return {
           ...account,
+          authJson,
           position: index + 1,
           isActive: id === state.queue[0]
         };
       })
-      .filter(Boolean);
-    return {
-      activeAccountId: state.queue[0] || null,
-      accounts: ordered
-    };
+    );
+    return { activeAccountId: state.queue[0] || null, accounts: ordered.filter(Boolean) };
   }
-
   async getActiveAccount() {
     const state = await this.loadState();
     const activeId = state.queue[0] || null;
@@ -107,7 +109,6 @@ class AccountStore {
     }
     return { id: account.id, label: account.label };
   }
-
   async addAccount({ label, authJson }) {
     const parsed = parseAuthJson(authJson);
     const state = await this.loadState();
@@ -125,7 +126,6 @@ class AccountStore {
     await this.saveState(state);
     return { id: accountId, label: normalizedLabel, createdAt };
   }
-
   async setActiveAccount(accountId) {
     const state = await this.loadState();
     if (!state.queue.includes(accountId)) {
@@ -137,7 +137,6 @@ class AccountStore {
     await this.applyActiveAccount();
     return accountId;
   }
-
   async rotateActiveAccount() {
     const state = await this.loadState();
     if (state.queue.length < 2) {
@@ -150,7 +149,6 @@ class AccountStore {
     await this.applyActiveAccount();
     return state.activeAccountId;
   }
-
   async removeAccount(accountId) {
     const state = await this.loadState();
     const existing = state.queue.includes(accountId);
@@ -171,7 +169,6 @@ class AccountStore {
       await removePath(this.hostAuthPath());
     }
   }
-
   async applyActiveAccount() {
     const state = await this.loadState();
     const activeId = state.queue[0] || null;
@@ -187,12 +184,17 @@ class AccountStore {
     await fs.writeFile(this.hostAuthPath(), content, { mode: 0o600 });
     return activeId;
   }
-  async countAccounts() {
+  async updateAccountLabel(accountId, label) {
     const state = await this.loadState();
-    return state.queue.length;
+    const account = state.accounts.find((entry) => entry.id === accountId);
+    if (!account) {
+      throw new Error('Account not found');
+    }
+    const normalizedLabel = normalizeLabel(label, account.label || account.id);
+    account.label = normalizedLabel;
+    await this.saveState(state);
+    return this.listAccounts();
   }
+  async countAccounts() { return (await this.loadState()).queue.length; }
 }
-
-module.exports = {
-  AccountStore
-};
+module.exports = { AccountStore };

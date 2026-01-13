@@ -58,6 +58,7 @@ const accounts = {
     {
       id: 'acct-1',
       label: 'Primary',
+      authJson: '{\n  "token": "primary"\n}',
       position: 1,
       isActive: true,
       createdAt: '2024-01-01T10:00:00Z'
@@ -65,6 +66,7 @@ const accounts = {
     {
       id: 'acct-2',
       label: 'Secondary',
+      authJson: '{\n  "token": "secondary"\n}',
       position: 2,
       isActive: false,
       createdAt: '2024-01-01T11:00:00Z'

@@ -1,5 +1,7 @@
 FROM node:20-bullseye
 
+ARG DOCKER_CE_CLI_VERSION=5:29.1.4-1~debian.11~bullseye
+
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -19,7 +21,7 @@ RUN apt-get update \
   && apt-get update \
   && apt-get install -y --no-install-recommends \
     git \
-    docker-ce-cli \
+    docker-ce-cli=${DOCKER_CE_CLI_VERSION} \
     gh \
   && rm -rf /var/lib/apt/lists/*
 

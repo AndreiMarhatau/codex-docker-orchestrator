@@ -1,5 +1,5 @@
 import { Box, Button, Stack, Typography } from '@mui/material';
-import { apiUrl } from '../../../../../api.js';
+import { apiUrlWithPassword } from '../../../../../api.js';
 import { formatBytes } from '../../../../formatters.js';
 import { encodeArtifactPath, isImageArtifact } from '../../../../task-helpers.js';
 
@@ -8,7 +8,9 @@ function RunArtifacts({ run, taskId }) {
 
   const renderArtifactCard = (artifact, showImage) => {
     const encodedPath = encodeArtifactPath(artifact.path);
-    const artifactUrl = apiUrl(`/api/tasks/${taskId}/artifacts/${run.runId}/${encodedPath}`);
+    const artifactUrl = apiUrlWithPassword(
+      `/api/tasks/${taskId}/artifacts/${run.runId}/${encodedPath}`
+    );
     return (
       <Box key={artifact.path} className="artifact-item">
         {showImage && (

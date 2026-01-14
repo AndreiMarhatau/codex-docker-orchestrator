@@ -1,4 +1,10 @@
 import { apiRequest, apiUrl } from '../../api.js';
+import { getStoredPassword } from '../../auth-storage.js';
+
+function authHeaders() {
+  const password = getStoredPassword();
+  return password ? { 'X-Orch-Password': password } : {};
+}
 
 async function uploadTaskImages(taskImages, setTaskImageUploading) {
   if (taskImages.length === 0) {
@@ -12,7 +18,8 @@ async function uploadTaskImages(taskImages, setTaskImageUploading) {
     });
     const response = await fetch(apiUrl('/api/uploads'), {
       method: 'POST',
-      body: formData
+      body: formData,
+      headers: authHeaders()
     });
     if (!response.ok) {
       const errorText = await response.text();
@@ -37,7 +44,8 @@ async function uploadTaskFiles(taskFiles, setTaskFileUploading) {
     });
     const response = await fetch(apiUrl('/api/uploads/files'), {
       method: 'POST',
-      body: formData
+      body: formData,
+      headers: authHeaders()
     });
     if (!response.ok) {
       const errorText = await response.text();
@@ -62,7 +70,8 @@ async function addTaskAttachments(taskId, taskFiles, setTaskFileUploading) {
     });
     const response = await fetch(apiUrl(`/api/tasks/${taskId}/attachments`), {
       method: 'POST',
-      body: formData
+      body: formData,
+      headers: authHeaders()
     });
     if (!response.ok) {
       const errorText = await response.text();

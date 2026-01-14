@@ -5,6 +5,22 @@ function mockApi(responses) {
     const key = `${method} ${url}`;
     const response = responses[key] ?? responses[url];
 
+    if (!response && url === '/api/settings/password') {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ hasPassword: false })
+      };
+    }
+
+    if (!response && url === '/api/settings/auth') {
+      return {
+        ok: true,
+        status: 204,
+        json: async () => ({})
+      };
+    }
+
     if (!response) {
       throw new Error(`Unhandled request: ${url}`);
     }

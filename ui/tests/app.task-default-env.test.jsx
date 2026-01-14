@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App.jsx';
 import mockApi from './helpers/mock-api.js';
@@ -57,7 +57,11 @@ it(
 
     const user = userEvent.setup();
     render(<App />);
+    await waitFor(() =>
+      expect(screen.queryByText('Orchestrator locked')).not.toBeInTheDocument()
+    );
 
+    expect(await screen.findByText('2 total')).toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: 'New task' }));
 
     const envSelect = await screen.findByLabelText('Environment');

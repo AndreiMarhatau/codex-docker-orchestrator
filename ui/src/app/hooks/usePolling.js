@@ -1,7 +1,10 @@
 import { useEffect } from 'react';
 
-function usePolling({ refreshAll, refreshTaskDetail, selectedTaskId }) {
+function usePolling({ enabled = true, refreshAll, refreshTaskDetail, selectedTaskId }) {
   useEffect(() => {
+    if (!enabled) {
+      return undefined;
+    }
     const interval = setInterval(() => {
       refreshAll().catch(() => {});
       if (selectedTaskId) {
@@ -9,7 +12,7 @@ function usePolling({ refreshAll, refreshTaskDetail, selectedTaskId }) {
       }
     }, 8000);
     return () => clearInterval(interval);
-  }, [refreshAll, refreshTaskDetail, selectedTaskId]);
+  }, [enabled, refreshAll, refreshTaskDetail, selectedTaskId]);
 }
 
 export default usePolling;

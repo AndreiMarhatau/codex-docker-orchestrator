@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen } from './test-utils.jsx';
 import { describe, expect, it } from 'vitest';
 import useActiveTab from '../src/app/hooks/useActiveTab.js';
 

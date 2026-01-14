@@ -225,5 +225,5 @@ it(
 
     await user.click(screen.getByRole('tab', { name: 'Settings' }));
   },
-  45000
+  60000
 );

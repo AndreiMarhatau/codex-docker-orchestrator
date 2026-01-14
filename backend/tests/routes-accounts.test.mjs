@@ -68,12 +68,35 @@ describe('accounts routes', () => {
     expect(updateRes.body.accounts[0].label).toBe('Renamed');
   });
 
+  it('rejects missing labels on rename', async () => {
+    const app = await createTestApp();
+    const created = await request(app)
+      .post('/api/accounts')
+      .send({ label: 'Primary', authJson: '{}' })
+      .expect(201);
+
+    await request(app)
+      .patch(`/api/accounts/${created.body.id}`)
+      .send({})
+      .expect(400);
+  });
+
+  it('returns 500 when deleting a missing account', async () => {
+    const app = await createTestApp();
+    await request(app).delete('/api/accounts/missing').expect(500);
+  });
+
   it('updates account auth.json', async () => {
     const app = await createTestApp();
     const created = await request(app)
       .post('/api/accounts')
       .send({ label: 'Primary', authJson: '{}' })
       .expect(201);
+
+    await request(app)
+      .patch(`/api/accounts/${created.body.id}/auth-json`)
+      .send({})
+      .expect(400);
 
     await request(app)
       .patch(`/api/accounts/${created.body.id}/auth-json`)

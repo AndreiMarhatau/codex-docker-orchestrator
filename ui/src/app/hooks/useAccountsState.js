@@ -3,41 +3,59 @@ import { apiRequest } from '../../api.js';
 import { emptyAccountForm } from '../constants.js';
 import { normalizeAccountState } from '../repo-helpers.js';
 
-function useAccountsState({ accountState, setAccountState, setError, setLoading }) {
-  const [accountForm, setAccountForm] = useState(emptyAccountForm);
-  const [showAccountForm, setShowAccountForm] = useState(false);
-  const [rateLimits, setRateLimits] = useState(null);
-  const [rateLimitsLoading, setRateLimitsLoading] = useState(false);
-  const [rateLimitsError, setRateLimitsError] = useState('');
-  const [rateLimitsFetchedAt, setRateLimitsFetchedAt] = useState('');
+async function fetchAccounts(setAccountState) {
+  const accountData = await apiRequest('/api/accounts');
+  setAccountState(normalizeAccountState(accountData));
+}
 
-  const activeAccount = useMemo(
-    () => accountState.accounts.find((account) => account.isActive),
-    [accountState]
-  );
-
-  async function refreshAccounts() {
-    const accountData = await apiRequest('/api/accounts');
-    setAccountState(normalizeAccountState(accountData));
+async function fetchRateLimits({
+  setRateLimits,
+  setRateLimitsError,
+  setRateLimitsFetchedAt,
+  setRateLimitsLoading
+}) {
+  setRateLimitsError('');
+  setRateLimitsLoading(true);
+  try {
+    const info = await apiRequest('/api/accounts/rate-limits');
+    setRateLimits(info.rateLimits || null);
+    setRateLimitsFetchedAt(info.fetchedAt || '');
+  } catch (err) {
+    setRateLimits(null);
+    setRateLimitsFetchedAt('');
+    setRateLimitsError(err.message);
+  } finally {
+    setRateLimitsLoading(false);
   }
+}
 
-  async function refreshRateLimits() {
-    setRateLimitsError('');
-    setRateLimitsLoading(true);
+function createAccountRequestHandler({ request, setAccountState, setError, setLoading }) {
+  return async (...args) => {
+    setError('');
+    setLoading(true);
     try {
-      const info = await apiRequest('/api/accounts/rate-limits');
-      setRateLimits(info.rateLimits || null);
-      setRateLimitsFetchedAt(info.fetchedAt || '');
+      const payload = await request(...args);
+      setAccountState(normalizeAccountState(payload));
+      return payload;
     } catch (err) {
-      setRateLimits(null);
-      setRateLimitsFetchedAt('');
-      setRateLimitsError(err.message);
+      setError(err.message);
+      return null;
     } finally {
-      setRateLimitsLoading(false);
+      setLoading(false);
     }
-  }
+  };
+}
 
-  async function handleAddAccount() {
+function createAddAccountHandler({
+  accountForm,
+  refreshAccounts,
+  setAccountForm,
+  setAccountState,
+  setError,
+  setLoading,
+  setShowAccountForm
+}) {
+  return async () => {
     if (!accountForm.authJson.trim()) {
       return;
     }
@@ -60,80 +78,78 @@ function useAccountsState({ accountState, setAccountState, setError, setLoading 
     } finally {
       setLoading(false);
     }
-  }
+  };
+}
 
-  async function handleActivateAccount(accountId) {
-    setError('');
-    setLoading(true);
-    try {
-      const payload = await apiRequest(`/api/accounts/${accountId}/activate`, { method: 'POST' });
-      setAccountState(normalizeAccountState(payload));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
+function useAccountsState({ accountState, setAccountState, setError, setLoading }) {
+  const [accountForm, setAccountForm] = useState(emptyAccountForm);
+  const [showAccountForm, setShowAccountForm] = useState(false);
+  const [rateLimits, setRateLimits] = useState(null);
+  const [rateLimitsLoading, setRateLimitsLoading] = useState(false);
+  const [rateLimitsError, setRateLimitsError] = useState('');
+  const [rateLimitsFetchedAt, setRateLimitsFetchedAt] = useState('');
 
-  async function handleRotateAccount() {
-    setError('');
-    setLoading(true);
-    try {
-      const payload = await apiRequest('/api/accounts/rotate', { method: 'POST' });
-      setAccountState(normalizeAccountState(payload));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const activeAccount = useMemo(
+    () => accountState.accounts.find((account) => account.isActive),
+    [accountState]
+  );
 
-  async function handleDeleteAccount(accountId) {
-    setError('');
-    setLoading(true);
-    try {
-      const payload = await apiRequest(`/api/accounts/${accountId}`, { method: 'DELETE' });
-      setAccountState(normalizeAccountState(payload));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleRenameAccount(accountId, label) {
-    setError('');
-    setLoading(true);
-    try {
-      const payload = await apiRequest(`/api/accounts/${accountId}`, {
+  const refreshAccounts = () => fetchAccounts(setAccountState);
+  const refreshRateLimits = () =>
+    fetchRateLimits({
+      setRateLimits,
+      setRateLimitsError,
+      setRateLimitsFetchedAt,
+      setRateLimitsLoading
+    });
+  const handleAddAccount = createAddAccountHandler({
+    accountForm,
+    refreshAccounts,
+    setAccountForm,
+    setAccountState,
+    setError,
+    setLoading,
+    setShowAccountForm
+  });
+  const handleActivateAccount = createAccountRequestHandler({
+    request: (accountId) =>
+      apiRequest(`/api/accounts/${accountId}/activate`, { method: 'POST' }),
+    setAccountState,
+    setError,
+    setLoading
+  });
+  const handleRotateAccount = createAccountRequestHandler({
+    request: () => apiRequest('/api/accounts/rotate', { method: 'POST' }),
+    setAccountState,
+    setError,
+    setLoading
+  });
+  const handleDeleteAccount = createAccountRequestHandler({
+    request: (accountId) => apiRequest(`/api/accounts/${accountId}`, { method: 'DELETE' }),
+    setAccountState,
+    setError,
+    setLoading
+  });
+  const handleRenameAccount = createAccountRequestHandler({
+    request: (accountId, label) =>
+      apiRequest(`/api/accounts/${accountId}`, {
         method: 'PATCH',
         body: JSON.stringify({ label })
-      });
-      setAccountState(normalizeAccountState(payload));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleUpdateAuthJson(accountId, authJson) {
-    setError('');
-    setLoading(true);
-    try {
-      const payload = await apiRequest(`/api/accounts/${accountId}/auth-json`, {
+      }),
+    setAccountState,
+    setError,
+    setLoading
+  });
+  const handleUpdateAuthJson = createAccountRequestHandler({
+    request: (accountId, authJson) =>
+      apiRequest(`/api/accounts/${accountId}/auth-json`, {
         method: 'PATCH',
         body: JSON.stringify({ authJson })
-      });
-      setAccountState(normalizeAccountState(payload));
-      return payload;
-    } catch (err) {
-      setError(err.message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }
+      }),
+    setAccountState,
+    setError,
+    setLoading
+  });
 
   return {
     accountForm,

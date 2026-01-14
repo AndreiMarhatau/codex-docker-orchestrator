@@ -121,7 +121,14 @@ async function exerciseAccountsTab(user) {
   expect(screen.getByText('Credits')).toBeInTheDocument();
   const showAuthButtons = screen.getAllByRole('button', { name: 'Show auth.json' });
   await user.click(showAuthButtons[0]);
-  expect(screen.getByText(/"token": "primary"/)).toBeInTheDocument();
+  const authFields = screen.getAllByLabelText('Stored auth.json');
+  expect(authFields[0].value).toContain('"token": "primary"');
+  const saveAuthButton = screen.getByRole('button', { name: 'Save' });
+  expect(saveAuthButton).toBeDisabled();
+  await user.clear(authFields[0]);
+  fireEvent.change(authFields[0], { target: { value: '{"token":"primary-updated"}' } });
+  expect(saveAuthButton).toBeEnabled();
+  await user.click(saveAuthButton);
   await user.click(screen.getByRole('button', { name: 'Check usage limits' }));
   await waitFor(() =>
     expect(screen.getByRole('button', { name: 'Rotate now' })).toBeEnabled()
@@ -176,6 +183,16 @@ it(
       'POST /api/accounts/rotate': accounts,
       'POST /api/accounts/acct-2/activate': accounts,
       'DELETE /api/accounts/acct-2': accounts,
+      'PATCH /api/accounts/acct-1/auth-json': {
+        ...accounts,
+        accounts: accounts.accounts.map((account) => ({
+          ...account,
+          authJson:
+            account.id === 'acct-1'
+              ? '{\n  "token": "primary-updated"\n}'
+              : account.authJson
+        }))
+      },
       'PATCH /api/accounts/acct-2': {
         ...accounts,
         accounts: accounts.accounts.map((account) => ({

@@ -164,6 +164,23 @@ describe('AccountStore updates', () => {
     const updated = list.accounts.find((account) => account.id === created.id);
     expect(updated.label).toBe('Renamed');
   });
+
+  it('updates auth.json and syncs the active account', async () => {
+    const orchHome = await createTempDir();
+    const codexHome = path.join(orchHome, 'codex-home');
+    await fs.mkdir(codexHome, { recursive: true });
+    const store = new AccountStore({ orchHome, codexHome });
+
+    const created = await store.addAccount({ label: 'Primary', authJson: '{}' });
+    const list = await store.updateAccountAuthJson(
+      created.id,
+      JSON.stringify({ token: 'updated' })
+    );
+    const updated = list.accounts.find((account) => account.id === created.id);
+    expect(updated.authJson).toContain('"token": "updated"');
+    const hostAuth = await fs.readFile(path.join(codexHome, 'auth.json'), 'utf8');
+    expect(hostAuth).toContain('"token": "updated"');
+  });
 });
 
 describe('AccountStore errors', () => {

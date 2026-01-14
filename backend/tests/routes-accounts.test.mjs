@@ -67,4 +67,23 @@ describe('accounts routes', () => {
       .expect(200);
     expect(updateRes.body.accounts[0].label).toBe('Renamed');
   });
+
+  it('updates account auth.json', async () => {
+    const app = await createTestApp();
+    const created = await request(app)
+      .post('/api/accounts')
+      .send({ label: 'Primary', authJson: '{}' })
+      .expect(201);
+
+    await request(app)
+      .patch(`/api/accounts/${created.body.id}/auth-json`)
+      .send({ authJson: '{' })
+      .expect(400);
+
+    const updateRes = await request(app)
+      .patch(`/api/accounts/${created.body.id}/auth-json`)
+      .send({ authJson: '{"token":"updated"}' })
+      .expect(200);
+    expect(updateRes.body.accounts[0].authJson).toContain('"token": "updated"');
+  });
 });

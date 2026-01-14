@@ -195,6 +195,20 @@ class AccountStore {
     await this.saveState(state);
     return this.listAccounts();
   }
+  async updateAccountAuthJson(accountId, authJson) {
+    const parsed = parseAuthJson(authJson);
+    const state = await this.loadState();
+    const account = state.accounts.find((entry) => entry.id === accountId);
+    if (!account) {
+      throw new Error('Account not found');
+    }
+    await ensureDir(this.accountDir(accountId));
+    await fs.writeFile(this.accountAuthPath(accountId), JSON.stringify(parsed, null, 2));
+    if (state.queue[0] === accountId) {
+      await this.applyActiveAccount();
+    }
+    return this.listAccounts();
+  }
   async countAccounts() { return (await this.loadState()).queue.length; }
 }
 module.exports = { AccountStore };

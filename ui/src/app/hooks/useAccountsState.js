@@ -117,6 +117,24 @@ function useAccountsState({ accountState, setAccountState, setError, setLoading 
     }
   }
 
+  async function handleUpdateAuthJson(accountId, authJson) {
+    setError('');
+    setLoading(true);
+    try {
+      const payload = await apiRequest(`/api/accounts/${accountId}/auth-json`, {
+        method: 'PATCH',
+        body: JSON.stringify({ authJson })
+      });
+      setAccountState(normalizeAccountState(payload));
+      return payload;
+    } catch (err) {
+      setError(err.message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return {
     accountForm,
     activeAccount,
@@ -124,6 +142,7 @@ function useAccountsState({ accountState, setAccountState, setError, setLoading 
     handleAddAccount,
     handleDeleteAccount,
     handleRenameAccount,
+    handleUpdateAuthJson,
     handleRotateAccount,
     rateLimits,
     rateLimitsError,

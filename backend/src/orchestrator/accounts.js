@@ -158,6 +158,13 @@ function attachAccountMethods(Orchestrator) {
     return this.accountStore.updateAccountLabel(accountId, label);
   };
 
+  Orchestrator.prototype.updateAccountAuthJson = async function updateAccountAuthJson(
+    accountId,
+    authJson
+  ) {
+    return this.accountStore.updateAccountAuthJson(accountId, authJson);
+  };
+
   Orchestrator.prototype.getAccountRateLimits = async function getAccountRateLimits() {
     const activeAccount = await this.accountStore.getActiveAccount();
     if (!activeAccount?.id) {

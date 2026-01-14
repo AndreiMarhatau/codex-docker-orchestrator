@@ -70,6 +70,23 @@ function createAccountsRouter(orchestrator) {
     res.json(accounts);
   }));
 
+  router.patch('/accounts/:accountId/auth-json', asyncHandler(async (req, res) => {
+    const { authJson } = req.body || {};
+    if (typeof authJson !== 'string') {
+      return res.status(400).send('authJson is required');
+    }
+    try {
+      const accounts = await orchestrator.updateAccountAuthJson(req.params.accountId, authJson);
+      res.json(accounts);
+    } catch (error) {
+      const message = error?.message || 'Invalid authJson';
+      if (message.toLowerCase().includes('authjson') || message.toLowerCase().includes('json')) {
+        return res.status(400).send(message);
+      }
+      throw error;
+    }
+  }));
+
   return router;
 }
 

@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App.jsx';
 import { accounts, envs, rateLimits, taskDetail, taskDiff, tasks } from './app-fixtures.js';
+import { exerciseAccountsTab, exerciseEnvironmentsTab } from './app-integration-helpers.js';
 import mockApi from './helpers/mock-api.js';
 
 async function configureNewTask(user) {
@@ -105,46 +106,6 @@ async function exerciseTaskDetail(user) {
   await user.click(removeTaskButtons[removeTaskButtons.length - 1]);
 }
 
-async function exerciseEnvironmentsTab(user) {
-  await user.click(screen.getByRole('tab', { name: 'Environments' }));
-  expect(await screen.findByText('Create and manage repo sources for Codex runs.')).toBeInTheDocument();
-  expect(screen.getByText('2 environments')).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: 'Sync now' }));
-  const removeButtons = screen.getAllByRole('button', { name: 'Remove' });
-  await user.click(removeButtons[removeButtons.length - 1]);
-}
-
-async function exerciseAccountsTab(user) {
-  await user.click(screen.getByRole('tab', { name: 'Accounts' }));
-  expect(await screen.findByText('Usage limits')).toBeInTheDocument();
-  expect(screen.getAllByText('Primary').length).toBeGreaterThan(0);
-  expect(screen.getByText('Credits')).toBeInTheDocument();
-  const showAuthButtons = screen.getAllByRole('button', { name: 'Show auth.json' });
-  await user.click(showAuthButtons[0]);
-  expect(screen.getByText(/"token": "primary"/)).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: 'Check usage limits' }));
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Rotate now' })).toBeEnabled()
-  );
-  await user.click(screen.getByRole('button', { name: 'Rotate now' }));
-  const renameButtons = screen.getAllByRole('button', { name: 'Rename' });
-  await user.click(renameButtons[renameButtons.length - 1]);
-  await user.clear(screen.getByLabelText('New label'));
-  await user.type(screen.getByLabelText('New label'), 'Ops Renamed');
-  await user.click(screen.getByRole('button', { name: 'Save name' }));
-  expect(await screen.findByText('Ops Renamed')).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: 'New account' }));
-  await user.type(screen.getByLabelText('Account label'), 'Ops');
-  fireEvent.change(screen.getByLabelText('auth.json contents'), {
-    target: { value: '{"token":"x"}' }
-  });
-  await user.click(screen.getByRole('button', { name: 'Add account' }));
-  const activateButtons = screen.getAllByRole('button', { name: 'Make active' });
-  await user.click(activateButtons[activateButtons.length - 1]);
-  const removeAccountButtons = screen.getAllByRole('button', { name: 'Remove' });
-  await user.click(removeAccountButtons[removeAccountButtons.length - 1]);
-}
-
 it(
   'renders the orchestrator sections and task details',
   async () => {
@@ -176,6 +137,16 @@ it(
       'POST /api/accounts/rotate': accounts,
       'POST /api/accounts/acct-2/activate': accounts,
       'DELETE /api/accounts/acct-2': accounts,
+      'PATCH /api/accounts/acct-1/auth-json': {
+        ...accounts,
+        accounts: accounts.accounts.map((account) => ({
+          ...account,
+          authJson:
+            account.id === 'acct-1'
+              ? '{\n  "token": "primary-updated"\n}'
+              : account.authJson
+        }))
+      },
       'PATCH /api/accounts/acct-2': {
         ...accounts,
         accounts: accounts.accounts.map((account) => ({
@@ -208,5 +179,5 @@ it(
 
     await user.click(screen.getByRole('tab', { name: 'Settings' }));
   },
-  45000
+  60000
 );

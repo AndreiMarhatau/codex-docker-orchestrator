@@ -4,13 +4,7 @@ import { emptyResumeConfig } from '../constants.js';
 import useResumeContextRepos from './useResumeContextRepos.js';
 import useTaskFiles from './useTaskFiles.js';
 import useTaskLogStream from './useTaskLogStream.js';
-import {
-  applyResumeDefaultsFromTask,
-  createRevealDiff,
-  createToggleResumeAttachmentRemoval,
-  resetResumeDefaults,
-  resetTaskSelectionState
-} from './task-detail-helpers.js';
+
 function useTaskDetail({ tasks, selectedTaskId, setError, setSelectedTaskId }) {
   const [taskDetail, setTaskDetail] = useState(null);
   const [taskDiff, setTaskDiff] = useState(null);
@@ -19,8 +13,6 @@ function useTaskDetail({ tasks, selectedTaskId, setError, setSelectedTaskId }) {
   const [resumeConfig, setResumeConfig] = useState(emptyResumeConfig);
   const [resumeUseHostDockerSocket, setResumeUseHostDockerSocket] = useState(false);
   const [resumeDockerTouched, setResumeDockerTouched] = useState(false);
-  const [resumeRepoReadOnly, setResumeRepoReadOnly] = useState(false);
-  const [resumeRepoReadOnlyTouched, setResumeRepoReadOnlyTouched] = useState(false);
   const resumeFiles = useTaskFiles();
   const [resumeAttachmentRemovals, setResumeAttachmentRemovals] = useState([]);
   const resumeDefaultsTaskIdRef = useRef('');
@@ -58,14 +50,12 @@ function useTaskDetail({ tasks, selectedTaskId, setError, setSelectedTaskId }) {
 
   useEffect(() => {
     if (!selectedTaskId) {
-      resetTaskSelectionState({
-        setTaskDetail,
-        setTaskDiff,
-        setRevealedDiffs,
-        setResumeConfig,
-        resumeFiles,
-        setResumeAttachmentRemovals
-      });
+      setTaskDetail(null);
+      setTaskDiff(null);
+      setRevealedDiffs({});
+      setResumeConfig(emptyResumeConfig);
+      resumeFiles.handleClearTaskFiles();
+      setResumeAttachmentRemovals([]);
       return;
     }
     refreshTaskDetail(selectedTaskId).catch((err) => setError(err.message));
@@ -73,26 +63,23 @@ function useTaskDetail({ tasks, selectedTaskId, setError, setSelectedTaskId }) {
 
   useEffect(() => {
     if (!selectedTaskId) {
-      resetResumeDefaults({
-        resumeDefaultsTaskIdRef,
-        setResumeUseHostDockerSocket,
-        setResumeDockerTouched,
-        setResumeRepoReadOnly,
-        setResumeRepoReadOnlyTouched,
-        resumeFiles,
-        setResumeAttachmentRemovals
-      });
+      resumeDefaultsTaskIdRef.current = '';
+      setResumeUseHostDockerSocket(false);
+      setResumeDockerTouched(false);
+      resumeFiles.handleClearTaskFiles();
+      setResumeAttachmentRemovals([]);
       return;
     }
-    applyResumeDefaultsFromTask({
-      selectedTaskId,
-      tasks,
-      resumeDefaultsTaskIdRef,
-      setResumeUseHostDockerSocket,
-      setResumeDockerTouched,
-      setResumeRepoReadOnly,
-      setResumeRepoReadOnlyTouched
-    });
+    if (resumeDefaultsTaskIdRef.current === selectedTaskId) {
+      return;
+    }
+    const selectedTask = tasks.find((task) => task.taskId === selectedTaskId);
+    if (!selectedTask) {
+      return;
+    }
+    resumeDefaultsTaskIdRef.current = selectedTaskId;
+    setResumeUseHostDockerSocket(selectedTask.useHostDockerSocket === true);
+    setResumeDockerTouched(false);
   }, [selectedTaskId, tasks]);
 
   useEffect(() => {
@@ -105,22 +92,20 @@ function useTaskDetail({ tasks, selectedTaskId, setError, setSelectedTaskId }) {
     setResumeUseHostDockerSocket(taskDetail.useHostDockerSocket === true);
   }, [taskDetail, resumeDockerTouched]);
 
-  useEffect(() => {
-    if (!taskDetail || resumeRepoReadOnlyTouched) {
-      return;
-    }
-    if (resumeDefaultsTaskIdRef.current !== taskDetail.taskId) {
-      return;
-    }
-    setResumeRepoReadOnly(taskDetail.repoReadOnly === true);
-  }, [taskDetail, resumeRepoReadOnlyTouched]);
-
   useTaskLogStream({ selectedTaskId, setTaskDetail, taskDetail });
 
-  const revealDiff = createRevealDiff(setRevealedDiffs);
-  const toggleResumeAttachmentRemoval = createToggleResumeAttachmentRemoval(
-    setResumeAttachmentRemovals
-  );
+  function revealDiff(path) {
+    setRevealedDiffs((prev) => ({ ...prev, [path]: true }));
+  }
+
+  function toggleResumeAttachmentRemoval(name) {
+    setResumeAttachmentRemovals((prev) => {
+      if (prev.includes(name)) {
+        return prev.filter((entry) => entry !== name);
+      }
+      return [...prev, name];
+    });
+  }
 
   return {
     refreshTaskDetail,
@@ -131,15 +116,11 @@ function useTaskDetail({ tasks, selectedTaskId, setError, setSelectedTaskId }) {
     resumeDockerTouched,
     resumeFiles,
     resumePrompt,
-    resumeRepoReadOnly,
-    resumeRepoReadOnlyTouched,
     resumeUseHostDockerSocket,
     setResumeAttachmentRemovals,
     setResumeConfig,
     setResumeDockerTouched,
     setResumePrompt,
-    setResumeRepoReadOnly,
-    setResumeRepoReadOnlyTouched,
     setResumeUseHostDockerSocket,
     setTaskDetail,
     taskDetail,

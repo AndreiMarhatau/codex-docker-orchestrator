@@ -17,21 +17,6 @@ function buildContextReposSection(contextRepos) {
   return lines.join('\n');
 }
 
-function buildRepoReadOnlySection({ repoReadOnly, worktreePath }) {
-  if (!repoReadOnly) {
-    return '';
-  }
-  const lines = [
-    '# Task repository (read-only)',
-    '',
-    'The task repository is mounted read-only.',
-    worktreePath ? `Path: ${worktreePath}` : null,
-    '',
-    'Do not modify this repository; treat it as read-only.'
-  ].filter(Boolean);
-  return lines.join('\n');
-}
-
 function buildAttachmentsSection(attachments) {
   if (!Array.isArray(attachments) || attachments.length === 0) {
     return '';
@@ -70,6 +55,5 @@ function buildCodexArgs({ prompt, model, reasoningEffort, imageArgs = [], resume
 module.exports = {
   buildAttachmentsSection,
   buildContextReposSection,
-  buildRepoReadOnlySection,
   buildCodexArgs
 };

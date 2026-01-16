@@ -43,6 +43,7 @@ describe('orchestrator resume', () => {
       model: 'gpt-5.2-codex',
       reasoningEffort: 'medium',
       useHostDockerSocket: true,
+      repoReadOnly: true,
       runs: [
         {
           runId: 'run-001',
@@ -55,8 +56,12 @@ describe('orchestrator resume', () => {
     };
     await fs.writeFile(path.join(taskDir, 'meta.json'), JSON.stringify(meta));
 
-    await orchestrator.resumeTask('task-1', 'Continue', { useHostDockerSocket: false });
+    await orchestrator.resumeTask('task-1', 'Continue', {
+      useHostDockerSocket: false,
+      repoReadOnly: false
+    });
     const updated = JSON.parse(await fs.readFile(path.join(taskDir, 'meta.json'), 'utf8'));
     expect(updated.useHostDockerSocket).toBe(false);
+    expect(updated.repoReadOnly).toBe(false);
   });
 });

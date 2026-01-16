@@ -1,40 +1,28 @@
 const path = require('node:path');
 const fs = require('node:fs');
-const fsp = require('node:fs/promises');
 const { ensureDir } = require('../../storage');
-const { invalidImageError, invalidContextError } = require('../errors');
+const { invalidContextError } = require('../errors');
 const { normalizeOptionalString } = require('../utils');
 const { resolveRefInRepo } = require('../git');
-const { buildAttachmentsSection, buildContextReposSection } = require('../context');
-async function resolveImagePath(uploadsRoot, imagePath) {
-  if (typeof imagePath !== 'string' || !imagePath.trim()) {
-    throw invalidImageError('Invalid image path provided.');
-  }
-  const resolvedPath = path.resolve(imagePath);
-  if (resolvedPath === uploadsRoot || !resolvedPath.startsWith(`${uploadsRoot}${path.sep}`)) {
-    throw invalidImageError('Images must be uploaded via orchestrator before use.');
-  }
-  let stat;
-  try {
-    stat = await fsp.stat(resolvedPath);
-  } catch (error) {
-    throw invalidImageError(`Image not found: ${imagePath}`);
-  }
-  if (!stat.isFile()) {
-    throw invalidImageError(`Image not found: ${imagePath}`);
-  }
-  return resolvedPath;
-}
+const { resolveImagePaths } = require('./images');
+const {
+  buildAttachmentsSection,
+  buildContextReposSection,
+  buildRepoReadOnlySection
+} = require('../context');
 function buildAgentsFile({
   taskId,
   runLabel,
   contextRepos,
   attachments,
+  repoReadOnly,
+  worktreePath,
   baseFile,
   hostDockerFile
 }) {
   const contextSection = buildContextReposSection(contextRepos);
   const attachmentsSection = buildAttachmentsSection(attachments);
+  const repoReadOnlySection = buildRepoReadOnlySection({ repoReadOnly, worktreePath });
   const sections = [];
   if (baseFile) {
     const baseContent = fs.readFileSync(baseFile, 'utf8').trimEnd();
@@ -51,6 +39,9 @@ function buildAgentsFile({
   if (contextSection) {
     sections.push(contextSection.trimEnd());
   }
+  if (repoReadOnlySection) {
+    sections.push(repoReadOnlySection.trimEnd());
+  }
   if (attachmentsSection) {
     sections.push(attachmentsSection.trimEnd());
   }
@@ -61,23 +52,6 @@ function buildAgentsFile({
   const targetPath = path.join(this.taskLogsDir(taskId), `${runLabel}.agents.md`);
   fs.writeFileSync(targetPath, combined, 'utf8');
   return targetPath;
-}
-async function resolveImagePaths(imagePaths) {
-  if (!Array.isArray(imagePaths) || imagePaths.length === 0) {
-    return [];
-  }
-  if (imagePaths.length > 5) {
-    throw invalidImageError('Up to 5 images are supported per request.');
-  }
-  const uploadsRoot = path.resolve(this.uploadsDir());
-  const resolved = [];
-  for (const imagePath of imagePaths) {
-    const resolvedPath = await resolveImagePath(uploadsRoot, imagePath);
-    if (!resolved.includes(resolvedPath)) {
-      resolved.push(resolvedPath);
-    }
-  }
-  return resolved;
 }
 async function prepareContextRepos(taskId, contextRepos) {
   if (!Array.isArray(contextRepos) || contextRepos.length === 0) {
@@ -161,7 +135,15 @@ async function resolveContextRepos(taskId, contextRepos) {
   const plan = await this.prepareContextRepos(taskId, contextRepos);
   return this.materializeContextRepos(plan);
 }
-function buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket, contextRepos, attachments }) {
+function buildAgentsAppendFile({
+  taskId,
+  runLabel,
+  useHostDockerSocket,
+  contextRepos,
+  attachments,
+  repoReadOnly,
+  worktreePath
+}) {
   const baseFile =
     this.orchAgentsFile && fs.existsSync(this.orchAgentsFile) ? this.orchAgentsFile : null;
   const hostDockerFile =
@@ -169,8 +151,11 @@ function buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket, contextR
       ? this.hostDockerAgentsFile
       : null;
   const contextSection = buildContextReposSection(contextRepos);
+  const repoReadOnlySection = buildRepoReadOnlySection({ repoReadOnly, worktreePath });
   const attachmentsSection = buildAttachmentsSection(attachments);
-  const shouldCombine = Boolean(useHostDockerSocket || contextSection || attachmentsSection);
+  const shouldCombine = Boolean(
+    useHostDockerSocket || contextSection || repoReadOnlySection || attachmentsSection
+  );
   if (!shouldCombine) {
     return baseFile;
   }
@@ -180,6 +165,8 @@ function buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket, contextR
     runLabel,
     contextRepos,
     attachments,
+    repoReadOnly,
+    worktreePath,
     baseFile,
     hostDockerFile: includeHostDocker ? hostDockerFile : null
   });
@@ -187,7 +174,9 @@ function buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket, contextR
 }
 
 function attachTaskContextMethods(Orchestrator) {
-  Orchestrator.prototype.resolveImagePaths = resolveImagePaths;
+  Orchestrator.prototype.resolveImagePaths = function resolveImagePathsForOrch(imagePaths) {
+    return resolveImagePaths(this, imagePaths);
+  };
   Orchestrator.prototype.prepareContextRepos = prepareContextRepos;
   Orchestrator.prototype.materializeContextRepos = materializeContextRepos;
   Orchestrator.prototype.resolveContextRepos = resolveContextRepos;

@@ -32,6 +32,11 @@ describe('tasks routes', () => {
 
     await request(app)
       .post('/api/tasks')
+      .send({ envId: 'env', prompt: 'hi', repoReadOnly: 'yes' })
+      .expect(400);
+
+    await request(app)
+      .post('/api/tasks')
       .send({ envId: 'env', prompt: 'hi', contextRepos: 'nope' })
       .expect(400);
 
@@ -51,6 +56,11 @@ describe('tasks routes', () => {
     await request(app)
       .post('/api/tasks/task-1/resume')
       .send({ prompt: 'hi', useHostDockerSocket: 'no' })
+      .expect(400);
+
+    await request(app)
+      .post('/api/tasks/task-1/resume')
+      .send({ prompt: 'hi', repoReadOnly: 'no' })
       .expect(400);
   });
 });

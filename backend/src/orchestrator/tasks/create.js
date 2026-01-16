@@ -58,6 +58,7 @@ function buildTaskMeta({
   model,
   reasoningEffort,
   useHostDockerSocket,
+  repoReadOnly,
   prompt,
   now,
   account,
@@ -76,6 +77,7 @@ function buildTaskMeta({
     model,
     reasoningEffort,
     useHostDockerSocket,
+    repoReadOnly,
     threadId: null,
     error: null,
     status: 'running',
@@ -105,6 +107,7 @@ function attachTaskCreateMethods(Orchestrator) {
     model,
     reasoningEffort,
     useHostDockerSocket,
+    repoReadOnly,
     contextRepos
   }) {
     await this.init();
@@ -114,6 +117,7 @@ function attachTaskCreateMethods(Orchestrator) {
     const normalizedModel = normalizeOptionalString(model);
     const normalizedReasoningEffort = normalizeOptionalString(reasoningEffort);
     const shouldUseHostDockerSocket = Boolean(useHostDockerSocket);
+    const shouldUseRepoReadOnly = Boolean(repoReadOnly);
     const dockerSocketPath = shouldUseHostDockerSocket ? this.requireDockerSocket() : null;
     const taskId = crypto.randomUUID();
     const runLabel = nextRunLabel(1);
@@ -142,6 +146,7 @@ function attachTaskCreateMethods(Orchestrator) {
       model: normalizedModel,
       reasoningEffort: normalizedReasoningEffort,
       useHostDockerSocket: shouldUseHostDockerSocket,
+      repoReadOnly: shouldUseRepoReadOnly,
       prompt,
       now,
       account: activeAccount,
@@ -159,6 +164,11 @@ function attachTaskCreateMethods(Orchestrator) {
     });
     const attachmentsDir = this.taskAttachmentsDir(taskId);
     const hasAttachments = attachments.length > 0;
+    const readOnlyMounts = [
+      ...resolvedContextRepos.map((repo) => repo.worktreePath),
+      ...(hasAttachments ? [attachmentsDir] : []),
+      ...(shouldUseRepoReadOnly ? [worktreePath] : [])
+    ];
     this.startCodexRun({
       taskId,
       runLabel,
@@ -170,13 +180,12 @@ function attachTaskCreateMethods(Orchestrator) {
         ...resolvedImagePaths,
         ...(dockerSocketPath ? [dockerSocketPath] : [])
       ],
-      mountPathsRo: [
-        ...resolvedContextRepos.map((repo) => repo.worktreePath),
-        ...(hasAttachments ? [attachmentsDir] : [])
-      ],
+      mountPathsRo: readOnlyMounts,
       contextRepos: resolvedContextRepos,
       attachments,
-      useHostDockerSocket: shouldUseHostDockerSocket
+      useHostDockerSocket: shouldUseHostDockerSocket,
+      repoReadOnly: shouldUseRepoReadOnly,
+      worktreePath
     });
     return meta;
   };

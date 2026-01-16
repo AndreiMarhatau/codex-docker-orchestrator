@@ -29,6 +29,7 @@ async function configureNewTask(user) {
   await user.type(screen.getByLabelText('Custom reasoning effort'), 'xhigh');
 
   await user.click(screen.getByLabelText('Use host Docker socket'));
+  await user.click(screen.getByLabelText('Read-only'));
 
   await user.click(screen.getByRole('button', { name: 'Add reference repo' }));
   const envSelects = screen.getAllByLabelText('Environment');
@@ -96,6 +97,7 @@ async function exerciseTaskDetail(user) {
   await user.upload(resumeFileInput, [resumeFile]);
   await user.click(screen.getByLabelText(/requirements\.txt/i));
   await user.click(screen.getByLabelText('Use host Docker socket for this run'));
+  await user.click(within(resumeDialog).getByLabelText('Read-only'));
   await user.click(screen.getByRole('button', { name: 'Continue task' }));
   await waitFor(() =>
     expect(screen.queryByRole('dialog', { name: 'Ask for changes' })).not.toBeInTheDocument()

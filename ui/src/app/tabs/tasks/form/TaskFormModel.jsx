@@ -93,6 +93,20 @@ function TaskFormModel({ handleTaskModelChoiceChange, setTaskForm, taskForm }) {
           <WarningAmberIcon color="warning" fontSize="small" />
         </Tooltip>
       </Stack>
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={taskForm.repoReadOnly}
+            onChange={(event) =>
+              setTaskForm((prev) => ({
+                ...prev,
+                repoReadOnly: event.target.checked
+              }))
+            }
+          />
+        }
+        label="Read-only"
+      />
     </>
   );
 }

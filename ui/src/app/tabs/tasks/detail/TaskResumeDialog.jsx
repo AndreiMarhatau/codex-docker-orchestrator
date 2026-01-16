@@ -135,6 +135,18 @@ function TaskResumeDialog({ actions, data, detail, envs, onClose, open }) {
               <WarningAmberIcon color="warning" fontSize="small" />
             </Tooltip>
           </Stack>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={detail.resumeRepoReadOnly}
+                onChange={(event) => {
+                  detail.setResumeRepoReadOnly(event.target.checked);
+                  detail.setResumeRepoReadOnlyTouched(true);
+                }}
+              />
+            }
+            label="Read-only"
+          />
           <TaskFormContextRepos envs={envs} formState={resumeContextState} loading={data.loading} />
           <ResumeFilesSection data={data} detail={detail} />
         </Stack>

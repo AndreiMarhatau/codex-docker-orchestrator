@@ -16,6 +16,7 @@ function useTaskActions({
   resumeContextTouched,
   resumeFiles,
   resumePrompt,
+  resumeRepoReadOnly,
   resumeUseHostDockerSocket,
   selectedTaskId,
   setSelectedTaskId,
@@ -27,6 +28,8 @@ function useTaskActions({
   setResumeContextTouched,
   setResumeDockerTouched,
   setResumePrompt,
+  setResumeRepoReadOnly,
+  setResumeRepoReadOnlyTouched,
   setShowTaskForm,
   setTaskForm,
   setTaskDetail,
@@ -85,6 +88,7 @@ function useTaskActions({
     resumeContextTouched,
     resumeFiles,
     resumePrompt,
+    resumeRepoReadOnly,
     resumeUseHostDockerSocket,
     selectedTaskId,
     setError,
@@ -94,7 +98,9 @@ function useTaskActions({
     setResumeContextRepos,
     setResumeContextTouched,
     setResumeDockerTouched,
-    setResumePrompt
+    setResumePrompt,
+    setResumeRepoReadOnly,
+    setResumeRepoReadOnlyTouched
   });
 
   const handleStopTask = useStopTaskHandler({

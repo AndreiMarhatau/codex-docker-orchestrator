@@ -24,6 +24,7 @@ const tasks = [
     runs: [],
     threadId: 'thread-1',
     useHostDockerSocket: true,
+    repoReadOnly: false,
     gitStatus: {
       hasChanges: false,
       pushed: true,
@@ -44,6 +45,7 @@ const tasks = [
     runs: [{ runId: 'run-2', status: 'running', startedAt: '2024-01-02T12:00:00Z' }],
     threadId: 'thread-2',
     useHostDockerSocket: false,
+    repoReadOnly: false,
     gitStatus: {
       hasChanges: true,
       pushed: false,
@@ -132,7 +134,8 @@ const taskDetail = {
     dirty: false,
     diffStats: { additions: 12, deletions: 4 }
   },
-  useHostDockerSocket: true
+  useHostDockerSocket: true,
+  repoReadOnly: false
 };
 const taskDiff = {
   available: true,

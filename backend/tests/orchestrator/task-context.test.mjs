@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
 
 describe('Orchestrator task context', () => {
-  it('mounts context repos read-only and injects instructions', async () => {
+  it('mounts context repos and repo read-only and injects instructions', async () => {
     const orchHome = await createTempDir();
     const exec = createMockExec({ branches: ['main'] });
     const spawn = createMockSpawn();
@@ -33,6 +33,7 @@ describe('Orchestrator task context', () => {
       envId: primaryEnv.envId,
       ref: 'main',
       prompt: 'Do work',
+      repoReadOnly: true,
       contextRepos: [{ envId: contextEnv.envId, ref: 'main' }]
     });
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
@@ -42,12 +43,15 @@ describe('Orchestrator task context', () => {
     const mountRo = runCall.options?.env?.CODEX_MOUNT_PATHS_RO || '';
     const contextPath = orchestrator.taskContextWorktree(task.taskId, contextEnv.repoUrl, contextEnv.envId);
     expect(mountRo.split(':')).toContain(contextPath);
+    expect(mountRo.split(':')).toContain(task.worktreePath);
 
     const agentsFile = runCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
     expect(agentsFile).toBeTruthy();
     const agentsContent = await fs.readFile(agentsFile, 'utf8');
     expect(agentsContent).toContain('Read-only reference repositories');
     expect(agentsContent).toContain(contextPath);
+    expect(agentsContent).toContain('Task repository (read-only)');
+    expect(agentsContent).toContain(task.worktreePath);
   });
 
   it('mounts docker socket when enabled and skips when disabled', async () => {

@@ -63,6 +63,7 @@ function createHandleCreateTask({
           model: modelValue || undefined,
           reasoningEffort: reasoningEffortValue || undefined,
           useHostDockerSocket: taskForm.useHostDockerSocket,
+          repoReadOnly: taskForm.repoReadOnly,
           contextRepos: contextRepos.length > 0 ? contextRepos : undefined
         })
       });
@@ -94,6 +95,7 @@ function createHandleResumeTask({
   resumeContextTouched,
   resumeFiles,
   resumePrompt,
+  resumeRepoReadOnly,
   resumeUseHostDockerSocket,
   selectedTaskId,
   setError,
@@ -103,7 +105,9 @@ function createHandleResumeTask({
   setResumeContextRepos,
   setResumeContextTouched,
   setResumeDockerTouched,
-  setResumePrompt
+  setResumePrompt,
+  setResumeRepoReadOnly,
+  setResumeRepoReadOnlyTouched
 }) {
   return async function handleResumeTask() {
     if (!selectedTaskId || !resumePrompt.trim()) {
@@ -132,6 +136,7 @@ function createHandleResumeTask({
           model: modelValue || undefined,
           reasoningEffort: reasoningEffortValue || undefined,
           useHostDockerSocket: resumeUseHostDockerSocket,
+          repoReadOnly: resumeRepoReadOnly,
           contextRepos: resumeContextTouched ? contextRepos : undefined
         })
       });
@@ -142,6 +147,8 @@ function createHandleResumeTask({
       setResumeContextRepos([]);
       setResumeContextTouched(false);
       setResumeDockerTouched(false);
+      setResumeRepoReadOnly(false);
+      setResumeRepoReadOnlyTouched(false);
       await refreshAll();
       await refreshTaskDetail(selectedTaskId);
     } catch (err) {

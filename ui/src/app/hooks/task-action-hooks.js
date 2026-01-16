@@ -110,6 +110,7 @@ function useResumeTaskHandler({
   resumeContextTouched,
   resumeFiles,
   resumePrompt,
+  resumeRepoReadOnly,
   resumeUseHostDockerSocket,
   selectedTaskId,
   setError,
@@ -119,7 +120,9 @@ function useResumeTaskHandler({
   setResumeContextRepos,
   setResumeContextTouched,
   setResumeDockerTouched,
-  setResumePrompt
+  setResumePrompt,
+  setResumeRepoReadOnly,
+  setResumeRepoReadOnlyTouched
 }) {
   return useMemo(
     () =>
@@ -132,6 +135,7 @@ function useResumeTaskHandler({
         resumeContextTouched,
         resumeFiles,
         resumePrompt,
+        resumeRepoReadOnly,
         resumeUseHostDockerSocket,
         selectedTaskId,
         setError,
@@ -141,7 +145,9 @@ function useResumeTaskHandler({
         setResumeContextRepos,
         setResumeContextTouched,
         setResumeDockerTouched,
-        setResumePrompt
+        setResumePrompt,
+        setResumeRepoReadOnly,
+        setResumeRepoReadOnlyTouched
       }),
     [
       refreshAll,
@@ -152,6 +158,7 @@ function useResumeTaskHandler({
       resumeContextTouched,
       resumeFiles,
       resumePrompt,
+      resumeRepoReadOnly,
       resumeUseHostDockerSocket,
       selectedTaskId,
       setError,
@@ -161,7 +168,9 @@ function useResumeTaskHandler({
       setResumeContextRepos,
       setResumeContextTouched,
       setResumeDockerTouched,
-      setResumePrompt
+      setResumePrompt,
+      setResumeRepoReadOnly,
+      setResumeRepoReadOnlyTouched
     ]
   );
 }

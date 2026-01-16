@@ -25,10 +25,6 @@ function attachTaskResumeMethods(Orchestrator) {
     const shouldUseHostDockerSocket = hasDockerSocketOverride
       ? options.useHostDockerSocket
       : Boolean(meta.useHostDockerSocket);
-    const hasRepoReadOnlyOverride = typeof options.repoReadOnly === 'boolean';
-    const shouldUseRepoReadOnly = hasRepoReadOnlyOverride
-      ? options.repoReadOnly
-      : Boolean(meta.repoReadOnly);
     const dockerSocketPath = shouldUseHostDockerSocket ? this.requireDockerSocket() : null;
     const env = await this.readEnv(meta.envId);
     await this.ensureOwnership(env.mirrorPath);
@@ -44,9 +40,6 @@ function attachTaskResumeMethods(Orchestrator) {
     }
     if (hasDockerSocketOverride) {
       meta.useHostDockerSocket = shouldUseHostDockerSocket;
-    }
-    if (hasRepoReadOnlyOverride) {
-      meta.repoReadOnly = shouldUseRepoReadOnly;
     }
     const runModel = normalizeOptionalString(options.model) ?? normalizeOptionalString(meta.model);
     const runReasoningEffort =
@@ -76,11 +69,6 @@ function attachTaskResumeMethods(Orchestrator) {
     });
     const attachmentsDir = this.taskAttachmentsDir(taskId);
     const hasAttachments = attachments.length > 0;
-    const readOnlyMounts = [
-      ...resolvedContextRepos.map((repo) => repo.worktreePath),
-      ...(hasAttachments ? [attachmentsDir] : []),
-      ...(shouldUseRepoReadOnly ? [meta.worktreePath] : [])
-    ];
     this.startCodexRun({
       taskId,
       runLabel,
@@ -88,12 +76,13 @@ function attachTaskResumeMethods(Orchestrator) {
       cwd: meta.worktreePath,
       args,
       mountPaths: [env.mirrorPath, ...(dockerSocketPath ? [dockerSocketPath] : [])],
-      mountPathsRo: readOnlyMounts,
+      mountPathsRo: [
+        ...resolvedContextRepos.map((repo) => repo.worktreePath),
+        ...(hasAttachments ? [attachmentsDir] : [])
+      ],
       contextRepos: resolvedContextRepos,
       attachments,
-      useHostDockerSocket: shouldUseHostDockerSocket,
-      repoReadOnly: shouldUseRepoReadOnly,
-      worktreePath: meta.worktreePath
+      useHostDockerSocket: shouldUseHostDockerSocket
     });
     return meta;
   };

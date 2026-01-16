@@ -30,8 +30,7 @@ const emptyTaskForm = {
   customModel: '',
   reasoningEffort: '',
   customReasoningEffort: '',
-  useHostDockerSocket: false,
-  repoReadOnly: false
+  useHostDockerSocket: false
 };
 const emptyResumeConfig = {
   modelChoice: '',

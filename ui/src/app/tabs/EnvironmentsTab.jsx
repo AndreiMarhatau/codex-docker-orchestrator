@@ -9,9 +9,12 @@ function EnvironmentsTab({ data, envState }) {
   const {
     envForm,
     handleCreateEnv,
+    handleCloseEditEnv,
     handleDeleteEnv,
+    handleOpenEditEnv,
     handleUpdateEnv,
     envEditForm,
+    isEditOpen,
     isEnvEditDirty,
     resetEnvEditForm,
     selectedEnv,
@@ -43,15 +46,17 @@ function EnvironmentsTab({ data, envState }) {
             <EnvironmentList
               envs={envs}
               handleDeleteEnv={handleDeleteEnv}
+              handleEditEnv={handleOpenEditEnv}
               selectedEnvId={selectedEnvId}
               setSelectedEnvId={setSelectedEnvId}
             />
-            <Divider />
             <EnvironmentEditor
               envEditForm={envEditForm}
               handleUpdateEnv={handleUpdateEnv}
               isDirty={isEnvEditDirty}
+              isOpen={isEditOpen}
               loading={loading}
+              onClose={handleCloseEditEnv}
               resetEnvEditForm={resetEnvEditForm}
               selectedEnv={selectedEnv}
               setEnvEditForm={setEnvEditForm}

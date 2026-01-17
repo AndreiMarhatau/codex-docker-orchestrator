@@ -73,7 +73,14 @@ async function requestCreateEnv({ envForm, refreshAll, setEnvForm, setError, set
   }
 }
 
-async function requestUpdateEnv({ envEditForm, refreshAll, selectedEnv, setError, setLoading }) {
+async function requestUpdateEnv({
+  envEditForm,
+  onSuccess,
+  refreshAll,
+  selectedEnv,
+  setError,
+  setLoading
+}) {
   if (!selectedEnv) {
     return;
   }
@@ -101,6 +108,9 @@ async function requestUpdateEnv({ envEditForm, refreshAll, selectedEnv, setError
       })
     });
     await refreshAll();
+    if (onSuccess) {
+      onSuccess();
+    }
   } catch (err) {
     setError(err.message);
   } finally {
@@ -110,6 +120,7 @@ async function requestUpdateEnv({ envEditForm, refreshAll, selectedEnv, setError
 
 async function requestDeleteEnv({
   envId,
+  onCloseEdit,
   refreshAll,
   selectedEnvId,
   selectedTaskId,
@@ -125,6 +136,9 @@ async function requestDeleteEnv({
   try {
     await apiRequest(`/api/envs/${envId}`, { method: 'DELETE' });
     await refreshAll();
+    if (onCloseEdit) {
+      onCloseEdit();
+    }
     if (envId === selectedEnvId) {
       setSelectedEnvId('');
     }

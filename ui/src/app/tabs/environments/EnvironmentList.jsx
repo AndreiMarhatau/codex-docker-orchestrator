@@ -1,7 +1,13 @@
 import { Button, Card, CardContent, Chip, Stack, Tooltip, Typography } from '@mui/material';
 import { formatRepoDisplay } from '../../repo-helpers.js';
 
-function EnvironmentList({ envs, handleDeleteEnv, selectedEnvId, setSelectedEnvId }) {
+function EnvironmentList({
+  envs,
+  handleDeleteEnv,
+  handleEditEnv,
+  selectedEnvId,
+  setSelectedEnvId
+}) {
   return (
     <Stack spacing={2}>
       <Typography variant="h6" className="panel-title">
@@ -30,6 +36,15 @@ function EnvironmentList({ envs, handleDeleteEnv, selectedEnvId, setSelectedEnvI
                 </Typography>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Chip size="small" label={`default: ${env.defaultBranch}`} />
+                  <Button
+                    size="small"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleEditEnv(env.envId);
+                    }}
+                  >
+                    Edit
+                  </Button>
                   <Button
                     size="small"
                     color="secondary"

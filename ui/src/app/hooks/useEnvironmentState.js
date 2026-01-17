@@ -21,6 +21,7 @@ function useEnvironmentState({
   const [envForm, setEnvForm] = useState(emptyEnvForm);
   const emptyEnvEditForm = useMemo(() => ({ defaultBranch: '', envVarsText: '' }), []);
   const [envEditForm, setEnvEditForm] = useState(emptyEnvEditForm);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const selectedEnv = useMemo(
     () => envs.find((env) => env.envId === selectedEnvId),
@@ -70,14 +71,27 @@ function useEnvironmentState({
   const handleUpdateEnv = () =>
     requestUpdateEnv({
       envEditForm,
+      onSuccess: () => setIsEditOpen(false),
       refreshAll,
       selectedEnv,
       setError,
       setLoading
     });
+  const handleOpenEditEnv = (envId) => {
+    if (envId) {
+      setSelectedEnvId(envId);
+    }
+    resetEnvEditForm();
+    setIsEditOpen(true);
+  };
+  const handleCloseEditEnv = () => {
+    resetEnvEditForm();
+    setIsEditOpen(false);
+  };
   const handleDeleteEnv = (envId) =>
     requestDeleteEnv({
       envId,
+      ...(envId === selectedEnvId ? { onCloseEdit: () => setIsEditOpen(false) } : {}),
       refreshAll,
       selectedEnvId,
       selectedTaskId,
@@ -93,8 +107,11 @@ function useEnvironmentState({
     envForm,
     envEditForm,
     handleCreateEnv,
+    handleCloseEditEnv,
     handleDeleteEnv,
+    handleOpenEditEnv,
     handleUpdateEnv,
+    isEditOpen,
     isEnvEditDirty,
     resetEnvEditForm,
     selectedEnv,

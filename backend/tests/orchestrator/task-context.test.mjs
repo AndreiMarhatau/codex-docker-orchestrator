@@ -22,7 +22,8 @@ describe('Orchestrator task context', () => {
 
     const primaryEnv = await orchestrator.createEnv({
       repoUrl: 'git@example.com:repo.git',
-      defaultBranch: 'main'
+      defaultBranch: 'main',
+      envVars: { API_TOKEN: 'secret', FEATURE_FLAG: '1' }
     });
     const contextEnv = await orchestrator.createEnv({
       repoUrl: 'git@example.com:context.git',
@@ -48,6 +49,9 @@ describe('Orchestrator task context', () => {
     const agentsContent = await fs.readFile(agentsFile, 'utf8');
     expect(agentsContent).toContain('Read-only reference repositories');
     expect(agentsContent).toContain(contextPath);
+    expect(agentsContent).toContain('Environment variables');
+    expect(agentsContent).toContain('API_TOKEN');
+    expect(agentsContent).toContain('FEATURE_FLAG');
   });
 
   it('mounts docker socket when enabled and skips when disabled', async () => {
@@ -82,6 +86,7 @@ describe('Orchestrator task context', () => {
       expect(createAgentsFile).toBeTruthy();
       const createAgentsContent = await fs.readFile(createAgentsFile, 'utf8');
       expect(createAgentsContent).toContain('Host Docker Socket');
+      expect(createAgentsContent).not.toContain('Environment variables');
 
       await orchestrator.resumeTask(task.taskId, 'Continue', { useHostDockerSocket: false });
       await waitForTaskStatus(orchestrator, task.taskId, 'completed');

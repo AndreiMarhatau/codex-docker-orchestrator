@@ -27,7 +27,8 @@ function attachTaskRunMethods(Orchestrator) {
     contextRepos = [],
     attachments = [],
     useHostDockerSocket,
-    envOverrides
+    envOverrides,
+    envVars
   }) {
     const logFile = `${runLabel}.jsonl`;
     const logPath = path.join(this.taskLogsDir(taskId), logFile);
@@ -39,7 +40,8 @@ function attachTaskRunMethods(Orchestrator) {
       runLabel,
       useHostDockerSocket,
       contextRepos,
-      attachments
+      attachments,
+      envVars
     });
     const artifactsDir = this.runArtifactsDir(taskId, runLabel);
     const env = buildRunEnv({

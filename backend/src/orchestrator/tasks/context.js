@@ -6,6 +6,18 @@ const { invalidImageError, invalidContextError } = require('../errors');
 const { normalizeOptionalString } = require('../utils');
 const { resolveRefInRepo } = require('../git');
 const { buildAttachmentsSection, buildContextReposSection } = require('../context');
+
+function buildEnvVarsSection(envVars) {
+  if (!envVars || typeof envVars !== 'object') {
+    return '';
+  }
+  const keys = Object.keys(envVars).filter(Boolean).sort();
+  if (keys.length === 0) {
+    return '';
+  }
+  const lines = keys.map((key) => `- \`${key}\``);
+  return `## Environment variables\nThese variables are passed into the Codex container:\n${lines.join('\n')}`;
+}
 async function resolveImagePath(uploadsRoot, imagePath) {
   if (typeof imagePath !== 'string' || !imagePath.trim()) {
     throw invalidImageError('Invalid image path provided.');
@@ -30,11 +42,13 @@ function buildAgentsFile({
   runLabel,
   contextRepos,
   attachments,
+  envVars,
   baseFile,
   hostDockerFile
 }) {
   const contextSection = buildContextReposSection(contextRepos);
   const attachmentsSection = buildAttachmentsSection(attachments);
+  const envVarsSection = buildEnvVarsSection(envVars);
   const sections = [];
   if (baseFile) {
     const baseContent = fs.readFileSync(baseFile, 'utf8').trimEnd();
@@ -53,6 +67,9 @@ function buildAgentsFile({
   }
   if (attachmentsSection) {
     sections.push(attachmentsSection.trimEnd());
+  }
+  if (envVarsSection) {
+    sections.push(envVarsSection.trimEnd());
   }
   if (sections.length === 0) {
     return null;
@@ -161,7 +178,14 @@ async function resolveContextRepos(taskId, contextRepos) {
   const plan = await this.prepareContextRepos(taskId, contextRepos);
   return this.materializeContextRepos(plan);
 }
-function buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket, contextRepos, attachments }) {
+function buildAgentsAppendFile({
+  taskId,
+  runLabel,
+  useHostDockerSocket,
+  contextRepos,
+  attachments,
+  envVars
+}) {
   const baseFile =
     this.orchAgentsFile && fs.existsSync(this.orchAgentsFile) ? this.orchAgentsFile : null;
   const hostDockerFile =
@@ -170,7 +194,10 @@ function buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket, contextR
       : null;
   const contextSection = buildContextReposSection(contextRepos);
   const attachmentsSection = buildAttachmentsSection(attachments);
-  const shouldCombine = Boolean(useHostDockerSocket || contextSection || attachmentsSection);
+  const envVarsSection = buildEnvVarsSection(envVars);
+  const shouldCombine = Boolean(
+    useHostDockerSocket || contextSection || attachmentsSection || envVarsSection
+  );
   if (!shouldCombine) {
     return baseFile;
   }
@@ -180,6 +207,7 @@ function buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket, contextR
     runLabel,
     contextRepos,
     attachments,
+    envVars,
     baseFile,
     hostDockerFile: includeHostDocker ? hostDockerFile : null
   });

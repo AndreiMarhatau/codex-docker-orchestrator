@@ -5,6 +5,14 @@ async function exerciseEnvironmentsTab(user) {
   expect(await screen.findByText('Create and manage repo sources for Codex runs.')).toBeInTheDocument();
   expect(screen.getByText('2 environments')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Sync now' }));
+  const baseBranchInput = await screen.findByLabelText('Base branch');
+  await user.clear(baseBranchInput);
+  await user.type(baseBranchInput, 'develop');
+  const envVarsInput = screen.getByLabelText('Selected environment variables');
+  await user.clear(envVarsInput);
+  await user.type(envVarsInput, 'API_TOKEN=beta\nFEATURE_FLAG=false');
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+  expect(await screen.findByText('default: develop')).toBeInTheDocument();
   const removeButtons = screen.getAllByRole('button', { name: 'Remove' });
   await user.click(removeButtons[removeButtons.length - 1]);
 }

@@ -95,6 +95,26 @@ function attachEnvMethods(Orchestrator) {
     }
   };
 
+  Orchestrator.prototype.updateEnv = async function updateEnv(envId, { defaultBranch, envVars }) {
+    await this.init();
+    await this.ensureOwnership(this.envDir(envId));
+    if (defaultBranch !== undefined) {
+      const verified = await verifyDefaultBranch({
+        execOrThrow: this.execOrThrow.bind(this),
+        mirrorDir: this.mirrorDir(envId),
+        defaultBranch
+      });
+      if (!verified) {
+        throw new Error(`Default branch '${defaultBranch}' not found in repository.`);
+      }
+      await writeText(this.envDefaultBranchPath(envId), defaultBranch);
+    }
+    if (envVars !== undefined) {
+      await writeJson(this.envVarsPath(envId), envVars);
+    }
+    return this.readEnv(envId);
+  };
+
   Orchestrator.prototype.deleteEnv = async function deleteEnv(envId) {
     await this.init();
     const tasks = await this.listTasks();

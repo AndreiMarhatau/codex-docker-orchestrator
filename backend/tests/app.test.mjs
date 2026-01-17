@@ -38,11 +38,15 @@ async function createTestApp() {
 
 describe('API', () => {
   it('creates env and task via API', async () => {
-    const { app } = await createTestApp();
+    const { app, spawn } = await createTestApp();
 
     const envRes = await request(app)
       .post('/api/envs')
-      .send({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' })
+      .send({
+        repoUrl: 'git@example.com:repo.git',
+        defaultBranch: 'main',
+        envVars: { SAMPLE_FLAG: 'alpha=bravo', SECRET_TOKEN: 't0ken!@#$' }
+      })
       .expect(201);
 
     const envId = envRes.body.envId;
@@ -73,6 +77,9 @@ describe('API', () => {
 
     const completed = await waitForTaskCompletion(app, taskRes.body.taskId);
     expect(completed.threadId).toBeTruthy();
+    const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
+    expect(runCall.options.env.SAMPLE_FLAG).toBe('alpha=bravo');
+    expect(runCall.options.env.SECRET_TOKEN).toBe('t0ken!@#$');
   });
 
   it('returns 404 for missing task', async () => {

@@ -26,7 +26,9 @@ function attachTaskRunMethods(Orchestrator) {
     mountPathsRo = [],
     contextRepos = [],
     attachments = [],
-    useHostDockerSocket
+    useHostDockerSocket,
+    envOverrides,
+    envVars
   }) {
     const logFile = `${runLabel}.jsonl`;
     const logPath = path.join(this.taskLogsDir(taskId), logFile);
@@ -38,7 +40,8 @@ function attachTaskRunMethods(Orchestrator) {
       runLabel,
       useHostDockerSocket,
       contextRepos,
-      attachments
+      attachments,
+      envVars
     });
     const artifactsDir = this.runArtifactsDir(taskId, runLabel);
     const env = buildRunEnv({
@@ -46,7 +49,8 @@ function attachTaskRunMethods(Orchestrator) {
       artifactsDir,
       mountPaths,
       mountPathsRo,
-      agentsAppendFile
+      agentsAppendFile,
+      envOverrides
     });
     const child = this.spawn('codex-docker', args, {
       cwd,

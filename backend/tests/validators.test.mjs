@@ -5,6 +5,7 @@ const require = createRequire(import.meta.url);
 const {
   normalizeAttachmentUploadsInput,
   normalizeContextReposInput,
+  normalizeEnvVarsInput,
   isSupportedImageFile
 } = require('../src/app/validators');
 
@@ -35,5 +36,15 @@ describe('validators', () => {
     ).toEqual([
       { path: '/tmp/file.txt', originalName: 'file.txt', size: 10, mimeType: 'text/plain' }
     ]);
+  });
+
+  it('normalizes env vars input', () => {
+    expect(normalizeEnvVarsInput(undefined)).toBe(null);
+    expect(() => normalizeEnvVarsInput('bad')).toThrow(/envVars/);
+    expect(() => normalizeEnvVarsInput({ '1BAD': 'nope' })).toThrow(/invalid/);
+    expect(normalizeEnvVarsInput({ OK: 'yes', TOKEN: 123 })).toEqual({ OK: 'yes', TOKEN: '123' });
+    expect(
+      normalizeEnvVarsInput([{ key: 'FOO', value: 'bar=baz' }, { key: 'ALPHA', value: '1' }])
+    ).toEqual({ FOO: 'bar=baz', ALPHA: '1' });
   });
 });

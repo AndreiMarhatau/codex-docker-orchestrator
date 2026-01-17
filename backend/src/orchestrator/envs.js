@@ -1,5 +1,14 @@
 const crypto = require('node:crypto');
-const { ensureDir, writeText, readText, listDirs, removePath, pathExists } = require('../storage');
+const {
+  ensureDir,
+  writeJson,
+  writeText,
+  readJson,
+  readText,
+  listDirs,
+  removePath,
+  pathExists
+} = require('../storage');
 
 async function verifyDefaultBranch({ execOrThrow, mirrorDir, defaultBranch }) {
   const refsToVerify = defaultBranch.startsWith('refs/')
@@ -20,10 +29,19 @@ function attachEnvMethods(Orchestrator) {
   Orchestrator.prototype.readEnv = async function readEnv(envId) {
     const repoUrl = await readText(this.envRepoUrlPath(envId));
     const defaultBranch = await readText(this.envDefaultBranchPath(envId));
+    let envVars = {};
+    const envVarsPath = this.envVarsPath(envId);
+    if (await pathExists(envVarsPath)) {
+      const envVarsData = await readJson(envVarsPath);
+      if (envVarsData && typeof envVarsData === 'object' && !Array.isArray(envVarsData)) {
+        envVars = envVarsData;
+      }
+    }
     return {
       envId,
       repoUrl,
       defaultBranch,
+      envVars,
       mirrorPath: this.mirrorDir(envId)
     };
   };
@@ -43,7 +61,7 @@ function attachEnvMethods(Orchestrator) {
     return envs;
   };
 
-  Orchestrator.prototype.createEnv = async function createEnv({ repoUrl, defaultBranch }) {
+  Orchestrator.prototype.createEnv = async function createEnv({ repoUrl, defaultBranch, envVars }) {
     await this.init();
     const envId = crypto.randomUUID();
     const envDir = this.envDir(envId);
@@ -51,6 +69,7 @@ function attachEnvMethods(Orchestrator) {
     await ensureDir(envDir);
     await writeText(this.envRepoUrlPath(envId), repoUrl);
     await writeText(this.envDefaultBranchPath(envId), defaultBranch);
+    await writeJson(this.envVarsPath(envId), envVars || {});
 
     try {
       await this.execOrThrow('git', ['clone', '--bare', repoUrl, mirrorDir]);
@@ -69,7 +88,7 @@ function attachEnvMethods(Orchestrator) {
       if (!verified) {
         throw new Error(`Default branch '${defaultBranch}' not found in repository.`);
       }
-      return { envId, repoUrl, defaultBranch };
+      return { envId, repoUrl, defaultBranch, envVars: envVars || {} };
     } catch (error) {
       await removePath(envDir);
       throw error;

@@ -1,11 +1,10 @@
 const path = require('node:path');
-const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const { ensureDir } = require('../../storage');
 const { invalidImageError, invalidContextError } = require('../errors');
 const { normalizeOptionalString } = require('../utils');
 const { resolveRefInRepo } = require('../git');
-const { buildAttachmentsSection, buildContextReposSection } = require('../context');
+const { buildAgentsAppendFile } = require('./agents');
 async function resolveImagePath(uploadsRoot, imagePath) {
   if (typeof imagePath !== 'string' || !imagePath.trim()) {
     throw invalidImageError('Invalid image path provided.');
@@ -24,43 +23,6 @@ async function resolveImagePath(uploadsRoot, imagePath) {
     throw invalidImageError(`Image not found: ${imagePath}`);
   }
   return resolvedPath;
-}
-function buildAgentsFile({
-  taskId,
-  runLabel,
-  contextRepos,
-  attachments,
-  baseFile,
-  hostDockerFile
-}) {
-  const contextSection = buildContextReposSection(contextRepos);
-  const attachmentsSection = buildAttachmentsSection(attachments);
-  const sections = [];
-  if (baseFile) {
-    const baseContent = fs.readFileSync(baseFile, 'utf8').trimEnd();
-    if (baseContent) {
-      sections.push(baseContent);
-    }
-  }
-  if (hostDockerFile) {
-    const hostContent = fs.readFileSync(hostDockerFile, 'utf8').trimEnd();
-    if (hostContent) {
-      sections.push(hostContent);
-    }
-  }
-  if (contextSection) {
-    sections.push(contextSection.trimEnd());
-  }
-  if (attachmentsSection) {
-    sections.push(attachmentsSection.trimEnd());
-  }
-  if (sections.length === 0) {
-    return null;
-  }
-  const combined = `${sections.join('\n\n')}\n`;
-  const targetPath = path.join(this.taskLogsDir(taskId), `${runLabel}.agents.md`);
-  fs.writeFileSync(targetPath, combined, 'utf8');
-  return targetPath;
 }
 async function resolveImagePaths(imagePaths) {
   if (!Array.isArray(imagePaths) || imagePaths.length === 0) {
@@ -160,30 +122,6 @@ async function materializeContextRepos(plan) {
 async function resolveContextRepos(taskId, contextRepos) {
   const plan = await this.prepareContextRepos(taskId, contextRepos);
   return this.materializeContextRepos(plan);
-}
-function buildAgentsAppendFile({ taskId, runLabel, useHostDockerSocket, contextRepos, attachments }) {
-  const baseFile =
-    this.orchAgentsFile && fs.existsSync(this.orchAgentsFile) ? this.orchAgentsFile : null;
-  const hostDockerFile =
-    this.hostDockerAgentsFile && fs.existsSync(this.hostDockerAgentsFile)
-      ? this.hostDockerAgentsFile
-      : null;
-  const contextSection = buildContextReposSection(contextRepos);
-  const attachmentsSection = buildAttachmentsSection(attachments);
-  const shouldCombine = Boolean(useHostDockerSocket || contextSection || attachmentsSection);
-  if (!shouldCombine) {
-    return baseFile;
-  }
-  const includeHostDocker = Boolean(useHostDockerSocket && hostDockerFile);
-  const agentsFile = buildAgentsFile.call(this, {
-    taskId,
-    runLabel,
-    contextRepos,
-    attachments,
-    baseFile,
-    hostDockerFile: includeHostDocker ? hostDockerFile : null
-  });
-  return agentsFile;
 }
 
 function attachTaskContextMethods(Orchestrator) {

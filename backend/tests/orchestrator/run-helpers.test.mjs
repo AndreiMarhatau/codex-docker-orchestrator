@@ -58,6 +58,31 @@ describe('run helpers env', () => {
     delete process.env.CODEX_MOUNT_PATHS;
     delete process.env.CODEX_MOUNT_PATHS_RO;
   });
+
+  it('applies env overrides and extends passthrough list', async () => {
+    const root = await createTempDir();
+    const codexHome = path.join(root, 'codex');
+    const artifactsDir = path.join(root, 'artifacts');
+    await fs.mkdir(codexHome, { recursive: true });
+    await fs.mkdir(artifactsDir, { recursive: true });
+    process.env.CODEX_PASSTHROUGH_ENV = 'EXISTING_VAR';
+
+    const env = buildRunEnv({
+      codexHome,
+      artifactsDir,
+      mountPaths: [],
+      mountPathsRo: [],
+      agentsAppendFile: null,
+      envOverrides: { SAMPLE_FLAG: 'alpha=bravo', PATH: '/custom/bin' }
+    });
+
+    expect(env.SAMPLE_FLAG).toBe('alpha=bravo');
+    expect(env.PATH).toBe('/custom/bin');
+    expect(env.CODEX_PASSTHROUGH_ENV.split(',')).toEqual(
+      expect.arrayContaining(['EXISTING_VAR', 'SAMPLE_FLAG', 'PATH'])
+    );
+    delete process.env.CODEX_PASSTHROUGH_ENV;
+  });
 });
 
 describe('run helpers output', () => {

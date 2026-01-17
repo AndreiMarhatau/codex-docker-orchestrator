@@ -82,7 +82,9 @@ function attachTaskResumeMethods(Orchestrator) {
       ],
       contextRepos: resolvedContextRepos,
       attachments,
-      useHostDockerSocket: shouldUseHostDockerSocket
+      useHostDockerSocket: shouldUseHostDockerSocket,
+      envOverrides: env.envVars,
+      envVars: env.envVars
     });
     return meta;
   };

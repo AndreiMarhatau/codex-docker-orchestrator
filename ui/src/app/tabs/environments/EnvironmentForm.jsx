@@ -24,6 +24,16 @@ function EnvironmentForm({ envForm, handleCreateEnv, loading, setEnvForm }) {
           setEnvForm((prev) => ({ ...prev, defaultBranch: event.target.value }))
         }
       />
+      <TextField
+        label="Environment variables"
+        fullWidth
+        multiline
+        minRows={4}
+        placeholder="FOO=bar\nAPI_TOKEN=abc123"
+        helperText="One per line as KEY=VALUE. Values are passed through to Codex."
+        value={envForm.envVarsText}
+        onChange={(event) => setEnvForm((prev) => ({ ...prev, envVarsText: event.target.value }))}
+      />
       <Button
         variant="contained"
         onClick={handleCreateEnv}

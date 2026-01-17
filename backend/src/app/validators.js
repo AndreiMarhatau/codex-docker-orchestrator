@@ -61,8 +61,50 @@ function normalizeAttachmentUploadsInput(fileUploads) {
   });
 }
 
+function normalizeEnvVarsInput(envVars) {
+  if (envVars === undefined) {
+    return null;
+  }
+  const normalized = {};
+  const envKeyPattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+  if (!Array.isArray(envVars) && (envVars === null || typeof envVars !== 'object')) {
+    throw new Error('envVars must be an object or array');
+  }
+
+  const entries = Array.isArray(envVars)
+    ? envVars.map((entry, index) => {
+      if (!entry || typeof entry !== 'object') {
+        throw new Error(`envVars[${index}] must be an object`);
+      }
+      const key = typeof entry.key === 'string' ? entry.key.trim() : '';
+      if (!key) {
+        throw new Error(`envVars[${index}].key is required`);
+      }
+      return [key, entry.value];
+    })
+    : Object.entries(envVars);
+
+  for (const [key, value] of entries) {
+    if (!envKeyPattern.test(key)) {
+      throw new Error(`envVars key '${key}' is invalid`);
+    }
+    if (value === undefined || value === null) {
+      throw new Error(`envVars.${key} is required`);
+    }
+    const stringValue = String(value);
+    if (stringValue.includes('\0')) {
+      throw new Error(`envVars.${key} contains a null byte`);
+    }
+    normalized[key] = stringValue;
+  }
+
+  return normalized;
+}
+
 module.exports = {
   isSupportedImageFile,
   normalizeAttachmentUploadsInput,
-  normalizeContextReposInput
+  normalizeContextReposInput,
+  normalizeEnvVarsInput
 };

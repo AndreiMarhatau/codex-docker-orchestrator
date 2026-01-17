@@ -20,7 +20,7 @@ const EFFORT_LABELS = {
   high: 'high',
   xhigh: 'xhigh'
 };
-const emptyEnvForm = { repoUrl: '', defaultBranch: 'main' };
+const emptyEnvForm = { repoUrl: '', defaultBranch: 'main', envVarsText: '' };
 const emptyTaskForm = {
   envId: '',
   ref: '',

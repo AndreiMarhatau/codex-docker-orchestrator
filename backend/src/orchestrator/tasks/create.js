@@ -176,7 +176,8 @@ function attachTaskCreateMethods(Orchestrator) {
       ],
       contextRepos: resolvedContextRepos,
       attachments,
-      useHostDockerSocket: shouldUseHostDockerSocket
+      useHostDockerSocket: shouldUseHostDockerSocket,
+      envOverrides: env.envVars
     });
     return meta;
   };

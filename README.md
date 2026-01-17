@@ -62,6 +62,13 @@ You can also set the variable in a `.env` file in `ui/` (for example, `VITE_API_
 - Backend tests: `npm -C backend test`
 - UI tests: `npm -C ui test`
 
+## Environment variables inside Codex
+- Each environment can define key/value pairs in the Environments tab; they are injected into every
+  `codex-docker` run for that environment and are available inside the Codex container.
+- `codex-docker` also forwards non-system environment variables from the orchestrator process by
+  default. If you set `CODEX_PASSTHROUGH_ENV=FOO,BAR`, only that allowlist is forwarded; the
+  orchestrator appends the environment-specific keys so they still pass through.
+
 ## Docker (host-path)
 This runs the orchestrator in a container while using the host Docker engine. It keeps `codex-docker`
 working and reuses your host Codex + GitHub credentials.

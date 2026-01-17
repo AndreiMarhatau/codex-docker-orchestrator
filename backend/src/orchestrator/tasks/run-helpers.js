@@ -47,7 +47,47 @@ function resolveMountPaths(paths) {
   return unique;
 }
 
-function buildRunEnv({ codexHome, artifactsDir, mountPaths, mountPathsRo, agentsAppendFile }) {
+function mergePassthroughEnv(env, keys) {
+  const existing = env.CODEX_PASSTHROUGH_ENV;
+  if (!existing) {
+    return;
+  }
+  const merged = new Set(
+    existing
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+  );
+  for (const key of keys) {
+    if (key) {
+      merged.add(key);
+    }
+  }
+  env.CODEX_PASSTHROUGH_ENV = Array.from(merged).join(',');
+}
+
+function applyEnvOverrides(env, envOverrides) {
+  if (!envOverrides) {
+    return;
+  }
+  const keys = Object.keys(envOverrides);
+  for (const key of keys) {
+    if (!key) {
+      continue;
+    }
+    env[key] = String(envOverrides[key]);
+  }
+  mergePassthroughEnv(env, keys);
+}
+
+function buildRunEnv({
+  codexHome,
+  artifactsDir,
+  mountPaths,
+  mountPathsRo,
+  agentsAppendFile,
+  envOverrides
+}) {
   const env = { ...process.env };
   ensureCodexHome(env, codexHome);
   if (agentsAppendFile) {
@@ -58,6 +98,7 @@ function buildRunEnv({ codexHome, artifactsDir, mountPaths, mountPathsRo, agents
   addMountPaths(env, 'CODEX_MOUNT_PATHS', rwMounts);
   const roMounts = resolveMountPaths(mountPathsRo).filter((item) => !rwMounts.includes(item));
   addMountPaths(env, 'CODEX_MOUNT_PATHS_RO', roMounts);
+  applyEnvOverrides(env, envOverrides);
   return env;
 }
 

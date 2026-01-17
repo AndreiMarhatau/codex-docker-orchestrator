@@ -74,6 +74,10 @@ function attachPathMethods(Orchestrator) {
     return path.join(this.envDir(envId), 'default_branch');
   };
 
+  Orchestrator.prototype.envVarsPath = function envVarsPath(envId) {
+    return path.join(this.envDir(envId), 'env.vars.json');
+  };
+
   Orchestrator.prototype.init = async function init() {
     await ensureDir(this.envsDir());
     await ensureDir(this.tasksDir());

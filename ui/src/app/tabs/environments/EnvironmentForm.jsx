@@ -29,8 +29,8 @@ function EnvironmentForm({ envForm, handleCreateEnv, loading, setEnvForm }) {
         fullWidth
         multiline
         minRows={4}
-        placeholder="FOO=bar\nAPI_TOKEN=abc123"
-        helperText="One per line as KEY=VALUE. Values are passed through to Codex."
+        placeholder="KEY=VALUE"
+        helperText="One per line. Example: FOO=bar, API_TOKEN=abc123"
         value={envForm.envVarsText}
         onChange={(event) => setEnvForm((prev) => ({ ...prev, envVarsText: event.target.value }))}
       />

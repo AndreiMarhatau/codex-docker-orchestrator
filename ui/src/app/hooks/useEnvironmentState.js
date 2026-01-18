@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { emptyEnvForm } from '../constants.js';
 import {
   envVarsToText,
@@ -6,6 +6,47 @@ import {
   requestDeleteEnv,
   requestUpdateEnv
 } from './environment-helpers.js';
+
+function useEnvEditSync({
+  envEditDefaults,
+  envEditForm,
+  hasEnvEditChanges,
+  isEditOpen,
+  selectedEnvId,
+  setEnvEditForm,
+  setHasEnvEditChanges
+}) {
+  const previousEnvIdRef = useRef('');
+
+  useEffect(() => {
+    if (!hasEnvEditChanges) {
+      return;
+    }
+    const matchesDefaults =
+      envEditForm.defaultBranch.trim() === envEditDefaults.defaultBranch &&
+      envEditForm.envVarsText === envEditDefaults.envVarsText;
+    if (matchesDefaults) {
+      setHasEnvEditChanges(false);
+    }
+  }, [envEditDefaults, envEditForm, hasEnvEditChanges, setHasEnvEditChanges]);
+
+  useEffect(() => {
+    const prevEnvId = previousEnvIdRef.current;
+    const envChanged = Boolean(prevEnvId) && prevEnvId !== selectedEnvId;
+    if (envChanged || !isEditOpen || !hasEnvEditChanges) {
+      setEnvEditForm(envEditDefaults);
+      setHasEnvEditChanges(false);
+    }
+    previousEnvIdRef.current = selectedEnvId;
+  }, [
+    envEditDefaults,
+    hasEnvEditChanges,
+    isEditOpen,
+    selectedEnvId,
+    setEnvEditForm,
+    setHasEnvEditChanges
+  ]);
+}
 
 function useEnvironmentState({
   envs,
@@ -22,6 +63,7 @@ function useEnvironmentState({
   const emptyEnvEditForm = useMemo(() => ({ defaultBranch: '', envVarsText: '' }), []);
   const [envEditForm, setEnvEditForm] = useState(emptyEnvEditForm);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [hasEnvEditChanges, setHasEnvEditChanges] = useState(false);
 
   const selectedEnv = useMemo(
     () => envs.find((env) => env.envId === selectedEnvId),
@@ -40,11 +82,11 @@ function useEnvironmentState({
     if (!selectedEnv) {
       return false;
     }
-    return (
+    return hasEnvEditChanges && (
       envEditForm.defaultBranch.trim() !== envEditDefaults.defaultBranch ||
       envEditForm.envVarsText !== envEditDefaults.envVarsText
     );
-  }, [envEditDefaults, envEditForm, selectedEnv]);
+  }, [envEditDefaults, envEditForm, hasEnvEditChanges, selectedEnv]);
 
   useEffect(() => {
     if (!selectedEnvId && envs.length > 0) {
@@ -52,13 +94,29 @@ function useEnvironmentState({
     }
   }, [envs, selectedEnvId]);
 
-  useEffect(() => {
-    setEnvEditForm(envEditDefaults);
-  }, [envEditDefaults]);
+  useEnvEditSync({
+    envEditDefaults,
+    envEditForm,
+    hasEnvEditChanges,
+    isEditOpen,
+    selectedEnvId,
+    setEnvEditForm,
+    setHasEnvEditChanges
+  });
 
   function resetEnvEditForm() {
     setEnvEditForm(envEditDefaults);
+    setHasEnvEditChanges(false);
   }
+
+  const handleSetEnvEditForm = (updater) => {
+    setHasEnvEditChanges(true);
+    if (typeof updater === 'function') {
+      setEnvEditForm((prev) => updater(prev));
+    } else {
+      setEnvEditForm(updater);
+    }
+  };
 
   const handleCreateEnv = () =>
     requestCreateEnv({
@@ -81,11 +139,9 @@ function useEnvironmentState({
     if (envId) {
       setSelectedEnvId(envId);
     }
-    resetEnvEditForm();
     setIsEditOpen(true);
   };
   const handleCloseEditEnv = () => {
-    resetEnvEditForm();
     setIsEditOpen(false);
   };
   const handleDeleteEnv = (envId) =>
@@ -116,7 +172,7 @@ function useEnvironmentState({
     resetEnvEditForm,
     selectedEnv,
     selectedEnvId,
-    setEnvEditForm,
+    setEnvEditForm: handleSetEnvEditForm,
     setEnvForm,
     setSelectedEnvId
   };

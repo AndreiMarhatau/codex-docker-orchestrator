@@ -109,8 +109,9 @@ async function exerciseTaskDetail(user) {
 it(
   'renders the orchestrator sections and task details',
   async () => {
+    let envsState = envs.map((env) => ({ ...env }));
     mockApi({
-      '/api/envs': envs,
+      '/api/envs': () => envsState,
       '/api/tasks': tasks,
       '/api/accounts': accounts,
       'POST /api/uploads': { uploads: [{ path: '/tmp/uploaded.png' }] },
@@ -132,7 +133,22 @@ it(
       'POST /api/tasks/task-2/stop': {},
       'DELETE /api/tasks/task-2': {},
       'DELETE /api/tasks/task-1': {},
-      'DELETE /api/envs/env-1': {},
+      'DELETE /api/envs/env-1': () => {
+        envsState = envsState.filter((env) => env.envId !== 'env-1');
+        return {};
+      },
+      'DELETE /api/envs/env-2': () => {
+        envsState = envsState.filter((env) => env.envId !== 'env-2');
+        return {};
+      },
+      'PATCH /api/envs/env-1': ({ body }) => {
+        envsState = envsState.map((env) =>
+          env.envId === 'env-1'
+            ? { ...env, defaultBranch: body.defaultBranch, envVars: body.envVars }
+            : env
+        );
+        return envsState.find((env) => env.envId === 'env-1');
+      },
       'POST /api/accounts': accounts,
       'POST /api/accounts/rotate': accounts,
       'POST /api/accounts/acct-2/activate': accounts,

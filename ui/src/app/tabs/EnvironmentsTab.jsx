@@ -1,4 +1,5 @@
 import { Box, Card, CardContent, Divider, Stack } from '@mui/material';
+import EnvironmentEditor from './environments/EnvironmentEditor.jsx';
 import EnvironmentForm from './environments/EnvironmentForm.jsx';
 import EnvironmentHeader from './environments/EnvironmentHeader.jsx';
 import EnvironmentList from './environments/EnvironmentList.jsx';
@@ -8,10 +9,18 @@ function EnvironmentsTab({ data, envState }) {
   const {
     envForm,
     handleCreateEnv,
+    handleCloseEditEnv,
     handleDeleteEnv,
+    handleOpenEditEnv,
+    handleUpdateEnv,
+    envEditForm,
+    isEditOpen,
+    isEnvEditDirty,
+    resetEnvEditForm,
     selectedEnv,
     selectedEnvId,
     setEnvForm,
+    setEnvEditForm,
     setSelectedEnvId
   } = envState;
 
@@ -37,8 +46,20 @@ function EnvironmentsTab({ data, envState }) {
             <EnvironmentList
               envs={envs}
               handleDeleteEnv={handleDeleteEnv}
+              handleEditEnv={handleOpenEditEnv}
               selectedEnvId={selectedEnvId}
               setSelectedEnvId={setSelectedEnvId}
+            />
+            <EnvironmentEditor
+              envEditForm={envEditForm}
+              handleUpdateEnv={handleUpdateEnv}
+              isDirty={isEnvEditDirty}
+              isOpen={isEditOpen}
+              loading={loading}
+              onClose={handleCloseEditEnv}
+              resetEnvEditForm={resetEnvEditForm}
+              selectedEnv={selectedEnv}
+              setEnvEditForm={setEnvEditForm}
             />
           </Stack>
         </CardContent>

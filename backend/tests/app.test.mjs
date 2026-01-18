@@ -21,10 +21,10 @@ async function waitForTaskCompletion(app, taskId) {
   throw new Error('Timed out waiting for task completion');
 }
 
-async function createTestApp() {
+async function createTestApp({ branches } = {}) {
   const orchHome = await createTempDir();
   const codexHome = await createTempDir();
-  const exec = createMockExec({ branches: ['main'] });
+  const exec = createMockExec({ branches: branches || ['main'] });
   const spawn = createMockSpawn();
   const orchestrator = new Orchestrator({
     orchHome,
@@ -80,6 +80,54 @@ describe('API', () => {
     const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
     expect(runCall.options.env.SAMPLE_FLAG).toBe('alpha=bravo');
     expect(runCall.options.env.SECRET_TOKEN).toBe('t0ken!@#$');
+  });
+
+  it('updates env defaults via API', async () => {
+    const { app } = await createTestApp({ branches: ['main', 'develop'] });
+
+    const envRes = await request(app)
+      .post('/api/envs')
+      .send({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' })
+      .expect(201);
+
+    const updateRes = await request(app)
+      .patch(`/api/envs/${envRes.body.envId}`)
+      .send({ defaultBranch: 'develop', envVars: { FEATURE_FLAG: 'true' } })
+      .expect(200);
+
+    expect(updateRes.body.defaultBranch).toBe('develop');
+    expect(updateRes.body.envVars).toEqual({ FEATURE_FLAG: 'true' });
+  });
+
+  it('updates env vars without changing the base branch', async () => {
+    const { app } = await createTestApp();
+
+    const envRes = await request(app)
+      .post('/api/envs')
+      .send({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' })
+      .expect(201);
+
+    const updateRes = await request(app)
+      .patch(`/api/envs/${envRes.body.envId}`)
+      .send({ envVars: { SAMPLE: '1' } })
+      .expect(200);
+
+    expect(updateRes.body.defaultBranch).toBe('main');
+    expect(updateRes.body.envVars).toEqual({ SAMPLE: '1' });
+  });
+
+  it('rejects empty env updates', async () => {
+    const { app } = await createTestApp();
+
+    const envRes = await request(app)
+      .post('/api/envs')
+      .send({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' })
+      .expect(201);
+
+    await request(app)
+      .patch(`/api/envs/${envRes.body.envId}`)
+      .send({})
+      .expect(400);
   });
 
   it('returns 404 for missing task', async () => {

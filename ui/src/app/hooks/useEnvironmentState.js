@@ -1,35 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { apiRequest } from '../../api.js';
 import { emptyEnvForm } from '../constants.js';
-
-function parseEnvVarsText(envVarsText) {
-  if (!envVarsText || !envVarsText.trim()) {
-    return {};
-  }
-  const envVars = {};
-  const envKeyPattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
-  const lines = envVarsText.split(/\r?\n/);
-  lines.forEach((line, index) => {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) {
-      return;
-    }
-    const separatorIndex = line.indexOf('=');
-    if (separatorIndex === -1) {
-      throw new Error(`Line ${index + 1} must be KEY=VALUE.`);
-    }
-    const key = line.slice(0, separatorIndex).trim();
-    const value = line.slice(separatorIndex + 1);
-    if (!key) {
-      throw new Error(`Line ${index + 1} is missing a key.`);
-    }
-    if (!envKeyPattern.test(key)) {
-      throw new Error(`Line ${index + 1} has an invalid key '${key}'.`);
-    }
-    envVars[key] = value;
-  });
-  return envVars;
-}
+import {
+  envVarsToText,
+  requestCreateEnv,
+  requestDeleteEnv,
+  requestUpdateEnv
+} from './environment-helpers.js';
 
 function useEnvironmentState({
   envs,
@@ -43,11 +19,32 @@ function useEnvironmentState({
 }) {
   const [selectedEnvId, setSelectedEnvId] = useState('');
   const [envForm, setEnvForm] = useState(emptyEnvForm);
+  const emptyEnvEditForm = useMemo(() => ({ defaultBranch: '', envVarsText: '' }), []);
+  const [envEditForm, setEnvEditForm] = useState(emptyEnvEditForm);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const selectedEnv = useMemo(
     () => envs.find((env) => env.envId === selectedEnvId),
     [envs, selectedEnvId]
   );
+  const envEditDefaults = useMemo(() => {
+    if (!selectedEnv) {
+      return emptyEnvEditForm;
+    }
+    return {
+      defaultBranch: selectedEnv.defaultBranch || '',
+      envVarsText: envVarsToText(selectedEnv.envVars)
+    };
+  }, [emptyEnvEditForm, selectedEnv]);
+  const isEnvEditDirty = useMemo(() => {
+    if (!selectedEnv) {
+      return false;
+    }
+    return (
+      envEditForm.defaultBranch.trim() !== envEditDefaults.defaultBranch ||
+      envEditForm.envVarsText !== envEditDefaults.envVarsText
+    );
+  }, [envEditDefaults, envEditForm, selectedEnv]);
 
   useEffect(() => {
     if (!selectedEnvId && envs.length > 0) {
@@ -55,65 +52,71 @@ function useEnvironmentState({
     }
   }, [envs, selectedEnvId]);
 
-  async function handleCreateEnv() {
-    if (!envForm.repoUrl.trim()) {
-      return;
-    }
-    setError('');
-    setLoading(true);
-    let envVars = {};
-    try {
-      envVars = parseEnvVarsText(envForm.envVarsText);
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-      return;
-    }
-    try {
-      await apiRequest('/api/envs', {
-        method: 'POST',
-        body: JSON.stringify({
-          repoUrl: envForm.repoUrl,
-          defaultBranch: envForm.defaultBranch,
-          envVars
-        })
-      });
-      setEnvForm(emptyEnvForm);
-      await refreshAll();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    setEnvEditForm(envEditDefaults);
+  }, [envEditDefaults]);
+
+  function resetEnvEditForm() {
+    setEnvEditForm(envEditDefaults);
   }
 
-  async function handleDeleteEnv(envId) {
-    setError('');
-    setLoading(true);
-    try {
-      await apiRequest(`/api/envs/${envId}`, { method: 'DELETE' });
-      await refreshAll();
-      if (envId === selectedEnvId) {
-        setSelectedEnvId('');
-      }
-      const selectedTask = tasks.find((task) => task.taskId === selectedTaskId);
-      if (selectedTask && selectedTask.envId === envId) {
-        setSelectedTaskId('');
-        setTaskDetail(null);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+  const handleCreateEnv = () =>
+    requestCreateEnv({
+      envForm,
+      refreshAll,
+      setEnvForm,
+      setError,
+      setLoading
+    });
+  const handleUpdateEnv = () =>
+    requestUpdateEnv({
+      envEditForm,
+      onSuccess: () => setIsEditOpen(false),
+      refreshAll,
+      selectedEnv,
+      setError,
+      setLoading
+    });
+  const handleOpenEditEnv = (envId) => {
+    if (envId) {
+      setSelectedEnvId(envId);
     }
-  }
+    resetEnvEditForm();
+    setIsEditOpen(true);
+  };
+  const handleCloseEditEnv = () => {
+    resetEnvEditForm();
+    setIsEditOpen(false);
+  };
+  const handleDeleteEnv = (envId) =>
+    requestDeleteEnv({
+      envId,
+      ...(envId === selectedEnvId ? { onCloseEdit: () => setIsEditOpen(false) } : {}),
+      refreshAll,
+      selectedEnvId,
+      selectedTaskId,
+      setError,
+      setLoading,
+      setSelectedEnvId,
+      setSelectedTaskId,
+      setTaskDetail,
+      tasks
+    });
 
   return {
     envForm,
+    envEditForm,
     handleCreateEnv,
+    handleCloseEditEnv,
     handleDeleteEnv,
+    handleOpenEditEnv,
+    handleUpdateEnv,
+    isEditOpen,
+    isEnvEditDirty,
+    resetEnvEditForm,
     selectedEnv,
     selectedEnvId,
+    setEnvEditForm,
     setEnvForm,
     setSelectedEnvId
   };

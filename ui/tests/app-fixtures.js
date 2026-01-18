@@ -2,12 +2,14 @@ const envs = [
   {
     envId: 'env-1',
     repoUrl: 'https://github.com/openai/codex.git',
-    defaultBranch: 'main'
+    defaultBranch: 'main',
+    envVars: { API_TOKEN: 'alpha', FEATURE_FLAG: 'true' }
   },
   {
     envId: 'env-2',
     repoUrl: 'https://github.com/openai/reference.git',
-    defaultBranch: 'main'
+    defaultBranch: 'main',
+    envVars: {}
   }
 ];
 const tasks = [

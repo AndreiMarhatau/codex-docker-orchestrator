@@ -25,22 +25,41 @@ function mockApi(responses) {
       throw new Error(`Unhandled request: ${url}`);
     }
 
-    if (response && typeof response === 'object' && response.delay) {
-      await new Promise((resolve) => setTimeout(resolve, response.delay));
+    const resolvedResponse =
+      typeof response === 'function'
+        ? await response({
+            url,
+            method,
+            options,
+            body: (() => {
+              if (!options.body) {
+                return null;
+              }
+              try {
+                return JSON.parse(options.body);
+              } catch (error) {
+                return options.body;
+              }
+            })()
+          })
+        : response;
+
+    if (resolvedResponse && typeof resolvedResponse === 'object' && resolvedResponse.delay) {
+      await new Promise((resolve) => setTimeout(resolve, resolvedResponse.delay));
     }
 
-    if (response.ok === false) {
+    if (resolvedResponse.ok === false) {
       return {
         ok: false,
-        status: response.status ?? 500,
-        text: async () => response.text ?? 'Request failed.'
+        status: resolvedResponse.status ?? 500,
+        text: async () => resolvedResponse.text ?? 'Request failed.'
       };
     }
 
     return {
       ok: true,
-      status: response.status ?? 200,
-      json: async () => response.body ?? response
+      status: resolvedResponse.status ?? 200,
+      json: async () => resolvedResponse.body ?? resolvedResponse
     };
   });
 }

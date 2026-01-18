@@ -1,10 +1,24 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 
 async function exerciseEnvironmentsTab(user) {
   await user.click(screen.getByRole('tab', { name: 'Environments' }));
   expect(await screen.findByText('Create and manage repo sources for Codex runs.')).toBeInTheDocument();
   expect(screen.getByText('2 environments')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Sync now' }));
+  const editButtons = screen.getAllByRole('button', { name: 'Edit' });
+  await user.click(editButtons[0]);
+  const editDialog = await screen.findByRole('dialog', { name: 'Edit environment' });
+  const baseBranchInput = within(editDialog).getByLabelText('Base branch');
+  await user.clear(baseBranchInput);
+  await user.type(baseBranchInput, 'develop');
+  const envVarsInput = within(editDialog).getByLabelText('Selected environment variables');
+  await user.clear(envVarsInput);
+  await user.type(envVarsInput, 'API_TOKEN=beta\nFEATURE_FLAG=false');
+  await user.click(within(editDialog).getByRole('button', { name: 'Save changes' }));
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog', { name: 'Edit environment' })).not.toBeInTheDocument()
+  );
+  expect(await screen.findByText('default: develop')).toBeInTheDocument();
   const removeButtons = screen.getAllByRole('button', { name: 'Remove' });
   await user.click(removeButtons[removeButtons.length - 1]);
 }

@@ -40,15 +40,18 @@ describe('Orchestrator task context', () => {
 
     const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
     expect(runCall).toBeTruthy();
+    const mountRw = runCall.options?.env?.CODEX_MOUNT_PATHS || '';
+    const homeDir = orchestrator.taskHomeDir(task.taskId);
     const mountRo = runCall.options?.env?.CODEX_MOUNT_PATHS_RO || '';
     const contextPath = orchestrator.taskContextWorktree(task.taskId, contextEnv.repoUrl, contextEnv.envId);
+    expect(mountRw.split(':')).toContain(homeDir);
     expect(mountRo.split(':')).toContain(contextPath);
 
     const agentsFile = runCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
     expect(agentsFile).toBeTruthy();
     const agentsContent = await fs.readFile(agentsFile, 'utf8');
     expect(agentsContent).toContain('Read-only reference repositories');
-    expect(agentsContent).toContain(contextPath);
+    expect(agentsContent).toContain('~/repositories/context');
     expect(agentsContent).toContain('Environment variables');
     expect(agentsContent).toContain('API_TOKEN');
     expect(agentsContent).toContain('FEATURE_FLAG');

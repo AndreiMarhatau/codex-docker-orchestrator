@@ -1,6 +1,7 @@
 const { attachTaskCleanupMethods } = require('./cleanup');
 const { attachTaskContextMethods } = require('./context');
 const { attachTaskCreateMethods } = require('./create');
+const { attachTaskExposedMethods } = require('./exposed');
 const { attachTaskLogMethods } = require('./logs');
 const { attachTaskMetaMethods } = require('./meta');
 const { attachTaskRotationMethods } = require('./rotation');
@@ -12,6 +13,7 @@ function attachTaskMethods(Orchestrator) {
   attachTaskMetaMethods(Orchestrator);
   attachTaskLogMethods(Orchestrator);
   attachTaskContextMethods(Orchestrator);
+  attachTaskExposedMethods(Orchestrator);
   attachTaskRunMethods(Orchestrator);
   attachTaskRotationMethods(Orchestrator);
   attachTaskCreateMethods(Orchestrator);

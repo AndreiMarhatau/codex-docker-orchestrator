@@ -5,8 +5,8 @@ const { readJson, writeJson } = require('../../storage');
 const { listArtifacts } = require('../artifacts');
 const { parseThreadId, safeJsonParse, isUsageLimitError } = require('../logs');
 
-function ensureCodexHome(env, codexHome) {
-  const homeDir = env.HOME || os.homedir();
+function ensureCodexHome(env, codexHome, homeDirOverride) {
+  const homeDir = homeDirOverride || env.HOME || os.homedir();
   env.HOME = homeDir;
   env.CODEX_HOME = codexHome || env.CODEX_HOME || path.join(homeDir, '.codex');
   try {
@@ -86,10 +86,11 @@ function buildRunEnv({
   mountPaths,
   mountPathsRo,
   agentsAppendFile,
-  envOverrides
+  envOverrides,
+  homeDir
 }) {
   const env = { ...process.env };
-  ensureCodexHome(env, codexHome);
+  ensureCodexHome(env, codexHome, homeDir);
   if (agentsAppendFile) {
     env.CODEX_AGENTS_APPEND_FILE = agentsAppendFile;
   }

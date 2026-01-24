@@ -29,6 +29,11 @@ function attachTaskResumeMethods(Orchestrator) {
     const env = await this.readEnv(meta.envId);
     await this.ensureOwnership(env.mirrorPath);
 
+    const exposedPaths = await this.prepareTaskExposedPaths(taskId, {
+      contextRepos: resolvedContextRepos,
+      attachments
+    });
+
     const runLabel = nextRunLabel(meta.runs.length + 1);
     const hasPrompt = typeof prompt === 'string' && prompt.length > 0;
     const hasCodexPromptOverride = Object.prototype.hasOwnProperty.call(options, 'codexPrompt');
@@ -75,7 +80,7 @@ function attachTaskResumeMethods(Orchestrator) {
       prompt,
       cwd: meta.worktreePath,
       args,
-      mountPaths: [env.mirrorPath, ...(dockerSocketPath ? [dockerSocketPath] : [])],
+      mountPaths: [exposedPaths.homeDir, env.mirrorPath, ...(dockerSocketPath ? [dockerSocketPath] : [])],
       mountPathsRo: [
         ...resolvedContextRepos.map((repo) => repo.worktreePath),
         ...(hasAttachments ? [attachmentsDir] : [])
@@ -84,7 +89,9 @@ function attachTaskResumeMethods(Orchestrator) {
       attachments,
       useHostDockerSocket: shouldUseHostDockerSocket,
       envOverrides: env.envVars,
-      envVars: env.envVars
+      envVars: env.envVars,
+      homeDir: exposedPaths.homeDir,
+      exposedPaths
     });
     return meta;
   };

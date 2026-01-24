@@ -27,6 +27,10 @@ function attachPathMethods(Orchestrator) {
     return path.join(this.tasksDir(), taskId);
   };
 
+  Orchestrator.prototype.taskHomeDir = function taskHomeDir(taskId) {
+    return path.join(this.taskDir(taskId), 'home');
+  };
+
   Orchestrator.prototype.taskWorktree = function taskWorktree(taskId, repoUrl) {
     const repoName = repoNameFromUrl(repoUrl);
     return path.join(this.taskDir(taskId), repoName);

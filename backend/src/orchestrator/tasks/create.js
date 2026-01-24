@@ -127,6 +127,10 @@ function attachTaskCreateMethods(Orchestrator) {
 
     await ensureDir(this.runArtifactsDir(taskId, runLabel));
     const attachments = await this.prepareTaskAttachments(taskId, fileUploads);
+    const exposedPaths = await this.prepareTaskExposedPaths(taskId, {
+      contextRepos: resolvedContextRepos,
+      attachments
+    });
     const now = this.now();
     const activeAccount = await this.accountStore.getActiveAccount();
     const meta = buildTaskMeta({
@@ -166,6 +170,7 @@ function attachTaskCreateMethods(Orchestrator) {
       cwd: worktreePath,
       args,
       mountPaths: [
+        exposedPaths.homeDir,
         env.mirrorPath,
         ...resolvedImagePaths,
         ...(dockerSocketPath ? [dockerSocketPath] : [])
@@ -178,7 +183,9 @@ function attachTaskCreateMethods(Orchestrator) {
       attachments,
       useHostDockerSocket: shouldUseHostDockerSocket,
       envOverrides: env.envVars,
-      envVars: env.envVars
+      envVars: env.envVars,
+      homeDir: exposedPaths.homeDir,
+      exposedPaths
     });
     return meta;
   };

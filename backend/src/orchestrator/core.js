@@ -9,6 +9,8 @@ const {
   DEFAULT_IMAGE_NAME,
   DEFAULT_ORCH_AGENTS_FILE,
   DEFAULT_HOST_DOCKER_AGENTS_FILE,
+  DEFAULT_CONTEXT_REPOS_TEMPLATE_FILE,
+  DEFAULT_ATTACHMENTS_TEMPLATE_FILE,
   DEFAULT_GIT_CREDENTIAL_HELPER,
   DEFAULT_ACCOUNT_ROTATION_LIMIT
 } = require('./constants');
@@ -36,6 +38,14 @@ class Orchestrator {
       options.hostDockerAgentsFile ||
       process.env.ORCH_HOST_DOCKER_AGENTS_FILE ||
       DEFAULT_HOST_DOCKER_AGENTS_FILE;
+    this.contextReposTemplateFile =
+      options.contextReposTemplateFile ||
+      process.env.ORCH_CONTEXT_REPOS_TEMPLATE_FILE ||
+      DEFAULT_CONTEXT_REPOS_TEMPLATE_FILE;
+    this.attachmentsTemplateFile =
+      options.attachmentsTemplateFile ||
+      process.env.ORCH_ATTACHMENTS_TEMPLATE_FILE ||
+      DEFAULT_ATTACHMENTS_TEMPLATE_FILE;
     this.getUid =
       options.getUid ||
       (() => (typeof process.getuid === 'function' ? process.getuid() : null));

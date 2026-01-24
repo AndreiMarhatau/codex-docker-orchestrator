@@ -20,11 +20,20 @@ function buildAgentsFile({
   contextRepos,
   attachments,
   envVars,
+  exposedPaths,
   baseFile,
   hostDockerFile
 }) {
-  const contextSection = buildContextReposSection(contextRepos);
-  const attachmentsSection = buildAttachmentsSection(attachments);
+  const contextEntries = exposedPaths?.contextRepos || contextRepos;
+  const contextSection = buildContextReposSection(contextEntries, {
+    repositoriesPath: exposedPaths?.repositoriesPath,
+    repositoriesAliasPath: exposedPaths?.repositoriesAliasPath,
+    templatePath: this.contextReposTemplateFile
+  });
+  const attachmentsSection = buildAttachmentsSection(attachments, {
+    uploadsPath: exposedPaths?.uploadsPath,
+    templatePath: this.attachmentsTemplateFile
+  });
   const envVarsSection = buildEnvVarsSection(envVars);
   const sections = [];
   if (baseFile) {
@@ -63,7 +72,8 @@ function buildAgentsAppendFile({
   useHostDockerSocket,
   contextRepos,
   attachments,
-  envVars
+  envVars,
+  exposedPaths
 }) {
   const baseFile =
     this.orchAgentsFile && fs.existsSync(this.orchAgentsFile) ? this.orchAgentsFile : null;
@@ -71,8 +81,16 @@ function buildAgentsAppendFile({
     this.hostDockerAgentsFile && fs.existsSync(this.hostDockerAgentsFile)
       ? this.hostDockerAgentsFile
       : null;
-  const contextSection = buildContextReposSection(contextRepos);
-  const attachmentsSection = buildAttachmentsSection(attachments);
+  const contextEntries = exposedPaths?.contextRepos || contextRepos;
+  const contextSection = buildContextReposSection(contextEntries, {
+    repositoriesPath: exposedPaths?.repositoriesPath,
+    repositoriesAliasPath: exposedPaths?.repositoriesAliasPath,
+    templatePath: this.contextReposTemplateFile
+  });
+  const attachmentsSection = buildAttachmentsSection(attachments, {
+    uploadsPath: exposedPaths?.uploadsPath,
+    templatePath: this.attachmentsTemplateFile
+  });
   const envVarsSection = buildEnvVarsSection(envVars);
   const shouldCombine = Boolean(
     useHostDockerSocket || contextSection || attachmentsSection || envVarsSection
@@ -87,6 +105,7 @@ function buildAgentsAppendFile({
     contextRepos,
     attachments,
     envVars,
+    exposedPaths,
     baseFile,
     hostDockerFile: includeHostDocker ? hostDockerFile : null
   });

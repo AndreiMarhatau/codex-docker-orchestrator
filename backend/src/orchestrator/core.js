@@ -1,26 +1,18 @@
-const path = require('node:path');
-const os = require('node:os');
 const fs = require('node:fs');
-const { spawn } = require('node:child_process');
-const { runCommand } = require('../commands');
 const { AccountStore } = require('../accounts');
 const {
-  DEFAULT_ORCH_HOME,
-  DEFAULT_IMAGE_NAME,
-  DEFAULT_ORCH_AGENTS_FILE,
-  DEFAULT_HOST_DOCKER_AGENTS_FILE,
-  DEFAULT_CONTEXT_REPOS_TEMPLATE_FILE,
-  DEFAULT_ATTACHMENTS_TEMPLATE_FILE,
   DEFAULT_GIT_CREDENTIAL_HELPER,
   DEFAULT_ACCOUNT_ROTATION_LIMIT
 } = require('./constants');
 const { pathExists } = require('../storage');
+const { resolveConfig } = require('./config');
 
 class Orchestrator {
   constructor(options = {}) {
-    this.orchHome = options.orchHome || process.env.ORCH_HOME || DEFAULT_ORCH_HOME;
-    this.codexHome = options.codexHome || process.env.CODEX_HOME || path.join(os.homedir(), '.codex');
-    const baseExec = options.exec || runCommand;
+    const config = resolveConfig(options);
+    this.orchHome = config.orchHome;
+    this.codexHome = config.codexHome;
+    const baseExec = config.exec;
     this.exec = (command, args, execOptions = {}) => {
       if (command === 'git') {
         const gitArgs = this.withGitCredentialHelper(args);
@@ -28,39 +20,25 @@ class Orchestrator {
       }
       return baseExec(command, args, execOptions);
     };
-    this.spawn = options.spawn || spawn;
-    this.now = options.now || (() => new Date().toISOString());
-    this.fetch = options.fetch || global.fetch;
-    this.imageName = options.imageName || process.env.IMAGE_NAME || DEFAULT_IMAGE_NAME;
-    this.orchAgentsFile =
-      options.orchAgentsFile || process.env.ORCH_AGENTS_FILE || DEFAULT_ORCH_AGENTS_FILE;
-    this.hostDockerAgentsFile =
-      options.hostDockerAgentsFile ||
-      process.env.ORCH_HOST_DOCKER_AGENTS_FILE ||
-      DEFAULT_HOST_DOCKER_AGENTS_FILE;
-    this.contextReposTemplateFile =
-      options.contextReposTemplateFile ||
-      process.env.ORCH_CONTEXT_REPOS_TEMPLATE_FILE ||
-      DEFAULT_CONTEXT_REPOS_TEMPLATE_FILE;
-    this.attachmentsTemplateFile =
-      options.attachmentsTemplateFile ||
-      process.env.ORCH_ATTACHMENTS_TEMPLATE_FILE ||
-      DEFAULT_ATTACHMENTS_TEMPLATE_FILE;
-    this.getUid =
-      options.getUid ||
-      (() => (typeof process.getuid === 'function' ? process.getuid() : null));
-    this.getGid =
-      options.getGid ||
-      (() => (typeof process.getgid === 'function' ? process.getgid() : null));
+    this.spawn = config.spawn;
+    this.now = config.now;
+    this.fetch = config.fetch;
+    this.imageName = config.imageName;
+    this.orchAgentsFile = config.orchAgentsFile;
+    this.hostDockerAgentsFile = config.hostDockerAgentsFile;
+    this.contextReposTemplateFile = config.contextReposTemplateFile;
+    this.attachmentsTemplateFile = config.attachmentsTemplateFile;
+    this.getUid = config.getUid;
+    this.getGid = config.getGid;
     this.running = new Map();
     this.accountStore =
-      options.accountStore ||
+      config.accountStore ||
       new AccountStore({
         orchHome: this.orchHome,
         codexHome: this.codexHome,
         now: this.now
       });
-    this.maxAccountRotations = options.maxAccountRotations ?? this.parseRotationLimitEnv();
+    this.maxAccountRotations = config.maxAccountRotations ?? this.parseRotationLimitEnv();
   }
 
   parseRotationLimitEnv() {

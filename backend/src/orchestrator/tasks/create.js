@@ -129,7 +129,8 @@ function attachTaskCreateMethods(Orchestrator) {
     const attachments = await this.prepareTaskAttachments(taskId, fileUploads);
     const exposedPaths = await this.prepareTaskExposedPaths(taskId, {
       contextRepos: resolvedContextRepos,
-      attachments
+      attachments,
+      codexHome: this.codexHome
     });
     const now = this.now();
     const activeAccount = await this.accountStore.getActiveAccount();

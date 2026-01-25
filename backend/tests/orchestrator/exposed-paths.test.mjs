@@ -20,7 +20,8 @@ describe('task exposed paths', () => {
     const taskId = 'task-1';
     const exposed = await orchestrator.prepareTaskExposedPaths(taskId, {
       contextRepos: [],
-      attachments: []
+      attachments: [],
+      codexHome: path.join(orchHome, 'codex-home')
     });
 
     const uploadsPath = path.join(orchestrator.taskHomeDir(taskId), 'uploads');
@@ -29,6 +30,9 @@ describe('task exposed paths', () => {
     expect(uploadsStat.isSymbolicLink()).toBe(false);
     expect(uploadsStat.mode & 0o777).toBe(0o555);
     expect(exposed.uploadsPath).toBe('~/uploads');
+
+    const codexLink = path.join(orchestrator.taskHomeDir(taskId), '.codex');
+    expect(await fs.readlink(codexLink)).toBe(path.join(orchHome, 'codex-home'));
   });
 
   it('symlinks uploads and repository aliases when attachments exist', async () => {

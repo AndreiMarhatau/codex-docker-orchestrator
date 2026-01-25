@@ -64,10 +64,14 @@ function buildRepoAliases(contextRepos) {
 function attachTaskExposedMethods(Orchestrator) {
   Orchestrator.prototype.prepareTaskExposedPaths = async function prepareTaskExposedPaths(
     taskId,
-    { contextRepos = [], attachments = [] } = {}
+    { contextRepos = [], attachments = [], codexHome } = {}
   ) {
     const homeDir = this.taskHomeDir(taskId);
     await ensureDir(homeDir);
+
+    if (codexHome) {
+      await ensureSymlink(codexHome, path.join(homeDir, '.codex'));
+    }
 
     const attachmentsDir = this.taskAttachmentsDir(taskId);
     await ensureDir(attachmentsDir);

@@ -3,6 +3,7 @@ set -euo pipefail
 
 host_home="${HOST_HOME:-$HOME}"
 orch_image="${ORCH_IMAGE:-ghcr.io/andreimarhatau/codex-docker-orchestrator:latest}"
+orch_image_digest="${ORCH_IMAGE_DIGEST:-}"
 tmp_dir="${ORCH_TMPDIR:-${host_home}/.codex-orchestrator/tmp}"
 
 docker_sock="${DOCKER_SOCK:-/var/run/docker.sock}"
@@ -34,6 +35,18 @@ fi
 gh_token="${GH_TOKEN:-}"
 if [[ -z "${gh_token}" ]] && command -v gh >/dev/null 2>&1; then
   gh_token="$(gh auth token -h github.com 2>/dev/null || true)"
+fi
+
+if [[ -n "${orch_image_digest}" ]]; then
+  if [[ "${orch_image}" == *@* ]]; then
+    orch_image="${orch_image%@*}"
+  else
+    last_component="${orch_image##*/}"
+    if [[ "${last_component}" == *:* ]]; then
+      orch_image="${orch_image%:*}"
+    fi
+  fi
+  orch_image="${orch_image}@${orch_image_digest}"
 fi
 
 exec env \

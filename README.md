@@ -97,6 +97,7 @@ Set `ORCH_FORCE_ROOT=0` if you want to run as your host user instead.
 ```
 export HOST_HOME="$HOME" \
   ORCH_IMAGE="ghcr.io/andreimarhatau/codex-docker-orchestrator:latest" \
+  ORCH_IMAGE_DIGEST="" \
   UID="$(id -u)" \
   GID="$(id -g)" \
   DOCKER_SOCK="${DOCKER_SOCK:-/var/run/docker.sock}" \
@@ -107,6 +108,8 @@ If you skip these, defaults are used (`/root` home and `0:0` user), but you will
 unless you mount the correct host home. If you set a non-root `UID/GID`, also set `DOCKER_GID` so
 the container can access `/var/run/docker.sock` (it defaults to `0`, which only works for root).
 You can also copy `.env.example` to `.env` and fill in your values.
+To pin the orchestrator image, set `ORCH_IMAGE_DIGEST` (for example `sha256:...`). The script will
+combine it with the repo from `ORCH_IMAGE`, or you can set `ORCH_IMAGE` directly to `repo@sha256:...`.
 On macOS with Docker Desktop, `/var/run/docker.sock` is a symlink to `$HOME/.docker/run/docker.sock`,
 so the default works. If you prefer the real path:
 ```

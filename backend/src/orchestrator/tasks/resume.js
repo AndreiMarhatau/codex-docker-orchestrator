@@ -31,7 +31,8 @@ function attachTaskResumeMethods(Orchestrator) {
 
     const exposedPaths = await this.prepareTaskExposedPaths(taskId, {
       contextRepos: resolvedContextRepos,
-      attachments
+      attachments,
+      codexHome: this.codexHome
     });
 
     const runLabel = nextRunLabel(meta.runs.length + 1);

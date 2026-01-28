@@ -51,7 +51,9 @@ describe('Orchestrator task context', () => {
     expect(agentsFile).toBeTruthy();
     const agentsContent = await fs.readFile(agentsFile, 'utf8');
     expect(agentsContent).toContain('Read-only reference repositories');
-    expect(agentsContent).toContain('~/repositories/context');
+    expect(agentsContent).toContain(
+      path.join(orchestrator.taskHomeDir(task.taskId), 'repositories', 'context')
+    );
     expect(agentsContent).toContain('Environment variables');
     expect(agentsContent).toContain('API_TOKEN');
     expect(agentsContent).toContain('FEATURE_FLAG');

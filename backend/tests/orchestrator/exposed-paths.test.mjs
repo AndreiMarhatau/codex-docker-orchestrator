@@ -29,7 +29,7 @@ describe('task exposed paths', () => {
     expect(uploadsStat.isDirectory()).toBe(true);
     expect(uploadsStat.isSymbolicLink()).toBe(false);
     expect(uploadsStat.mode & 0o777).toBe(0o555);
-    expect(exposed.uploadsPath).toBe('~/uploads');
+    expect(exposed.uploadsPath).toBe(uploadsPath);
 
     const codexLink = path.join(orchestrator.taskHomeDir(taskId), '.codex');
     expect(await fs.readlink(codexLink)).toBe(path.join(orchHome, 'codex-home'));

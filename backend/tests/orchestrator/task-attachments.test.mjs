@@ -58,7 +58,9 @@ describe('Orchestrator task attachments', () => {
     const agentsFile = runCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
     const agentsContent = await fs.readFile(agentsFile, 'utf8');
     expect(agentsContent).toContain('User-uploaded files');
-    expect(agentsContent).toContain('~/uploads/notes.txt');
+    expect(agentsContent).toContain(
+      path.join(orchestrator.taskHomeDir(task.taskId), 'uploads', 'notes.txt')
+    );
   });
 
   it('dedupes attachment filenames and validates limits', async () => {

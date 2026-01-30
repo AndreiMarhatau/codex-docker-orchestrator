@@ -106,9 +106,9 @@ function attachTaskExposedMethods(Orchestrator) {
 
     return {
       homeDir,
-      uploadsPath: '~/uploads',
-      repositoriesPath: '~/repositories',
-      repositoriesAliasPath: '~/repos',
+      uploadsPath: path.join(homeDir, 'uploads'),
+      repositoriesPath: path.join(homeDir, 'repositories'),
+      repositoriesAliasPath: path.join(homeDir, 'repos'),
       contextRepos: repoAliases
     };
   };

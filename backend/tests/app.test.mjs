@@ -218,7 +218,8 @@ describe('API uploads', () => {
     expect(attachmentPath.startsWith(attachmentsDir)).toBe(true);
 
     const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
-    expect(runCall.options.env.CODEX_MOUNT_PATHS_RO).toContain(attachmentsDir);
+    expect(runCall.options.env.CODEX_MOUNT_PATHS_RO).toBeUndefined();
+    expect(runCall.options.env.CODEX_MOUNT_MAPS_RO).toContain(`${attachmentsDir}=/attachments`);
   });
 
   it('rejects tasks with invalid image paths', async () => {

@@ -23,17 +23,6 @@ async function ensureSymlink(targetPath, linkPath) {
   await fsp.symlink(targetPath, linkPath);
 }
 
-async function clearDirectory(dirPath) {
-  try {
-    const entries = await fsp.readdir(dirPath);
-    await Promise.all(entries.map((entry) => removePathIfExists(path.join(dirPath, entry))));
-  } catch (error) {
-    if (error.code !== 'ENOENT') {
-      throw error;
-    }
-  }
-}
-
 function buildRepoAliases(contextRepos) {
   if (!Array.isArray(contextRepos) || contextRepos.length === 0) {
     return [];
@@ -64,7 +53,7 @@ function buildRepoAliases(contextRepos) {
 function attachTaskExposedMethods(Orchestrator) {
   Orchestrator.prototype.prepareTaskExposedPaths = async function prepareTaskExposedPaths(
     taskId,
-    { contextRepos = [], attachments = [], codexHome } = {}
+    { contextRepos = [], codexHome } = {}
   ) {
     const homeDir = this.taskHomeDir(taskId);
     await ensureDir(homeDir);
@@ -75,40 +64,23 @@ function attachTaskExposedMethods(Orchestrator) {
 
     const attachmentsDir = this.taskAttachmentsDir(taskId);
     await ensureDir(attachmentsDir);
+    const repoAliases = buildRepoAliases(contextRepos);
 
     const uploadsPath = path.join(homeDir, 'uploads');
-    if (attachments.length > 0) {
-      await ensureSymlink(attachmentsDir, uploadsPath);
-    } else {
-      await removePathIfExists(uploadsPath);
-      await ensureDir(uploadsPath);
-      await fsp.chmod(uploadsPath, 0o555);
-    }
-
-    const repositoriesDir = path.join(homeDir, 'repositories');
-    await ensureDir(repositoriesDir);
-    await fsp.chmod(repositoriesDir, 0o755);
-    await clearDirectory(repositoriesDir);
-
+    const repositoriesPath = path.join(homeDir, 'repositories');
     const repositoriesAliasPath = path.join(homeDir, 'repos');
-    await ensureSymlink(repositoriesDir, repositoriesAliasPath);
-
-    const repoAliases = buildRepoAliases(contextRepos);
-    for (const repo of repoAliases) {
-      if (!repo.worktreePath) {
-        continue;
-      }
-      const aliasPath = path.join(repositoriesDir, repo.aliasName);
-      await ensureSymlink(repo.worktreePath, aliasPath);
-      repo.aliasPath = aliasPath;
-    }
-    await fsp.chmod(repositoriesDir, 0o555);
+    await Promise.all([
+      removePathIfExists(uploadsPath),
+      removePathIfExists(repositoriesPath),
+      removePathIfExists(repositoriesAliasPath)
+    ]);
 
     return {
       homeDir,
-      uploadsPath: path.join(homeDir, 'uploads'),
-      repositoriesPath: path.join(homeDir, 'repositories'),
-      repositoriesAliasPath: path.join(homeDir, 'repos'),
+      uploadsPath: '/attachments',
+      repositoriesPath: '/readonly',
+      repositoriesAliasPath: '/readonly',
+      readonlyAttachmentsPath: '/attachments',
       readonlyRepositoriesPath: '/readonly',
       contextRepos: repoAliases
     };

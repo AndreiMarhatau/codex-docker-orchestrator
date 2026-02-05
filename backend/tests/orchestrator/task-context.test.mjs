@@ -42,10 +42,10 @@ describe('Orchestrator task context', () => {
     expect(runCall).toBeTruthy();
     const mountRw = runCall.options?.env?.CODEX_MOUNT_PATHS || '';
     const homeDir = orchestrator.taskHomeDir(task.taskId);
-    const mountRo = runCall.options?.env?.CODEX_MOUNT_PATHS_RO || '';
+    const mountMapsRo = runCall.options?.env?.CODEX_MOUNT_MAPS_RO || '';
     const contextPath = orchestrator.taskContextWorktree(task.taskId, contextEnv.repoUrl, contextEnv.envId);
     expect(mountRw.split(':')).toContain(homeDir);
-    expect(mountRo.split(':')).toContain(contextPath);
+    expect(mountMapsRo.split(':')).toContain(`${contextPath}=/readonly/context`);
 
     const agentsFile = runCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
     expect(agentsFile).toBeTruthy();
@@ -168,9 +168,9 @@ describe('Orchestrator task context resume', () => {
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
 
     const resumeCall = spawn.calls.filter((call) => call.command === 'codex-docker')[1];
-    const mountRo = resumeCall.options?.env?.CODEX_MOUNT_PATHS_RO || '';
-    expect(mountRo.split(':')).toContain(contextPathB);
-    expect(mountRo.split(':')).not.toContain(contextPathA);
+    const mountMapsRo = resumeCall.options?.env?.CODEX_MOUNT_MAPS_RO || '';
+    expect(mountMapsRo.split(':')).toContain(`${contextPathB}=/readonly/context-b`);
+    expect(mountMapsRo).not.toContain(contextPathA);
     await expect(fs.stat(contextPathA)).rejects.toThrow();
 
     const metaPath = path.join(orchHome, 'tasks', task.taskId, 'meta.json');

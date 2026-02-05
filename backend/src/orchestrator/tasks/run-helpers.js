@@ -4,7 +4,7 @@ const path = require('node:path');
 const { readJson, writeJson } = require('../../storage');
 const { listArtifacts } = require('../artifacts');
 const { parseThreadId, safeJsonParse, isUsageLimitError } = require('../logs');
-
+const { addMountPaths, addMountMaps, resolveMountPaths, resolveMountMaps } = require('./mounts');
 function ensureCodexHome(env, codexHome, homeDirOverride) {
   const homeDir = homeDirOverride || env.HOME || os.homedir();
   env.HOME = homeDir;
@@ -15,49 +15,12 @@ function ensureCodexHome(env, codexHome, homeDirOverride) {
     // Best-effort: codex can still run if the directory is created elsewhere.
   }
 }
-
-function addMountPaths(env, key, paths) {
-  const existing = env[key] || '';
-  const parts = existing.split(':').filter(Boolean);
-  for (const mountPath of paths) {
-    if (!mountPath || !fs.existsSync(mountPath)) {
-      continue;
-    }
-    if (!parts.includes(mountPath)) {
-      parts.push(mountPath);
-    }
-  }
-  if (parts.length > 0) {
-    env[key] = parts.join(':');
-  } else {
-    delete env[key];
-  }
-}
-
-function resolveMountPaths(paths) {
-  const unique = [];
-  for (const mountPath of paths) {
-    if (!mountPath || !fs.existsSync(mountPath)) {
-      continue;
-    }
-    if (!unique.includes(mountPath)) {
-      unique.push(mountPath);
-    }
-  }
-  return unique;
-}
-
 function mergePassthroughEnv(env, keys) {
   const existing = env.CODEX_PASSTHROUGH_ENV;
   if (!existing) {
     return;
   }
-  const merged = new Set(
-    existing
-      .split(',')
-      .map((entry) => entry.trim())
-      .filter(Boolean)
-  );
+  const merged = new Set(existing.split(',').map((entry) => entry.trim()).filter(Boolean));
   for (const key of keys) {
     if (key) {
       merged.add(key);
@@ -65,7 +28,6 @@ function mergePassthroughEnv(env, keys) {
   }
   env.CODEX_PASSTHROUGH_ENV = Array.from(merged).join(',');
 }
-
 function applyEnvOverrides(env, envOverrides) {
   if (!envOverrides) {
     return;
@@ -79,12 +41,13 @@ function applyEnvOverrides(env, envOverrides) {
   }
   mergePassthroughEnv(env, keys);
 }
-
 function buildRunEnv({
   codexHome,
   artifactsDir,
-  mountPaths,
-  mountPathsRo,
+  mountPaths = [],
+  mountPathsRo = [],
+  mountMaps = [],
+  mountMapsRo = [],
   agentsAppendFile,
   envOverrides,
   homeDir
@@ -99,10 +62,15 @@ function buildRunEnv({
   addMountPaths(env, 'CODEX_MOUNT_PATHS', rwMounts);
   const roMounts = resolveMountPaths(mountPathsRo).filter((item) => !rwMounts.includes(item));
   addMountPaths(env, 'CODEX_MOUNT_PATHS_RO', roMounts);
+  const rwMountMaps = resolveMountMaps(mountMaps);
+  addMountMaps(env, 'CODEX_MOUNT_MAPS', rwMountMaps);
+  const roMountMaps = resolveMountMaps(mountMapsRo).filter((item) =>
+    !rwMountMaps.some((rwItem) => rwItem.source === item.source && rwItem.target === item.target)
+  );
+  addMountMaps(env, 'CODEX_MOUNT_MAPS_RO', roMountMaps);
   applyEnvOverrides(env, envOverrides);
   return env;
 }
-
 function createOutputTracker({ logStream, stderrStream }) {
   let stdoutBuffer = '';
   let stdoutFull = '';
@@ -142,7 +110,6 @@ function createOutputTracker({ logStream, stderrStream }) {
 
   return { onStdout, onStderr, getResult };
 }
-
 async function updateRunMeta({ taskId, runLabel, result, prompt, now, taskMetaPath, runArtifactsDir }) {
   const meta = await readJson(taskMetaPath(taskId));
   const combinedOutput = [result.stdout, result.stderr].filter(Boolean).join('\n');
@@ -181,7 +148,6 @@ async function updateRunMeta({ taskId, runLabel, result, prompt, now, taskMetaPa
   await writeJson(taskMetaPath(taskId), meta);
   return { meta, usageLimit, success };
 }
-
 module.exports = {
   buildRunEnv,
   createOutputTracker,

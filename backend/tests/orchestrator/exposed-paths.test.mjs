@@ -33,6 +33,7 @@ describe('task exposed paths', () => {
 
     const codexLink = path.join(orchestrator.taskHomeDir(taskId), '.codex');
     expect(await fs.readlink(codexLink)).toBe(path.join(orchHome, 'codex-home'));
+    expect(exposed.readonlyRepositoriesPath).toBe('/readonly');
   });
 
   it('symlinks uploads and repository aliases when attachments exist', async () => {
@@ -84,6 +85,7 @@ describe('task exposed paths', () => {
     expect(await fs.readlink(repoAliasA)).toBe(repoAPath);
     expect(await fs.readlink(repoAliasB)).toBe(repoBPath);
     expect(exposed.contextRepos.map((repo) => repo.aliasName)).toEqual(['repo', 'repo-2']);
+    expect(exposed.readonlyRepositoriesPath).toBe('/readonly');
   });
 
   it('assigns default repo alias when repo name is missing', async () => {

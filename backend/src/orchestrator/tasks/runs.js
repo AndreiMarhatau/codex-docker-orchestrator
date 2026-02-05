@@ -24,6 +24,8 @@ function attachTaskRunMethods(Orchestrator) {
     args,
     mountPaths = [],
     mountPathsRo = [],
+    mountMaps = [],
+    mountMapsRo = [],
     contextRepos = [],
     attachments = [],
     useHostDockerSocket,
@@ -52,6 +54,8 @@ function attachTaskRunMethods(Orchestrator) {
       artifactsDir,
       mountPaths,
       mountPathsRo,
+      mountMaps,
+      mountMapsRo,
       agentsAppendFile,
       envOverrides,
       homeDir

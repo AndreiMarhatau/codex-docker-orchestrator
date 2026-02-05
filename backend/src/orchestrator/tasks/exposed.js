@@ -109,6 +109,7 @@ function attachTaskExposedMethods(Orchestrator) {
       uploadsPath: path.join(homeDir, 'uploads'),
       repositoriesPath: path.join(homeDir, 'repositories'),
       repositoriesAliasPath: path.join(homeDir, 'repos'),
+      readonlyRepositoriesPath: '/readonly',
       contextRepos: repoAliases
     };
   };

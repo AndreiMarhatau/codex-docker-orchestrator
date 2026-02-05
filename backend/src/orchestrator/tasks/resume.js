@@ -75,6 +75,9 @@ function attachTaskResumeMethods(Orchestrator) {
     });
     const attachmentsDir = this.taskAttachmentsDir(taskId);
     const hasAttachments = attachments.length > 0;
+    const readonlyRepoMountMaps = (exposedPaths.contextRepos || [])
+      .filter((repo) => repo?.worktreePath && repo?.aliasName)
+      .map((repo) => ({ source: repo.worktreePath, target: `/readonly/${repo.aliasName}` }));
     this.startCodexRun({
       taskId,
       runLabel,
@@ -86,6 +89,7 @@ function attachTaskResumeMethods(Orchestrator) {
         ...resolvedContextRepos.map((repo) => repo.worktreePath),
         ...(hasAttachments ? [attachmentsDir] : [])
       ],
+      mountMapsRo: readonlyRepoMountMaps,
       contextRepos: resolvedContextRepos,
       attachments,
       useHostDockerSocket: shouldUseHostDockerSocket,

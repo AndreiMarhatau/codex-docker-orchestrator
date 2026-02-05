@@ -60,17 +60,19 @@ function attachTaskRunMethods(Orchestrator) {
       envOverrides,
       homeDir
     });
+    const useProcessGroup = process.platform !== 'win32';
     const child = this.spawn('codex-docker', args, {
       cwd,
       env,
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
+      detached: useProcessGroup
     });
 
     if (child.stdin) {
       child.stdin.end();
     }
 
-    const runState = { child, stopRequested: false, stopTimeout: null };
+    const runState = { child, stopRequested: false, stopTimeout: null, useProcessGroup };
     this.running.set(taskId, runState);
 
     const tracker = createOutputTracker({ logStream, stderrStream });

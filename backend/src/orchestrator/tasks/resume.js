@@ -4,6 +4,30 @@ const { nextRunLabel, normalizeOptionalString } = require('../utils');
 const { buildRunEntry } = require('./run-entry');
 const { cleanupContextRepos } = require('./cleanup');
 
+function signalRunChild(run, signal) {
+  if (!run?.child) {
+    return;
+  }
+  if (
+    run.useProcessGroup &&
+    Number.isInteger(run.child.pid) &&
+    run.child.pid > 0 &&
+    process.platform !== 'win32'
+  ) {
+    try {
+      process.kill(-run.child.pid, signal);
+      return;
+    } catch (error) {
+      // Fall back to direct child signal when process-group signaling is unavailable.
+    }
+  }
+  try {
+    run.child.kill(signal);
+  } catch (error) {
+    // Ignore kill errors.
+  }
+}
+
 function attachTaskResumeMethods(Orchestrator) {
   Orchestrator.prototype.resumeTask = async function resumeTask(taskId, prompt, options = {}) {
     await this.init();
@@ -109,18 +133,10 @@ function attachTaskResumeMethods(Orchestrator) {
       throw new Error('No running task found.');
     }
     run.stopRequested = true;
-    try {
-      run.child.kill('SIGTERM');
-      run.stopTimeout = setTimeout(() => {
-        try {
-          run.child.kill('SIGKILL');
-        } catch (error) {
-          // Ignore kill errors.
-        }
-      }, 5000);
-    } catch (error) {
-      // Ignore kill errors.
-    }
+    signalRunChild(run, 'SIGTERM');
+    run.stopTimeout = setTimeout(() => {
+      signalRunChild(run, 'SIGKILL');
+    }, 5000);
 
     const updatedAt = this.now();
     meta.status = 'stopping';

@@ -52,8 +52,8 @@ describe('API task context and attachments', () => {
     expect(taskRes.body.contextRepos[0].worktreePath).toBeTruthy();
 
     const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
-    expect(runCall.options.env.CODEX_MOUNT_PATHS_RO).toContain(
-      taskRes.body.contextRepos[0].worktreePath
+    expect(runCall.options.env.CODEX_MOUNT_MAPS_RO).toContain(
+      `${taskRes.body.contextRepos[0].worktreePath}=/readonly/context`
     );
   });
 

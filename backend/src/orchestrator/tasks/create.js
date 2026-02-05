@@ -164,6 +164,12 @@ function attachTaskCreateMethods(Orchestrator) {
     });
     const attachmentsDir = this.taskAttachmentsDir(taskId);
     const hasAttachments = attachments.length > 0;
+    const readonlyRepoMountMaps = (exposedPaths.contextRepos || [])
+      .filter((repo) => repo?.worktreePath && repo?.aliasName)
+      .map((repo) => ({ source: repo.worktreePath, target: `/readonly/${repo.aliasName}` }));
+    const readonlyAttachmentsMountMaps = hasAttachments
+      ? [{ source: attachmentsDir, target: exposedPaths.readonlyAttachmentsPath || '/attachments' }]
+      : [];
     this.startCodexRun({
       taskId,
       runLabel,
@@ -176,10 +182,8 @@ function attachTaskCreateMethods(Orchestrator) {
         ...resolvedImagePaths,
         ...(dockerSocketPath ? [dockerSocketPath] : [])
       ],
-      mountPathsRo: [
-        ...resolvedContextRepos.map((repo) => repo.worktreePath),
-        ...(hasAttachments ? [attachmentsDir] : [])
-      ],
+      mountPathsRo: [],
+      mountMapsRo: [...readonlyRepoMountMaps, ...readonlyAttachmentsMountMaps],
       contextRepos: resolvedContextRepos,
       attachments,
       useHostDockerSocket: shouldUseHostDockerSocket,

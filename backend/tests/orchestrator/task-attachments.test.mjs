@@ -52,15 +52,15 @@ describe('Orchestrator task attachments', () => {
     const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
     const mountRw = runCall.options?.env?.CODEX_MOUNT_PATHS || '';
     const mountRo = runCall.options?.env?.CODEX_MOUNT_PATHS_RO || '';
+    const mountMapsRo = runCall.options?.env?.CODEX_MOUNT_MAPS_RO || '';
     expect(mountRw.split(':')).toContain(orchestrator.taskHomeDir(task.taskId));
-    expect(mountRo.split(':')).toContain(attachmentsDir);
+    expect(mountRo).toBe('');
+    expect(mountMapsRo.split(':')).toContain(`${attachmentsDir}=/attachments`);
 
     const agentsFile = runCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
     const agentsContent = await fs.readFile(agentsFile, 'utf8');
     expect(agentsContent).toContain('User-uploaded files');
-    expect(agentsContent).toContain(
-      path.join(orchestrator.taskHomeDir(task.taskId), 'uploads', 'notes.txt')
-    );
+    expect(agentsContent).toContain('/attachments/notes.txt');
   });
 
   it('dedupes attachment filenames and validates limits', async () => {

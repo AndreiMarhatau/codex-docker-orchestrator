@@ -1,6 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createRequire } from 'node:module';
 import { createMockExec, createMockSpawn, createTempDir } from '../helpers.mjs';
 
@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
 
 describe('task exposed paths', () => {
-  it('creates a read-only uploads directory when no attachments exist', async () => {
+  it('returns container mount paths and removes legacy task-home aliases', async () => {
     const orchHome = await createTempDir();
     const orchestrator = new Orchestrator({
       orchHome,
@@ -24,18 +24,20 @@ describe('task exposed paths', () => {
       codexHome: path.join(orchHome, 'codex-home')
     });
 
-    const uploadsPath = path.join(orchestrator.taskHomeDir(taskId), 'uploads');
-    const uploadsStat = await fs.lstat(uploadsPath);
-    expect(uploadsStat.isDirectory()).toBe(true);
-    expect(uploadsStat.isSymbolicLink()).toBe(false);
-    expect(uploadsStat.mode & 0o777).toBe(0o555);
-    expect(exposed.uploadsPath).toBe(uploadsPath);
+    expect(exposed.uploadsPath).toBe('/attachments');
+    expect(exposed.readonlyAttachmentsPath).toBe('/attachments');
+    expect(exposed.repositoriesPath).toBe('/readonly');
+    expect(exposed.repositoriesAliasPath).toBe('/readonly');
+    expect(exposed.readonlyRepositoriesPath).toBe('/readonly');
 
     const codexLink = path.join(orchestrator.taskHomeDir(taskId), '.codex');
     expect(await fs.readlink(codexLink)).toBe(path.join(orchHome, 'codex-home'));
+    await expect(fs.lstat(path.join(orchestrator.taskHomeDir(taskId), 'uploads'))).rejects.toThrow();
+    await expect(fs.lstat(path.join(orchestrator.taskHomeDir(taskId), 'repositories'))).rejects.toThrow();
+    await expect(fs.lstat(path.join(orchestrator.taskHomeDir(taskId), 'repos'))).rejects.toThrow();
   });
 
-  it('symlinks uploads and repository aliases when attachments exist', async () => {
+  it('preserves aliasing logic for readonly repo mounts', async () => {
     const orchHome = await createTempDir();
     const orchestrator = new Orchestrator({
       orchHome,
@@ -73,17 +75,10 @@ describe('task exposed paths', () => {
       attachments: [{ name: 'file.txt', path: path.join(attachmentsDir, 'file.txt') }]
     });
 
-    const uploadsPath = path.join(orchestrator.taskHomeDir(taskId), 'uploads');
-    const uploadsStat = await fs.lstat(uploadsPath);
-    expect(uploadsStat.isSymbolicLink()).toBe(true);
-    expect(await fs.readlink(uploadsPath)).toBe(attachmentsDir);
-
-    const repositoriesDir = path.join(orchestrator.taskHomeDir(taskId), 'repositories');
-    const repoAliasA = path.join(repositoriesDir, 'repo');
-    const repoAliasB = path.join(repositoriesDir, 'repo-2');
-    expect(await fs.readlink(repoAliasA)).toBe(repoAPath);
-    expect(await fs.readlink(repoAliasB)).toBe(repoBPath);
     expect(exposed.contextRepos.map((repo) => repo.aliasName)).toEqual(['repo', 'repo-2']);
+    expect(exposed.uploadsPath).toBe('/attachments');
+    expect(exposed.repositoriesPath).toBe('/readonly');
+    expect(exposed.readonlyRepositoriesPath).toBe('/readonly');
   });
 
   it('assigns default repo alias when repo name is missing', async () => {
@@ -103,7 +98,47 @@ describe('task exposed paths', () => {
 
     expect(exposed.contextRepos).toHaveLength(1);
     expect(exposed.contextRepos[0].aliasName).toBe('worktree');
-    const repositoriesDir = path.join(orchestrator.taskHomeDir(taskId), 'repositories');
-    await expect(fs.lstat(path.join(repositoriesDir, 'worktree'))).rejects.toThrow();
+  });
+
+  it('removes pre-existing legacy aliases of mixed types', async () => {
+    const orchHome = await createTempDir();
+    const orchestrator = new Orchestrator({
+      orchHome,
+      codexHome: path.join(orchHome, 'codex-home'),
+      exec: createMockExec({ branches: ['main'] }),
+      spawn: createMockSpawn()
+    });
+
+    const taskId = 'task-4';
+    const homeDir = orchestrator.taskHomeDir(taskId);
+    await fs.mkdir(homeDir, { recursive: true });
+    await fs.mkdir(path.join(homeDir, 'uploads'), { recursive: true });
+    await fs.writeFile(path.join(homeDir, 'repositories'), 'legacy');
+    await fs.symlink(path.join(homeDir, 'uploads'), path.join(homeDir, 'repos'));
+
+    await orchestrator.prepareTaskExposedPaths(taskId, { contextRepos: [], attachments: [] });
+
+    await expect(fs.lstat(path.join(homeDir, 'uploads'))).rejects.toThrow();
+    await expect(fs.lstat(path.join(homeDir, 'repositories'))).rejects.toThrow();
+    await expect(fs.lstat(path.join(homeDir, 'repos'))).rejects.toThrow();
+  });
+
+  it('throws when removing legacy aliases fails unexpectedly', async () => {
+    const orchHome = await createTempDir();
+    const orchestrator = new Orchestrator({
+      orchHome,
+      codexHome: path.join(orchHome, 'codex-home'),
+      exec: createMockExec({ branches: ['main'] }),
+      spawn: createMockSpawn()
+    });
+
+    const lstatSpy = vi.spyOn(fs, 'lstat');
+    lstatSpy.mockRejectedValueOnce(Object.assign(new Error('denied'), { code: 'EACCES' }));
+
+    await expect(
+      orchestrator.prepareTaskExposedPaths('task-5', { contextRepos: [], attachments: [] })
+    ).rejects.toThrow('denied');
+
+    lstatSpy.mockRestore();
   });
 });

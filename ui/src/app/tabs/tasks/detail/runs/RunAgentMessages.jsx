@@ -1,4 +1,4 @@
-import { Box } from '@mui/material';
+import { Box, Stack } from '@mui/material';
 
 function RunAgentMessages({ agentMessages, runId }) {
   return (
@@ -7,9 +7,13 @@ function RunAgentMessages({ agentMessages, runId }) {
         <span>Agent messages</span>
         <span className="log-meta">{runId}</span>
       </summary>
-      <Box className="log-box log-box--full">
-        <pre>{agentMessages}</pre>
-      </Box>
+      <Stack spacing={1} sx={{ mt: 1 }}>
+        {agentMessages.map((message, index) => (
+          <Box key={`${runId}-agent-message-${index}`} className="log-box log-box--full agent-message-item">
+            <pre>{message}</pre>
+          </Box>
+        ))}
+      </Stack>
     </Box>
   );
 }

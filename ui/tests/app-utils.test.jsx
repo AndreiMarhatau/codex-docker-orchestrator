@@ -132,8 +132,8 @@ describe('app helpers', () => {
         },
         { parsed: { type: 'item.completed', item: { type: 'tool_call', text: 'skip' } } }
       ])
-    ).toBe('hello');
-    expect(collectAgentMessages([])).toBe('');
+    ).toEqual(['hello']);
+    expect(collectAgentMessages([])).toEqual([]);
   });
 
   it('renders git status display', () => {

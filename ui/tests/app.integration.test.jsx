@@ -61,6 +61,9 @@ async function exerciseTaskDetail(user) {
 
   await user.click(screen.getByText('feature/refactor'));
   expect(screen.getByText('Agent messages')).toBeInTheDocument();
+  expect(screen.getByText('Hello from agent')).toBeInTheDocument();
+  expect(screen.getByText('Second agent update')).toBeInTheDocument();
+  expect(document.querySelectorAll('.agent-message-item')).toHaveLength(2);
   expect(screen.getByText('output.png')).toBeInTheDocument();
   expect(screen.getByText('report.txt')).toBeInTheDocument();
 

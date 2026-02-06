@@ -112,6 +112,15 @@ const taskDetail = {
             item: { type: 'agent_message', text: 'Hello from agent' }
           },
           raw: 'raw entry'
+        },
+        {
+          id: 'entry-2',
+          type: 'item.completed',
+          parsed: {
+            type: 'item.completed',
+            item: { type: 'agent_message', text: 'Second agent update' }
+          },
+          raw: 'second raw entry'
         }
       ],
       artifacts: [

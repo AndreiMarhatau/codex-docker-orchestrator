@@ -14,7 +14,9 @@ function RunLog({ now, run, taskId }) {
       <RunRequest run={run} />
       <RunEntries entries={entries} now={now} run={run} />
       <RunArtifacts run={run} taskId={taskId} />
-      {agentMessages && <RunAgentMessages agentMessages={agentMessages} runId={run.runId} />}
+      {agentMessages.length > 0 && (
+        <RunAgentMessages agentMessages={agentMessages} runId={run.runId} />
+      )}
     </Stack>
   );
 }

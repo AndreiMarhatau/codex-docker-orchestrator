@@ -28,7 +28,7 @@ function formatLogSummary(entry) {
 
 function collectAgentMessages(entries) {
   if (!entries || entries.length === 0) {
-    return '';
+    return [];
   }
   return entries
     .filter(
@@ -37,8 +37,7 @@ function collectAgentMessages(entries) {
         entry.parsed?.item?.type === 'agent_message' &&
         entry.parsed?.item?.text
     )
-    .map((entry) => entry.parsed.item.text)
-    .join('\n');
+    .map((entry) => entry.parsed.item.text);
 }
 
 export { collectAgentMessages, formatLogEntry, formatLogSummary };

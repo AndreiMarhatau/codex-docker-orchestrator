@@ -117,6 +117,33 @@ function attachAccountStoreActions(AccountStore) {
   AccountStore.prototype.countAccounts = async function countAccounts() {
     return (await this.loadState()).queue.length;
   };
+  attachAccountSyncMethods(AccountStore);
+}
+
+function attachAccountSyncMethods(AccountStore) {
+  AccountStore.prototype.syncAccountFromHost = async function syncAccountFromHost(accountId) {
+    if (!accountId) {
+      return null;
+    }
+    const state = await this.loadState();
+    if (!state.queue.includes(accountId) || !(await pathExists(this.hostAuthPath()))) {
+      return null;
+    }
+    const content = await fs.readFile(this.hostAuthPath(), 'utf8');
+    const trimmed = content.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const parsed = JSON.parse(trimmed);
+    await ensureDir(this.accountDir(accountId));
+    await fs.writeFile(this.accountAuthPath(accountId), JSON.stringify(parsed, null, 2), { mode: 0o600 });
+    return accountId;
+  };
+
+  AccountStore.prototype.syncActiveAccountFromHost = async function syncActiveAccountFromHost() {
+    const state = await this.loadState();
+    return this.syncAccountFromHost(state.queue[0] || null);
+  };
 }
 
 module.exports = { attachAccountStoreActions };

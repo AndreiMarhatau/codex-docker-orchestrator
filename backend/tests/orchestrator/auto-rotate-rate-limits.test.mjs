@@ -9,14 +9,14 @@ import { buildSpawnWithUsageLimit } from '../helpers/auto-rotate.mjs';
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
 
-async function setupOrchestrator({ rateLimitsByToken, accounts }) {
+async function setupOrchestrator({ rateLimitsByToken, accounts, refreshedAuthByToken }) {
   const orchHome = await createTempDir();
   const codexHome = path.join(orchHome, 'codex-home');
   await fs.mkdir(codexHome, { recursive: true });
   await fs.writeFile(path.join(codexHome, 'auth.json'), JSON.stringify({ token: 'primary' }, null, 2));
   const exec = createMockExec({ branches: ['main'] });
   const spawnCalls = [];
-  const spawn = buildSpawnWithUsageLimit({ spawnCalls, rateLimitsByToken });
+  const spawn = buildSpawnWithUsageLimit({ spawnCalls, rateLimitsByToken, refreshedAuthByToken });
   const orchestrator = new Orchestrator({
     orchHome,
     codexHome,
@@ -145,5 +145,39 @@ describe('Orchestrator auto-rotate rate limits', () => {
 
     const activeAuth = JSON.parse(await fs.readFile(path.join(codexHome, 'auth.json'), 'utf8'));
     expect(activeAuth).toEqual({ token: 'tertiary' });
+  });
+
+});
+
+describe('Orchestrator auto-rotate auth persistence', () => {
+  it('persists refreshed candidate auth when probing usage limits', async () => {
+    const { orchHome, orchestrator } = await setupOrchestrator({
+      rateLimitsByToken: {
+        primary: {
+          primary: { usedPercent: 100, windowDurationMins: 15, resetsAt: 1730947200 },
+          secondary: null,
+          credits: null,
+          planType: null
+        },
+        secondary: {
+          primary: { usedPercent: 5, windowDurationMins: 15, resetsAt: 1730947200 },
+          secondary: null,
+          credits: null,
+          planType: null
+        }
+      },
+      refreshedAuthByToken: { secondary: { token: 'secondary-refreshed' } },
+      accounts: [{ label: 'Secondary', token: 'secondary' }]
+    });
+    const env = await orchestrator.createEnv({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' });
+    const task = await orchestrator.createTask({ envId: env.envId, ref: 'main', prompt: 'Do work' });
+    await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+
+    const accountsState = await orchestrator.listAccounts();
+    const secondaryAccount = accountsState.accounts.find((account) => account.label === 'Secondary');
+    const secondaryAuth = JSON.parse(
+      await fs.readFile(path.join(orchHome, 'accounts', secondaryAccount.id, 'auth.json'), 'utf8')
+    );
+    expect(secondaryAuth).toEqual({ token: 'secondary-refreshed' });
   });
 });

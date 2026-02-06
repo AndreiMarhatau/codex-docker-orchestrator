@@ -5,16 +5,9 @@ const { readJson, writeJson, pathExists, removePath } = require('../../storage')
 const { isUsageLimitError } = require('../logs');
 
 function shouldRotate({ prompt, result }) {
-  if (!prompt) {
-    return false;
-  }
-  if (result.stopped) {
-    return false;
-  }
-  if (result.code === 0) {
-    return false;
-  }
-  return result.usageLimit ?? isUsageLimitError(result.stdout);
+  return Boolean(
+    prompt && !result.stopped && result.code !== 0 && (result.usageLimit ?? isUsageLimitError(result.stdout))
+  );
 }
 
 function summarizeRateLimits(rateLimits) {
@@ -33,9 +26,7 @@ function hasRemainingUsage(rateLimits) {
   if (!rateLimits || typeof rateLimits !== 'object') {
     return false;
   }
-  const windows = Object.values(rateLimits).filter(
-    (entry) => entry && typeof entry === 'object' && typeof entry.usedPercent === 'number'
-  );
+  const windows = Object.values(rateLimits).filter((entry) => entry && typeof entry.usedPercent === 'number');
   if (windows.length === 0) {
     return false;
   }
@@ -58,7 +49,20 @@ async function fetchRateLimitsForAccount(orchestrator, accountId) {
       path.join(codexHome, 'config.toml'),
       'cli_auth_credentials_store = "file"\n'
     );
-    return await orchestrator.fetchAccountRateLimitsForHome(codexHome);
+    const rateLimits = await orchestrator.fetchAccountRateLimitsForHome(codexHome);
+    const refreshedAuthPath = path.join(codexHome, 'auth.json');
+    try {
+      if (await pathExists(refreshedAuthPath)) {
+        const refreshedAuth = await fs.readFile(refreshedAuthPath, 'utf8');
+        if (refreshedAuth.trim()) {
+          const parsedAuth = JSON.parse(refreshedAuth);
+          await fs.writeFile(authPath, JSON.stringify(parsedAuth, null, 2), { mode: 0o600 });
+        }
+      }
+    } catch {
+      // Best-effort: probing usage should remain usable even if auth sync fails.
+    }
+    return rateLimits;
   } finally {
     try {
       await orchestrator.ensureOwnership(tempDir);
@@ -108,12 +112,7 @@ async function findUsableAccount(orchestrator, accountIds) {
 
 function logAutoRotate(orchestrator, payload) {
   try {
-    const entry = {
-      event: 'auto-rotate',
-      at: orchestrator.now(),
-      ...payload
-    };
-    console.log(JSON.stringify(entry));
+    console.log(JSON.stringify({ event: 'auto-rotate', at: orchestrator.now(), ...payload }));
   } catch {
     // Avoid throwing during rotation flow.
   }

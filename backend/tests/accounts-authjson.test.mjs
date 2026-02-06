@@ -45,4 +45,39 @@ describe('AccountStore auth.json updates', () => {
     const stillActive = list.accounts.find((account) => account.id === active.id);
     expect(stillActive.authJson).toContain('"token": "a"');
   });
+
+  it('syncs refreshed host auth.json back to the active account', async () => {
+    const orchHome = await createTempDir();
+    const codexHome = path.join(orchHome, 'codex-home');
+    await fs.mkdir(codexHome, { recursive: true });
+    const store = new AccountStore({ orchHome, codexHome });
+
+    const active = await store.addAccount({
+      label: 'Active',
+      authJson: '{"tokens":{"access_token":"old","refresh_token":"old-refresh"}}'
+    });
+    await store.applyActiveAccount();
+
+    await fs.writeFile(
+      path.join(codexHome, 'auth.json'),
+      JSON.stringify(
+        {
+          tokens: {
+            access_token: 'new',
+            refresh_token: 'new-refresh'
+          }
+        },
+        null,
+        2
+      )
+    );
+
+    const synced = await store.syncActiveAccountFromHost();
+    expect(synced).toBe(active.id);
+
+    const list = await store.listAccounts();
+    const updated = list.accounts.find((account) => account.id === active.id);
+    expect(updated.authJson).toContain('"access_token": "new"');
+    expect(updated.authJson).toContain('"refresh_token": "new-refresh"');
+  });
 });

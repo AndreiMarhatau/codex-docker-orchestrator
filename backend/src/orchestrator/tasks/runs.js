@@ -13,6 +13,12 @@ function attachTaskRunMethods(Orchestrator) {
       taskMetaPath: this.taskMetaPath.bind(this),
       runArtifactsDir: this.runArtifactsDir.bind(this)
     });
+    const runEntry = meta.runs.find((run) => run.runId === runLabel);
+    try {
+      await this.accountStore.syncAccountFromHost(runEntry?.accountId || null);
+    } catch (error) {
+      // Best-effort: keep task finalization resilient to auth sync issues.
+    }
     await this.maybeAutoRotate(taskId, prompt, { ...result, usageLimit, meta });
   };
 

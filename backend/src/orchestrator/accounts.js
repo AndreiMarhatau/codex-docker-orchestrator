@@ -173,6 +173,14 @@ function attachAccountMethods(Orchestrator) {
     }
     await this.ensureActiveAuth();
     const rateLimits = await this.fetchAccountRateLimits();
+    const latestActiveAccount = await this.accountStore.getActiveAccount();
+    if (latestActiveAccount?.id === activeAccount.id) {
+      try {
+        await this.accountStore.syncAccountFromHost(activeAccount.id);
+      } catch (error) {
+        // Best-effort: keep rate-limit reads resilient to auth sync issues.
+      }
+    }
     return {
       account: activeAccount,
       rateLimits,

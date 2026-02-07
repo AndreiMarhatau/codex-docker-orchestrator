@@ -33,7 +33,12 @@ function getRateLimitsForOptions(options, rateLimitsByToken) {
   }
 }
 
-function attachAppServerResponder(child, options, rateLimitsByToken) {
+function attachAppServerResponder(child, options, config) {
+  const {
+    rateLimitsByToken = {},
+    refreshedAuthByToken = null,
+    refreshedAuthRawByToken = null
+  } = config || {};
   let buffer = '';
   child.stdin.on('data', (chunk) => {
     buffer += chunk.toString();
@@ -53,6 +58,23 @@ function attachAppServerResponder(child, options, rateLimitsByToken) {
         }
         if (message?.method === 'account/rateLimits/read' && message.id !== undefined) {
           const rateLimits = getRateLimitsForOptions(options, rateLimitsByToken);
+          if ((refreshedAuthByToken || refreshedAuthRawByToken) && options?.env?.CODEX_HOME) {
+            try {
+              const authPath = path.join(options.env.CODEX_HOME, 'auth.json');
+              const auth = JSON.parse(fsSync.readFileSync(authPath, 'utf8'));
+              const updatedAuthRaw = refreshedAuthRawByToken?.[auth.token];
+              if (typeof updatedAuthRaw === 'string') {
+                fsSync.writeFileSync(authPath, updatedAuthRaw);
+              } else {
+                const updatedAuth = refreshedAuthByToken?.[auth.token];
+                if (updatedAuth) {
+                  fsSync.writeFileSync(authPath, JSON.stringify(updatedAuth, null, 2));
+                }
+              }
+            } catch (error) {
+              // Ignore mock refresh persistence failures in tests.
+            }
+          }
           child.stdout.write(`${JSON.stringify({ id: message.id, result: { rateLimits } })}\n`);
           child.stdout.end();
           child.emit('close', 0, null);
@@ -88,13 +110,23 @@ function emitSuccess(child, isResume) {
   child.emit('close', 0, null);
 }
 
-export function buildSpawnWithUsageLimit({ spawnCalls, onBeforeLimit, rateLimitsByToken = {} }) {
+export function buildSpawnWithUsageLimit({
+  spawnCalls,
+  onBeforeLimit,
+  rateLimitsByToken = {},
+  refreshedAuthByToken = null,
+  refreshedAuthRawByToken = null
+}) {
   let runCount = 0;
   return (command, args, options = {}) => {
     spawnCalls.push({ command, args, options });
     const child = createChild();
     if (command === 'codex-docker' && args[0] === 'app-server') {
-      attachAppServerResponder(child, options, rateLimitsByToken);
+      attachAppServerResponder(child, options, {
+        rateLimitsByToken,
+        refreshedAuthByToken,
+        refreshedAuthRawByToken
+      });
       return child;
     }
     const isResume = args.includes('resume');

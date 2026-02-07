@@ -9,14 +9,24 @@ import { buildSpawnWithUsageLimit } from '../helpers/auto-rotate.mjs';
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
 
-async function setupOrchestrator({ rateLimitsByToken, accounts }) {
+async function setupOrchestrator({
+  rateLimitsByToken,
+  accounts,
+  refreshedAuthByToken,
+  refreshedAuthRawByToken
+}) {
   const orchHome = await createTempDir();
   const codexHome = path.join(orchHome, 'codex-home');
   await fs.mkdir(codexHome, { recursive: true });
   await fs.writeFile(path.join(codexHome, 'auth.json'), JSON.stringify({ token: 'primary' }, null, 2));
   const exec = createMockExec({ branches: ['main'] });
   const spawnCalls = [];
-  const spawn = buildSpawnWithUsageLimit({ spawnCalls, rateLimitsByToken });
+  const spawn = buildSpawnWithUsageLimit({
+    spawnCalls,
+    rateLimitsByToken,
+    refreshedAuthByToken,
+    refreshedAuthRawByToken
+  });
   const orchestrator = new Orchestrator({
     orchHome,
     codexHome,
@@ -146,4 +156,5 @@ describe('Orchestrator auto-rotate rate limits', () => {
     const activeAuth = JSON.parse(await fs.readFile(path.join(codexHome, 'auth.json'), 'utf8'));
     expect(activeAuth).toEqual({ token: 'tertiary' });
   });
+
 });

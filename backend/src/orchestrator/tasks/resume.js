@@ -83,6 +83,9 @@ function attachStopTaskMethod(Orchestrator) {
       throw new Error('No running task found.');
     }
     run.stopRequested = true;
+    if (run.pendingStart && run.startController) {
+      run.startController.abort();
+    }
     signalRunChild(run, 'SIGTERM');
     run.stopTimeout = setTimeout(() => {
       signalRunChild(run, 'SIGKILL');

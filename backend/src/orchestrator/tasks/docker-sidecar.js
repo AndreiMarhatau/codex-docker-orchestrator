@@ -32,7 +32,7 @@ function taskSidecarVolumeName(orchestrator, taskId) {
   return `${orchestrator.taskDockerSidecarNamePrefix}-${taskId}-data`;
 }
 
-async function waitForTaskDockerReady(orchestrator, taskId) {
+async function waitForTaskDockerReady(orchestrator, taskId, execOptions = {}) {
   const socketPath = orchestrator.taskDockerSocketPath(taskId);
   const timeoutMs = orchestrator.taskDockerReadyTimeoutMs;
   const timeoutAt = timeoutMs > 0 ? Date.now() + timeoutMs : Number.POSITIVE_INFINITY;
@@ -41,7 +41,7 @@ async function waitForTaskDockerReady(orchestrator, taskId) {
       '--host',
       `unix://${socketPath}`,
       'info'
-    ]);
+    ], execOptions);
     if (infoResult.code === 0) {
       return socketPath;
     }
@@ -64,27 +64,27 @@ function attachTaskDockerSidecarMethods(Orchestrator) {
     };
   };
 
-  Orchestrator.prototype.taskDockerSidecarExists = async function taskDockerSidecarExists(taskId) {
+  Orchestrator.prototype.taskDockerSidecarExists = async function taskDockerSidecarExists(taskId, execOptions = {}) {
     const sidecarName = taskSidecarName(this, taskId);
-    const inspectResult = await this.exec('docker', ['container', 'inspect', sidecarName]);
+    const inspectResult = await this.exec('docker', ['container', 'inspect', sidecarName], execOptions);
     return inspectResult.code === 0;
   };
 
-  Orchestrator.prototype.ensureTaskDockerSidecar = async function ensureTaskDockerSidecar(taskId) {
+  Orchestrator.prototype.ensureTaskDockerSidecar = async function ensureTaskDockerSidecar(taskId, execOptions = {}) {
     const sidecarName = taskSidecarName(this, taskId);
     const volumeName = taskSidecarVolumeName(this, taskId);
     const socketDir = this.taskDockerSocketDir(taskId);
     const socketPath = this.taskDockerSocketPath(taskId);
 
     await ensureDir(socketDir);
-    await this.execOrThrow('docker', ['volume', 'create', volumeName]);
+    await this.execOrThrow('docker', ['volume', 'create', volumeName], execOptions);
     const inspectResult = await this.exec('docker', [
       'container',
       'inspect',
       '--format',
       '{{.State.Running}}',
       sidecarName
-    ]);
+    ], execOptions);
     const isRunning = inspectResult.code === 0 && parseBooleanFlag(inspectResult.stdout);
     if (!isRunning && (await pathExists(socketPath))) {
       await removePath(socketPath);
@@ -108,12 +108,12 @@ function attachTaskDockerSidecarMethods(Orchestrator) {
         'dockerd',
         '--host',
         `unix://${TASK_DOCKER_SIDECAR_MOUNT_SOCKET_DIR}/${TASK_DOCKER_SIDECAR_SOCKET_FILE}`
-      ]);
+      ], execOptions);
     } else if (!isRunning) {
-      await this.execOrThrow('docker', ['start', sidecarName]);
+      await this.execOrThrow('docker', ['start', sidecarName], execOptions);
     }
 
-    await waitForTaskDockerReady(this, taskId);
+    await waitForTaskDockerReady(this, taskId, execOptions);
     return socketPath;
   };
 

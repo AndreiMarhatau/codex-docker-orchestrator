@@ -19,4 +19,13 @@ describe('runCommand', () => {
     expect(result.code).toBe(2);
     expect(result.stderr).toContain('err');
   });
+
+  it('supports abort signal cancellation', async () => {
+    const controller = new AbortController();
+    const commandPromise = runCommand('node', ['-e', 'setTimeout(() => {}, 10000)'], {
+      signal: controller.signal
+    });
+    setTimeout(() => controller.abort(), 20);
+    await expect(commandPromise).rejects.toMatchObject({ name: 'AbortError' });
+  });
 });

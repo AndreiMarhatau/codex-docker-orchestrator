@@ -32,9 +32,9 @@ class Orchestrator {
     this.getGid = config.getGid;
     this.taskDockerSidecarImage = config.taskDockerSidecarImage;
     this.taskDockerSidecarNamePrefix = config.taskDockerSidecarNamePrefix;
-    this.taskDockerReadyTimeoutMs = this.parsePositiveInt(
+    this.taskDockerReadyTimeoutMs = this.parseNonNegativeInt(
       config.taskDockerReadyTimeoutMs,
-      30_000
+      0
     );
     this.taskDockerReadyIntervalMs = this.parsePositiveInt(
       config.taskDockerReadyIntervalMs,
@@ -66,6 +66,14 @@ class Orchestrator {
   parsePositiveInt(value, fallback) {
     const parsed = Number.parseInt(value, 10);
     if (Number.isNaN(parsed) || parsed < 1) {
+      return fallback;
+    }
+    return parsed;
+  }
+
+  parseNonNegativeInt(value, fallback) {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isNaN(parsed) || parsed < 0) {
       return fallback;
     }
     return parsed;

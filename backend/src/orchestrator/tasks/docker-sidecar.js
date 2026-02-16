@@ -34,8 +34,8 @@ function taskSidecarVolumeName(orchestrator, taskId) {
 
 async function waitForTaskDockerReady(orchestrator, taskId) {
   const socketPath = orchestrator.taskDockerSocketPath(taskId);
-  const startedAt = Date.now();
-  const timeoutAt = startedAt + orchestrator.taskDockerReadyTimeoutMs;
+  const timeoutMs = orchestrator.taskDockerReadyTimeoutMs;
+  const timeoutAt = timeoutMs > 0 ? Date.now() + timeoutMs : Number.POSITIVE_INFINITY;
   while (Date.now() < timeoutAt) {
     const infoResult = await orchestrator.exec('docker', [
       '--host',

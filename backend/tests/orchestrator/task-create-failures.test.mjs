@@ -3,12 +3,13 @@ import fs from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 import { createMockExec, createMockSpawn, createTempDir } from '../helpers.mjs';
+import { waitForTaskStatus } from '../helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
 
 describe('orchestrator create task failures', () => {
-  it('cleans up worktree and sidecar when run startup fails', async () => {
+  it('marks task failed and cleans up sidecar when deferred run startup fails', async () => {
     const orchHome = await createTempDir();
     const exec = createMockExec({ branches: ['main'] });
     const spawn = createMockSpawn();
@@ -18,31 +19,14 @@ describe('orchestrator create task failures', () => {
       throw new Error('run failed');
     };
 
-    await expect(
-      orchestrator.createTask({
-        envId: env.envId,
-        ref: 'main',
-        prompt: 'Do work',
-        useHostDockerSocket: true
-      })
-    ).rejects.toThrow(/run failed/);
+    const task = await orchestrator.createTask({
+      envId: env.envId,
+      ref: 'main',
+      prompt: 'Do work',
+      useHostDockerSocket: true
+    });
+    await waitForTaskStatus(orchestrator, task.taskId, 'failed');
 
-    expect(
-      exec.calls.some(
-        (call) =>
-          call.command === 'git' &&
-          call.args.includes('worktree') &&
-          call.args.includes('remove')
-      )
-    ).toBe(true);
-    expect(
-      exec.calls.some(
-        (call) =>
-          call.command === 'git' &&
-          call.args.includes('worktree') &&
-          call.args.includes('prune')
-      )
-    ).toBe(true);
     expect(
       exec.calls.some((call) => call.command === 'docker' && call.args[0] === 'rm')
     ).toBe(true);
@@ -52,10 +36,12 @@ describe('orchestrator create task failures', () => {
           call.command === 'docker' && call.args[0] === 'volume' && call.args[1] === 'rm'
       )
     ).toBe(true);
-    await expect(fs.stat(path.join(orchHome, 'tasks'))).resolves.toBeTruthy();
+    const taskMetaPath = path.join(orchHome, 'tasks', task.taskId, 'meta.json');
+    const meta = JSON.parse(await fs.readFile(taskMetaPath, 'utf8'));
+    expect(meta.error).toContain('run failed');
   });
 
-  it('cleans up sidecar when failure happens before worktree creation', async () => {
+  it('fails immediately before deferred startup when context resolution fails', async () => {
     const orchHome = await createTempDir();
     const exec = createMockExec({ branches: ['main'] });
     const spawn = createMockSpawn();
@@ -84,6 +70,6 @@ describe('orchestrator create task failures', () => {
     ).toBe(false);
     expect(
       exec.calls.some((call) => call.command === 'docker' && call.args[0] === 'rm')
-    ).toBe(true);
+    ).toBe(false);
   });
 });

@@ -120,87 +120,62 @@ function attachTaskResumeMethods(Orchestrator) {
       meta.contextRepos = resolvedContextRepos;
     }
     const { hasDockerSocketOverride, shouldUseHostDockerSocket } = resolveDockerUsage(meta, options);
-    let createdDockerSidecar = false;
-    try {
-      let dockerSocketPath = null;
-      if (shouldUseHostDockerSocket) {
-        const sidecarExists = await this.taskDockerSidecarExists(taskId);
-        createdDockerSidecar = !sidecarExists;
-        dockerSocketPath = await this.ensureTaskDockerSidecar(taskId);
-      }
-      const env = await this.readEnv(meta.envId);
-      await this.ensureOwnership(env.mirrorPath);
-
-      const exposedPaths = await this.prepareTaskExposedPaths(taskId, {
-        contextRepos: resolvedContextRepos,
-        attachments,
-        codexHome: this.codexHome
-      });
-
-      const runLabel = nextRunLabel(meta.runs.length + 1);
-      const activeAccount = await this.accountStore.getActiveAccount();
-      const { codexPrompt, runModel, runReasoningEffort } = applyResumeMetaUpdates({
-        meta,
-        prompt,
-        options,
-        hasDockerSocketOverride,
-        shouldUseHostDockerSocket,
-        now: this.now.bind(this),
-        activeAccount,
-        runLabel
-      });
-
-      await ensureDir(this.runArtifactsDir(taskId, runLabel));
-      await writeJson(this.taskMetaPath(taskId), meta);
-      await this.ensureActiveAuth();
-      const args = buildCodexArgs({
-        prompt: codexPrompt,
-        model: runModel,
-        reasoningEffort: runReasoningEffort,
-        resumeThreadId: meta.threadId
-      });
-      const attachmentsDir = this.taskAttachmentsDir(taskId);
-      const hasAttachments = attachments.length > 0;
-      const readonlyRepoMountMaps = (exposedPaths.contextRepos || [])
-        .filter((repo) => repo?.worktreePath && repo?.aliasName)
-        .map((repo) => ({ source: repo.worktreePath, target: `/readonly/${repo.aliasName}` }));
-      const readonlyAttachmentsMountMaps = hasAttachments
-        ? [{ source: attachmentsDir, target: exposedPaths.readonlyAttachmentsPath || '/attachments' }]
-        : [];
-      this.startCodexRun({
-        taskId,
-        runLabel,
-        prompt,
-        cwd: meta.worktreePath,
-        args,
-        mountPaths: [exposedPaths.homeDir, env.mirrorPath],
-        mountPathsRo: [],
-        mountMaps: dockerSocketPath ? [this.taskDockerSocketMount(taskId)] : [],
-        mountMapsRo: [...readonlyRepoMountMaps, ...readonlyAttachmentsMountMaps],
-        contextRepos: resolvedContextRepos,
-        attachments,
-        useHostDockerSocket: shouldUseHostDockerSocket,
-        envOverrides: env.envVars,
-        envVars: env.envVars,
-        homeDir: exposedPaths.homeDir,
-        exposedPaths,
-        stopTaskDockerSidecarOnExit: shouldUseHostDockerSocket
-      });
-      return meta;
-    } catch (error) {
-      if (shouldUseHostDockerSocket) {
-        try {
-          if (createdDockerSidecar) {
-            await this.removeTaskDockerSidecar(taskId);
-          } else {
-            await this.stopTaskDockerSidecar(taskId);
-          }
-        } catch {
-          // Best-effort cleanup for resume failures.
-        }
-      }
-      throw error;
-    }
+    const env = await this.readEnv(meta.envId);
+    await this.ensureOwnership(env.mirrorPath);
+    const exposedPaths = await this.prepareTaskExposedPaths(taskId, {
+      contextRepos: resolvedContextRepos,
+      attachments,
+      codexHome: this.codexHome
+    });
+    const runLabel = nextRunLabel(meta.runs.length + 1);
+    const activeAccount = await this.accountStore.getActiveAccount();
+    const { codexPrompt, runModel, runReasoningEffort } = applyResumeMetaUpdates({
+      meta,
+      prompt,
+      options,
+      hasDockerSocketOverride,
+      shouldUseHostDockerSocket,
+      now: this.now.bind(this),
+      activeAccount,
+      runLabel
+    });
+    await ensureDir(this.runArtifactsDir(taskId, runLabel));
+    await writeJson(this.taskMetaPath(taskId), meta);
+    await this.ensureActiveAuth();
+    const args = buildCodexArgs({
+      prompt: codexPrompt,
+      model: runModel,
+      reasoningEffort: runReasoningEffort,
+      resumeThreadId: meta.threadId
+    });
+    const attachmentsDir = this.taskAttachmentsDir(taskId);
+    const hasAttachments = attachments.length > 0;
+    const readonlyRepoMountMaps = (exposedPaths.contextRepos || [])
+      .filter((repo) => repo?.worktreePath && repo?.aliasName)
+      .map((repo) => ({ source: repo.worktreePath, target: `/readonly/${repo.aliasName}` }));
+    const readonlyAttachmentsMountMaps = hasAttachments
+      ? [{ source: attachmentsDir, target: exposedPaths.readonlyAttachmentsPath || '/attachments' }]
+      : [];
+    this.startCodexRunDeferred({
+      taskId,
+      runLabel,
+      prompt,
+      cwd: meta.worktreePath,
+      args,
+      mountPaths: [exposedPaths.homeDir, env.mirrorPath],
+      mountPathsRo: [],
+      mountMaps: shouldUseHostDockerSocket ? [this.taskDockerSocketMount(taskId)] : [],
+      mountMapsRo: [...readonlyRepoMountMaps, ...readonlyAttachmentsMountMaps],
+      contextRepos: resolvedContextRepos,
+      attachments,
+      useHostDockerSocket: shouldUseHostDockerSocket,
+      envOverrides: env.envVars,
+      envVars: env.envVars,
+      homeDir: exposedPaths.homeDir,
+      exposedPaths,
+      stopTaskDockerSidecarOnExit: shouldUseHostDockerSocket
+    });
+    return meta;
   };
   attachStopTaskMethod(Orchestrator);
 }

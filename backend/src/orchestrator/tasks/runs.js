@@ -1,8 +1,80 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { readJson, writeJson } = require('../../storage');
 const { buildRunEnv, createOutputTracker, updateRunMeta } = require('./run-helpers');
-
-function attachTaskRunMethods(Orchestrator) {
+const { createDeferredRunState, createStoppedDuringStartupError } = require('./deferred-run-state');
+function attachFailRunStartMethod(Orchestrator) {
+  Orchestrator.prototype.failRunStart = async function failRunStart(taskId, runLabel, prompt, error) {
+    let meta = null;
+    try {
+      meta = await readJson(this.taskMetaPath(taskId));
+    } catch (readError) {
+      return;
+    }
+    const now = this.now();
+    const stopped = error?.stopped === true;
+    const message = stopped ? 'Stopped by user.' : error?.message || 'Failed to start Codex run.';
+    meta.status = stopped ? 'stopped' : 'failed';
+    meta.error = message;
+    meta.updatedAt = now;
+    meta.lastPrompt = prompt || meta.lastPrompt || null;
+    const runIndex = meta.runs.findIndex((run) => run.runId === runLabel);
+    if (runIndex !== -1) {
+      meta.runs[runIndex] = {
+        ...meta.runs[runIndex],
+        finishedAt: now,
+        status: stopped ? 'stopped' : 'failed',
+        exitCode: 1
+      };
+    }
+    await writeJson(this.taskMetaPath(taskId), meta);
+  };
+}
+function attachDeferredRunStartMethod(Orchestrator) {
+  Orchestrator.prototype.startCodexRunDeferred = function startCodexRunDeferred(options) {
+    const { taskId, runLabel, prompt, useHostDockerSocket } = options;
+    const pendingRun = createDeferredRunState();
+    this.running.set(taskId, pendingRun);
+    void (async () => {
+      let hadExistingSidecar = false;
+      try {
+        if (useHostDockerSocket) {
+          hadExistingSidecar = await this.taskDockerSidecarExists(taskId);
+          await this.ensureTaskDockerSidecar(taskId);
+        }
+        if (pendingRun.stopRequested) {
+          throw createStoppedDuringStartupError();
+        }
+        this.startCodexRun(options);
+      } catch (error) {
+        if (pendingRun.stopTimeout) {
+          clearTimeout(pendingRun.stopTimeout);
+        }
+        const activeRun = this.running.get(taskId);
+        if (activeRun === pendingRun) {
+          this.running.delete(taskId);
+        }
+        if (useHostDockerSocket) {
+          try {
+            if (hadExistingSidecar) {
+              await this.stopTaskDockerSidecar(taskId);
+            } else {
+              await this.removeTaskDockerSidecar(taskId);
+            }
+          } catch {
+            // Best-effort cleanup for sidecar startup failures.
+          }
+        }
+        try {
+          await this.failRunStart(taskId, runLabel, prompt, error);
+        } catch {
+          // Never surface deferred bookkeeping failures as unhandled rejections.
+        }
+      }
+    })();
+  };
+}
+function attachFinalizeRunMethod(Orchestrator) {
   Orchestrator.prototype.finalizeRun = async function finalizeRun(taskId, runLabel, result, prompt) {
     const { meta, usageLimit } = await updateRunMeta({
       taskId,
@@ -21,7 +93,8 @@ function attachTaskRunMethods(Orchestrator) {
     }
     await this.maybeAutoRotate(taskId, prompt, { ...result, usageLimit, meta });
   };
-
+}
+function attachStartRunMethod(Orchestrator) {
   Orchestrator.prototype.startCodexRun = function startCodexRun({
     taskId,
     runLabel,
@@ -74,18 +147,14 @@ function attachTaskRunMethods(Orchestrator) {
       stdio: ['pipe', 'pipe', 'pipe'],
       detached: useProcessGroup
     });
-
     if (child.stdin) {
       child.stdin.end();
     }
-
     const runState = { child, stopRequested: false, stopTimeout: null, useProcessGroup };
     this.running.set(taskId, runState);
-
     const tracker = createOutputTracker({ logStream, stderrStream });
     child.stdout.on('data', tracker.onStdout);
     child.stderr.on('data', tracker.onStderr);
-
     const finalize = async (code, signal) => {
       if (runState.stopTimeout) {
         clearTimeout(runState.stopTimeout);
@@ -112,18 +181,19 @@ function attachTaskRunMethods(Orchestrator) {
         stderrStream.end();
       }
     };
-
     child.on('error', (error) => {
       tracker.onStderr(Buffer.from(`\n${error?.message || 'Unknown error'}`));
       finalize(1, null).catch(() => {});
     });
-
     child.on('close', (code, signal) => {
       finalize(code, signal).catch(() => {});
     });
   };
 }
-
-module.exports = {
-  attachTaskRunMethods
-};
+function attachTaskRunMethods(Orchestrator) {
+  attachFailRunStartMethod(Orchestrator);
+  attachDeferredRunStartMethod(Orchestrator);
+  attachFinalizeRunMethod(Orchestrator);
+  attachStartRunMethod(Orchestrator);
+}
+module.exports = { attachTaskRunMethods };

@@ -108,9 +108,6 @@ function attachTaskCreateMethods(Orchestrator) {
     const runLabel = nextRunLabel(1);
     let createdWorktreePath = null;
     try {
-      const dockerSocketPath = shouldUseHostDockerSocket
-        ? await this.ensureTaskDockerSidecar(taskId)
-        : null;
       await ensureDir(this.taskDir(taskId));
       await ensureDir(this.taskLogsDir(taskId));
       const resolvedContextRepos = await this.resolveContextRepos(taskId, contextRepos);
@@ -161,7 +158,7 @@ function attachTaskCreateMethods(Orchestrator) {
       const readonlyAttachmentsMountMaps = hasAttachments
         ? [{ source: attachmentsDir, target: exposedPaths.readonlyAttachmentsPath || '/attachments' }]
         : [];
-      this.startCodexRun({
+      this.startCodexRunDeferred({
         taskId,
         runLabel,
         prompt,
@@ -169,7 +166,7 @@ function attachTaskCreateMethods(Orchestrator) {
         args,
         mountPaths: [exposedPaths.homeDir, env.mirrorPath, ...resolvedImagePaths],
         mountPathsRo: [],
-        mountMaps: dockerSocketPath ? [this.taskDockerSocketMount(taskId)] : [],
+        mountMaps: shouldUseHostDockerSocket ? [this.taskDockerSocketMount(taskId)] : [],
         mountMapsRo: [...readonlyRepoMountMaps, ...readonlyAttachmentsMountMaps],
         contextRepos: resolvedContextRepos,
         attachments,
@@ -183,13 +180,6 @@ function attachTaskCreateMethods(Orchestrator) {
       return meta;
     } catch (error) {
       await cleanupFailedWorktree(this, env.mirrorPath, createdWorktreePath);
-      if (shouldUseHostDockerSocket) {
-        try {
-          await this.removeTaskDockerSidecar(taskId);
-        } catch {
-          // Best-effort cleanup.
-        }
-      }
       await removePath(this.taskDir(taskId));
       throw error;
     }

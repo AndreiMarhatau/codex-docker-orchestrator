@@ -45,4 +45,12 @@ describe('orchestrator core', () => {
     expect(() => orchestrator.requireDockerSocket()).toThrow(/Docker socket not found/);
     delete process.env.DOCKER_SOCK;
   });
+
+  it('disables sidecar ready timeout by default and allows explicit override', () => {
+    const defaultOrchestrator = new Orchestrator();
+    expect(defaultOrchestrator.taskDockerReadyTimeoutMs).toBe(0);
+
+    const overrideOrchestrator = new Orchestrator({ taskDockerReadyTimeoutMs: 15_000 });
+    expect(overrideOrchestrator.taskDockerReadyTimeoutMs).toBe(15_000);
+  });
 });

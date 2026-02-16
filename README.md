@@ -132,3 +132,6 @@ If the image is private, run `docker login ghcr.io` first.
 ### Notes
 - `codex-docker` is baked into the image. By default it resolves the latest tag at build time.
 - To pin a specific release or branch, set `CODEX_DOCKER_REF` during build.
+- When a task enables Docker in the UI, the orchestrator now starts a dedicated per-task `docker:dind`
+  sidecar and maps that sidecar socket into the task container. This keeps host Docker resources and
+  other tasks' Docker resources isolated from that task.

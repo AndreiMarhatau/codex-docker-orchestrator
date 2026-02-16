@@ -31,6 +31,18 @@ function attachPathMethods(Orchestrator) {
     return path.join(this.taskDir(taskId), 'home');
   };
 
+  Orchestrator.prototype.taskDockerDir = function taskDockerDir(taskId) {
+    return path.join(this.taskDir(taskId), 'docker');
+  };
+
+  Orchestrator.prototype.taskDockerSocketDir = function taskDockerSocketDir(taskId) {
+    return path.join(this.taskDockerDir(taskId), 'sock');
+  };
+
+  Orchestrator.prototype.taskDockerSocketPath = function taskDockerSocketPath(taskId) {
+    return path.join(this.taskDockerSocketDir(taskId), 'docker.sock');
+  };
+
   Orchestrator.prototype.taskWorktree = function taskWorktree(taskId, repoUrl) {
     const repoName = repoNameFromUrl(repoUrl);
     return path.join(this.taskDir(taskId), repoName);

@@ -65,6 +65,11 @@ function attachTaskCleanupMethods(Orchestrator) {
       mirrorPath: env.mirrorPath,
       worktreePath
     });
+    try {
+      await this.removeTaskDockerSidecar(taskId);
+    } catch (error) {
+      // Best-effort: task deletion should proceed even if Docker cleanup fails.
+    }
     await removePath(this.taskDir(taskId));
   };
 

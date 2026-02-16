@@ -8,7 +8,11 @@ const {
   DEFAULT_ORCH_AGENTS_FILE,
   DEFAULT_HOST_DOCKER_AGENTS_FILE,
   DEFAULT_CONTEXT_REPOS_TEMPLATE_FILE,
-  DEFAULT_ATTACHMENTS_TEMPLATE_FILE
+  DEFAULT_ATTACHMENTS_TEMPLATE_FILE,
+  DEFAULT_TASK_DOCKER_SIDECAR_IMAGE,
+  DEFAULT_TASK_DOCKER_SIDECAR_NAME_PREFIX,
+  DEFAULT_TASK_DOCKER_READY_TIMEOUT_MS,
+  DEFAULT_TASK_DOCKER_READY_INTERVAL_MS
 } = require('./constants');
 
 function isPresent(value) {
@@ -69,7 +73,37 @@ function resolveConfig(options) {
     getUid: options.getUid || (() => (typeof process.getuid === 'function' ? process.getuid() : null)),
     getGid: options.getGid || (() => (typeof process.getgid === 'function' ? process.getgid() : null)),
     accountStore: options.accountStore,
-    maxAccountRotations: options.maxAccountRotations
+    maxAccountRotations: options.maxAccountRotations,
+    taskDockerSidecarImage: resolveOptional(
+      options,
+      'taskDockerSidecarImage',
+      'ORCH_TASK_DOCKER_SIDECAR_IMAGE',
+      DEFAULT_TASK_DOCKER_SIDECAR_IMAGE
+    ),
+    taskDockerSidecarNamePrefix: resolveOptional(
+      options,
+      'taskDockerSidecarNamePrefix',
+      'ORCH_TASK_DOCKER_SIDECAR_NAME_PREFIX',
+      DEFAULT_TASK_DOCKER_SIDECAR_NAME_PREFIX
+    ),
+    taskDockerReadyTimeoutMs: Number.parseInt(
+      resolveOptional(
+        options,
+        'taskDockerReadyTimeoutMs',
+        'ORCH_TASK_DOCKER_READY_TIMEOUT_MS',
+        DEFAULT_TASK_DOCKER_READY_TIMEOUT_MS
+      ),
+      10
+    ),
+    taskDockerReadyIntervalMs: Number.parseInt(
+      resolveOptional(
+        options,
+        'taskDockerReadyIntervalMs',
+        'ORCH_TASK_DOCKER_READY_INTERVAL_MS',
+        DEFAULT_TASK_DOCKER_READY_INTERVAL_MS
+      ),
+      10
+    )
   };
 }
 

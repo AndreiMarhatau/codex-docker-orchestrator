@@ -59,62 +59,60 @@ describe('Orchestrator task context', () => {
     expect(agentsContent).toContain('FEATURE_FLAG');
   });
 
-  it('mounts docker socket when enabled and skips when disabled', async () => {
+  it('mounts per-task docker sidecar socket when enabled and skips when disabled', async () => {
     const orchHome = await createTempDir();
     const exec = createMockExec({ branches: ['main'] });
     const spawn = createMockSpawn();
-    const socketDir = await createTempDir();
-    const socketPath = path.join(socketDir, 'docker.sock');
-    await fs.writeFile(socketPath, '');
-    const originalDockerSock = process.env.DOCKER_SOCK;
-    process.env.DOCKER_SOCK = socketPath;
-    try {
-      const orchestrator = new Orchestrator({
-        orchHome,
-        exec,
-        spawn
-      });
+    const orchestrator = new Orchestrator({
+      orchHome,
+      exec,
+      spawn
+    });
 
-      const env = await orchestrator.createEnv({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' });
-      const task = await orchestrator.createTask({
-        envId: env.envId,
-        ref: 'main',
-        prompt: 'Do work',
-        useHostDockerSocket: true
-      });
-      await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    const env = await orchestrator.createEnv({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' });
+    const task = await orchestrator.createTask({
+      envId: env.envId,
+      ref: 'main',
+      prompt: 'Do work',
+      useHostDockerSocket: true
+    });
+    await waitForTaskStatus(orchestrator, task.taskId, 'completed');
 
-      const createCall = spawn.calls.find((call) => call.command === 'codex-docker');
-      const createMounts = createCall.options?.env?.CODEX_MOUNT_PATHS || '';
-      expect(createMounts.split(':')).toContain(socketPath);
-      const createAgentsFile = createCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
-      expect(createAgentsFile).toBeTruthy();
-      const createAgentsContent = await fs.readFile(createAgentsFile, 'utf8');
-      expect(createAgentsContent).toContain('Host Docker Socket');
-      expect(createAgentsContent).not.toContain('Environment variables');
+    const createCall = spawn.calls.find((call) => call.command === 'codex-docker');
+    const createMountMaps = createCall.options?.env?.CODEX_MOUNT_MAPS || '';
+    const expectedSocketPath = orchestrator.taskDockerSocketPath(task.taskId);
+    expect(createMountMaps.split(':')).toContain(`${expectedSocketPath}=/var/run/docker.sock`);
+    const createAgentsFile = createCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
+    expect(createAgentsFile).toBeTruthy();
+    const createAgentsContent = await fs.readFile(createAgentsFile, 'utf8');
+    expect(createAgentsContent).toContain('Host Docker Socket');
+    expect(createAgentsContent).not.toContain('Environment variables');
+    const dockerRunCalls = exec.calls.filter(
+      (call) =>
+        call.command === 'docker' &&
+        call.args[0] === 'run' &&
+        call.args.includes(orchestrator.taskDockerSidecarImage)
+    );
+    expect(dockerRunCalls.length).toBeGreaterThan(0);
+    const dockerStopCalls = exec.calls.filter(
+      (call) => call.command === 'docker' && call.args[0] === 'stop'
+    );
+    expect(dockerStopCalls.length).toBeGreaterThan(0);
 
-      await orchestrator.resumeTask(task.taskId, 'Continue', { useHostDockerSocket: false });
-      await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    await orchestrator.resumeTask(task.taskId, 'Continue', { useHostDockerSocket: false });
+    await waitForTaskStatus(orchestrator, task.taskId, 'completed');
 
-      const resumeCalls = spawn.calls.filter((call) => call.command === 'codex-docker');
-      const resumeCall = resumeCalls[1];
-      const resumeMounts = resumeCall.options?.env?.CODEX_MOUNT_PATHS || '';
-      expect(resumeMounts.split(':')).not.toContain(socketPath);
-      const resumeAgentsFile = resumeCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
-      expect(resumeAgentsFile).toBeTruthy();
-      const resumeAgentsContent = await fs.readFile(resumeAgentsFile, 'utf8');
-      expect(resumeAgentsContent).not.toContain('Host Docker Socket');
+    const resumeCalls = spawn.calls.filter((call) => call.command === 'codex-docker');
+    const resumeCall = resumeCalls[1];
+    expect(resumeCall.options?.env?.CODEX_MOUNT_MAPS || '').toBe('');
+    const resumeAgentsFile = resumeCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
+    expect(resumeAgentsFile).toBeTruthy();
+    const resumeAgentsContent = await fs.readFile(resumeAgentsFile, 'utf8');
+    expect(resumeAgentsContent).not.toContain('Host Docker Socket');
 
-      const metaPath = path.join(orchHome, 'tasks', task.taskId, 'meta.json');
-      const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
-      expect(meta.useHostDockerSocket).toBe(false);
-    } finally {
-      if (originalDockerSock === undefined) {
-        delete process.env.DOCKER_SOCK;
-      } else {
-        process.env.DOCKER_SOCK = originalDockerSock;
-      }
-    }
+    const metaPath = path.join(orchHome, 'tasks', task.taskId, 'meta.json');
+    const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
+    expect(meta.useHostDockerSocket).toBe(false);
   });
 });
 

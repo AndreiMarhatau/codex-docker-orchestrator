@@ -46,11 +46,26 @@ describe('orchestrator core', () => {
     delete process.env.DOCKER_SOCK;
   });
 
-  it('disables sidecar ready timeout by default and allows explicit override', () => {
+  it('uses sane docker startup defaults and allows explicit override', () => {
     const defaultOrchestrator = new Orchestrator();
-    expect(defaultOrchestrator.taskDockerReadyTimeoutMs).toBe(0);
+    expect(defaultOrchestrator.taskDockerReadyTimeoutMs).toBe(600_000);
+    expect(defaultOrchestrator.taskDockerCommandTimeoutMs).toBe(600_000);
 
-    const overrideOrchestrator = new Orchestrator({ taskDockerReadyTimeoutMs: 15_000 });
+    const overrideOrchestrator = new Orchestrator({
+      taskDockerReadyTimeoutMs: 15_000,
+      taskDockerCommandTimeoutMs: 5_000
+    });
     expect(overrideOrchestrator.taskDockerReadyTimeoutMs).toBe(15_000);
+    expect(overrideOrchestrator.taskDockerCommandTimeoutMs).toBe(5_000);
+  });
+
+  it('falls back to documented docker command timeout default for invalid value', () => {
+    const orchestrator = new Orchestrator({ taskDockerCommandTimeoutMs: 'invalid' });
+    expect(orchestrator.taskDockerCommandTimeoutMs).toBe(600_000);
+  });
+
+  it('allows disabling docker command timeout with zero', () => {
+    const orchestrator = new Orchestrator({ taskDockerCommandTimeoutMs: 0 });
+    expect(orchestrator.taskDockerCommandTimeoutMs).toBe(0);
   });
 });

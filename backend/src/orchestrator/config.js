@@ -12,7 +12,8 @@ const {
   DEFAULT_TASK_DOCKER_SIDECAR_IMAGE,
   DEFAULT_TASK_DOCKER_SIDECAR_NAME_PREFIX,
   DEFAULT_TASK_DOCKER_READY_TIMEOUT_MS,
-  DEFAULT_TASK_DOCKER_READY_INTERVAL_MS
+  DEFAULT_TASK_DOCKER_READY_INTERVAL_MS,
+  DEFAULT_TASK_DOCKER_COMMAND_TIMEOUT_MS
 } = require('./constants');
 
 function isPresent(value) {
@@ -101,6 +102,15 @@ function resolveConfig(options) {
         'taskDockerReadyIntervalMs',
         'ORCH_TASK_DOCKER_READY_INTERVAL_MS',
         DEFAULT_TASK_DOCKER_READY_INTERVAL_MS
+      ),
+      10
+    ),
+    taskDockerCommandTimeoutMs: Number.parseInt(
+      resolveOptional(
+        options,
+        'taskDockerCommandTimeoutMs',
+        'ORCH_TASK_DOCKER_COMMAND_TIMEOUT_MS',
+        DEFAULT_TASK_DOCKER_COMMAND_TIMEOUT_MS
       ),
       10
     )

@@ -34,11 +34,15 @@ class Orchestrator {
     this.taskDockerSidecarNamePrefix = config.taskDockerSidecarNamePrefix;
     this.taskDockerReadyTimeoutMs = this.parseNonNegativeInt(
       config.taskDockerReadyTimeoutMs,
-      0
+      600_000
     );
     this.taskDockerReadyIntervalMs = this.parsePositiveInt(
       config.taskDockerReadyIntervalMs,
       500
+    );
+    this.taskDockerCommandTimeoutMs = this.parseNonNegativeInt(
+      config.taskDockerCommandTimeoutMs,
+      600_000
     );
     this.running = new Map();
     this.accountStore =

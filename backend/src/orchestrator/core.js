@@ -30,6 +30,16 @@ class Orchestrator {
     this.attachmentsTemplateFile = config.attachmentsTemplateFile;
     this.getUid = config.getUid;
     this.getGid = config.getGid;
+    this.taskDockerSidecarImage = config.taskDockerSidecarImage;
+    this.taskDockerSidecarNamePrefix = config.taskDockerSidecarNamePrefix;
+    this.taskDockerReadyTimeoutMs = this.parsePositiveInt(
+      config.taskDockerReadyTimeoutMs,
+      30_000
+    );
+    this.taskDockerReadyIntervalMs = this.parsePositiveInt(
+      config.taskDockerReadyIntervalMs,
+      500
+    );
     this.running = new Map();
     this.accountStore =
       config.accountStore ||
@@ -49,6 +59,14 @@ class Orchestrator {
     const parsed = Number.parseInt(value, 10);
     if (Number.isNaN(parsed) || parsed < 0) {
       return null;
+    }
+    return parsed;
+  }
+
+  parsePositiveInt(value, fallback) {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isNaN(parsed) || parsed < 1) {
+      return fallback;
     }
     return parsed;
   }

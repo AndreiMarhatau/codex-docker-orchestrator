@@ -38,7 +38,8 @@ function attachTaskRunMethods(Orchestrator) {
     envOverrides,
     envVars,
     homeDir,
-    exposedPaths
+    exposedPaths,
+    stopTaskDockerSidecarOnExit = false
   }) {
     const logFile = `${runLabel}.jsonl`;
     const logPath = path.join(this.taskLogsDir(taskId), logFile);
@@ -86,8 +87,6 @@ function attachTaskRunMethods(Orchestrator) {
     child.stderr.on('data', tracker.onStderr);
 
     const finalize = async (code, signal) => {
-      logStream.end();
-      stderrStream.end();
       if (runState.stopTimeout) {
         clearTimeout(runState.stopTimeout);
       }
@@ -95,7 +94,23 @@ function attachTaskRunMethods(Orchestrator) {
       const result = tracker.getResult();
       result.code = code ?? 1;
       result.stopped = runState.stopRequested || signal === 'SIGTERM' || signal === 'SIGKILL';
-      await this.finalizeRun(taskId, runLabel, result, prompt);
+      try {
+        await this.finalizeRun(taskId, runLabel, result, prompt);
+      } finally {
+        let stopErrorMessage = null;
+        if (stopTaskDockerSidecarOnExit && !this.running.has(taskId)) {
+          try {
+            await this.stopTaskDockerSidecar(taskId);
+          } catch (error) {
+            stopErrorMessage = `Failed to stop task Docker sidecar: ${error?.message || 'Unknown error'}`;
+          }
+        }
+        if (stopErrorMessage) {
+          tracker.onStderr(Buffer.from(`\n${stopErrorMessage}`));
+        }
+        logStream.end();
+        stderrStream.end();
+      }
     };
 
     child.on('error', (error) => {

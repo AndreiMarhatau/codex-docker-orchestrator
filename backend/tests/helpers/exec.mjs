@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-
+import fsSync from 'node:fs';
 function normalizeGitArgs(args) {
   const normalized = [];
   for (let i = 0; i < args.length; i += 1) {
@@ -13,7 +13,6 @@ function normalizeGitArgs(args) {
   }
   return normalized;
 }
-
 function handleGitDirCommand({ normalizedArgs, branches, baseSha }) {
   if (normalizedArgs[0] === 'clone' && normalizedArgs[1] === '--bare') {
     const target = normalizedArgs[3];
@@ -53,7 +52,6 @@ function handleGitDirCommand({ normalizedArgs, branches, baseSha }) {
   }
   return null;
 }
-
 function handleGitCCommand({ normalizedArgs, headSha, remoteHeadSha, statusPorcelain, diffHasChanges }) {
   if (normalizedArgs[0] !== '-C') {
     return null;
@@ -65,16 +63,14 @@ function handleGitCCommand({ normalizedArgs, headSha, remoteHeadSha, statusPorce
     return Promise.resolve({ stdout: '', stderr: '', code: diffHasChanges ? 1 : 0 });
   }
   if (normalizedArgs[2] === 'diff') {
-    const diff = [
-      'diff --git a/README.md b/README.md',
-      'index 0000000..1111111 100644',
-      '--- a/README.md',
-      '+++ b/README.md',
-      '@@ -1 +1,2 @@',
-      '-Old line',
-      '+New line',
-      '+Another line'
-    ].join('\n');
+    const diff = `diff --git a/README.md b/README.md
+index 0000000..1111111 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,2 @@
+-Old line
++New line
++Another line`;
     return Promise.resolve({ stdout: diff, stderr: '', code: 0 });
   }
   if (normalizedArgs[2] === 'status') {
@@ -99,7 +95,6 @@ function handleGitCCommand({ normalizedArgs, headSha, remoteHeadSha, statusPorce
   }
   return null;
 }
-
 function handleGitCommand({ args, branches, baseSha, headSha, remoteHeadSha, statusPorcelain, diffHasChanges }) {
   const normalizedArgs = normalizeGitArgs(args);
   const dirResult = handleGitDirCommand({ normalizedArgs, branches, baseSha });
@@ -108,8 +103,22 @@ function handleGitCommand({ args, branches, baseSha, headSha, remoteHeadSha, sta
   }
   return handleGitCCommand({ normalizedArgs, headSha, remoteHeadSha, statusPorcelain, diffHasChanges });
 }
-
 function handleDockerCommand({ args, dockerImageExists, dockerImageId, dockerCreatedAt }) {
+  if (args[0] === 'volume' && args[1] === 'create') {
+    return { stdout: `${args[2] || 'volume'}\n`, stderr: '', code: 0 };
+  }
+  if (args[0] === 'volume' && args[1] === 'rm') {
+    return { stdout: '', stderr: '', code: 0 };
+  }
+  if (args[0] === 'container' && args[1] === 'inspect') {
+    return { stdout: '', stderr: 'No such container', code: 1 };
+  }
+  if (args[0] === 'start' || args[0] === 'stop' || args[0] === 'rm') {
+    return { stdout: '', stderr: '', code: 0 };
+  }
+  if (args[0] === '--host' && args[2] === 'info') {
+    return { stdout: 'Server Version: mock\n', stderr: '', code: 0 };
+  }
   if (args[0] === 'image' && args[1] === 'inspect') {
     if (!dockerImageExists) {
       return { stdout: '', stderr: 'No such image', code: 1 };
@@ -120,25 +129,28 @@ function handleDockerCommand({ args, dockerImageExists, dockerImageId, dockerCre
     return { stdout: 'pulled', stderr: '', code: 0 };
   }
   if (args[0] === 'run') {
+    const socketMount = args.find((arg) => typeof arg === 'string' && arg.endsWith(':/var/run/orch-task-docker'));
+    if (socketMount) {
+      const socketDir = socketMount.split(':/var/run/orch-task-docker')[0];
+      try {
+        fsSync.mkdirSync(socketDir, { recursive: true });
+        fsSync.writeFileSync(`${socketDir}/docker.sock`, '');
+      } catch (error) {
+        void error;
+      }
+    }
     return { stdout: '', stderr: '', code: 0 };
   }
   return null;
 }
-
 export function createMockExec({
-  branches = ['main'],
-  dockerImageExists = true,
-  dockerImageId = 'sha256:mock-image',
-  dockerCreatedAt = '2025-12-18T12:34:56.000Z',
-  baseSha = 'deadbeef1234567890',
-  headSha = 'cafebabefeedface',
-  remoteHeadSha = 'cafebabefeedface',
-  statusPorcelain = '',
-  diffHasChanges = true
+  branches = ['main'], dockerImageExists = true, dockerImageId = 'sha256:mock-image',
+  dockerCreatedAt = '2025-12-18T12:34:56.000Z', baseSha = 'deadbeef1234567890',
+  headSha = 'cafebabefeedface', remoteHeadSha = 'cafebabefeedface',
+  statusPorcelain = '', diffHasChanges = true
 } = {}) {
   const calls = [];
   const threadId = '019b341f-04d9-73b3-8263-2c05ca63d690';
-
   const exec = async (command, args, options = {}) => {
     calls.push({ command, args, options });
     if (command === 'git') {
@@ -181,7 +193,6 @@ export function createMockExec({
     }
     return { stdout: '', stderr: 'unknown command', code: 1 };
   };
-
   exec.calls = calls;
   exec.threadId = threadId;
   return exec;

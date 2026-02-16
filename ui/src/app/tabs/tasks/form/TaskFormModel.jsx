@@ -89,7 +89,7 @@ function TaskFormModel({ handleTaskModelChoiceChange, setTaskForm, taskForm }) {
           }
           label="Use host Docker socket"
         />
-        <Tooltip title="Grants root-equivalent access to the host via Docker. Enable only if you trust the task.">
+        <Tooltip title="Enables Docker via an isolated per-task sidecar daemon (not host Docker).">
           <WarningAmberIcon color="warning" fontSize="small" />
         </Tooltip>
       </Stack>

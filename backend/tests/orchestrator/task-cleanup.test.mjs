@@ -17,7 +17,9 @@ async function writeEnv(orchHome, envId) {
 describe('orchestrator cleanup', () => {
   it('cleans up context repos even when env is missing', async () => {
     const orchHome = await createTempDir();
+    const calls = [];
     const exec = async (command, args) => {
+      calls.push({ command, args });
       if (args.includes('worktree') && args.includes('remove')) {
         const worktreePath = args[args.length - 1];
         const isContext = worktreePath.includes('context');
@@ -49,6 +51,20 @@ describe('orchestrator cleanup', () => {
 
     await orchestrator.deleteTask('task-1');
     await expect(fs.stat(contextPath)).rejects.toThrow();
+    expect(
+      calls.some(
+        (call) => call.command === 'docker' && call.args[0] === 'rm' && call.args[1] === '-f'
+      )
+    ).toBe(true);
+    expect(
+      calls.some(
+        (call) =>
+          call.command === 'docker' &&
+          call.args[0] === 'volume' &&
+          call.args[1] === 'rm' &&
+          call.args[2] === '-f'
+      )
+    ).toBe(true);
   });
 
   it('throws when worktree removal fails with a hard error', async () => {
@@ -76,6 +92,9 @@ describe('orchestrator cleanup', () => {
     await expect(orchestrator.deleteTask('task-2')).rejects.toThrow(/fatal/);
   });
 
+});
+
+describe('orchestrator push', () => {
   it('pushes without creating a PR when GitHub config is missing', async () => {
     const orchHome = await createTempDir();
     const exec = async () => ({ stdout: '', stderr: '', code: 0 });

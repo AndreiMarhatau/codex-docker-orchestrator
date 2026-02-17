@@ -120,6 +120,48 @@ describe('task docker sidecar', () => {
     );
   });
 
+  it('accepts sidecar readiness via in-sidecar check when socket is permission denied', async () => {
+    const orchHome = await createTempDir();
+    const calls = [];
+    const exec = async (command, args) => {
+      calls.push({ command, args });
+      if (command !== 'docker') {
+        return { stdout: '', stderr: '', code: 0 };
+      }
+      if (args[0] === 'volume' && args[1] === 'create') {
+        return { stdout: 'vol\n', stderr: '', code: 0 };
+      }
+      if (args[0] === 'container' && args[1] === 'inspect') {
+        return { stdout: 'false\n', stderr: '', code: 0 };
+      }
+      if (args[0] === 'start') {
+        return { stdout: '', stderr: '', code: 0 };
+      }
+      if (args[0] === '--host' && args[2] === 'info') {
+        return { stdout: '', stderr: 'permission denied', code: 1 };
+      }
+      if (
+        args[0] === 'exec' &&
+        args[2] === 'docker' &&
+        args[3] === '--host' &&
+        String(args[4] || '').startsWith('unix:///var/run/orch-task-docker/')
+      ) {
+        return { stdout: 'ok', stderr: '', code: 0 };
+      }
+      return { stdout: '', stderr: '', code: 0 };
+    };
+    const orchestrator = new Orchestrator({
+      orchHome,
+      exec,
+      taskDockerReadyTimeoutMs: 50,
+      taskDockerReadyIntervalMs: 5
+    });
+
+    const socketPath = await orchestrator.ensureTaskDockerSidecar('task-perm');
+    expect(socketPath).toBe(path.join(orchHome, 'tasks', 'task-perm', 'docker', 'sock', 'docker.sock'));
+    expect(calls.some((call) => call.command === 'docker' && call.args[0] === 'exec')).toBe(true);
+  });
+
   it('throws when stopping sidecar fails with non-not-found error', async () => {
     const orchHome = await createTempDir();
     const exec = async (command, args) => {

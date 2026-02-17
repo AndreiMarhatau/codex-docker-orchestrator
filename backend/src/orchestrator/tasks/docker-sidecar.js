@@ -4,36 +4,19 @@ const TASK_DOCKER_TARGET_SOCKET_PATH = '/var/run/docker.sock';
 const TASK_DOCKER_SIDECAR_MOUNT_SOCKET_DIR = '/var/run/orch-task-docker';
 const TASK_DOCKER_SIDECAR_SOCKET_FILE = 'docker.sock';
 
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function parseBooleanFlag(value) {
-  return String(value || '').trim().toLowerCase() === 'true';
-}
-
-function isAbortError(error) {
-  return error?.name === 'AbortError' || error?.code === 'ABORT_ERR';
-}
+function delay(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+function parseBooleanFlag(value) { return String(value || '').trim().toLowerCase() === 'true'; }
+function isAbortError(error) { return error?.name === 'AbortError' || error?.code === 'ABORT_ERR'; }
+function isPermissionDeniedOutput(text) { return String(text || '').toLowerCase().includes('permission denied'); }
+function taskSidecarName(orchestrator, taskId) { return `${orchestrator.taskDockerSidecarNamePrefix}-${taskId}`; }
+function taskSidecarVolumeName(orchestrator, taskId) { return `${orchestrator.taskDockerSidecarNamePrefix}-${taskId}-data`; }
 
 async function execIgnoreNotFound(orchestrator, args) {
   const result = await orchestrator.exec('docker', args);
-  if (result.code === 0) {
-    return;
-  }
+  if (result.code === 0) { return; }
   const output = `${result.stderr || ''}\n${result.stdout || ''}`.toLowerCase();
-  if (output.includes('no such container') || output.includes('not found')) {
-    return;
-  }
+  if (output.includes('no such container') || output.includes('not found')) { return; }
   throw new Error((result.stderr || result.stdout || 'docker command failed').trim());
-}
-
-function taskSidecarName(orchestrator, taskId) {
-  return `${orchestrator.taskDockerSidecarNamePrefix}-${taskId}`;
-}
-
-function taskSidecarVolumeName(orchestrator, taskId) {
-  return `${orchestrator.taskDockerSidecarNamePrefix}-${taskId}-data`;
 }
 
 async function execTaskDocker(orchestrator, args, execOptions = {}) {
@@ -42,7 +25,6 @@ async function execTaskDocker(orchestrator, args, execOptions = {}) {
   const timeoutMs = orchestrator.taskDockerCommandTimeoutMs;
   let timeoutHandle = null;
   let onParentAbort = null;
-
   if (parentSignal) {
     if (parentSignal.aborted) {
       controller.abort();
@@ -51,10 +33,7 @@ async function execTaskDocker(orchestrator, args, execOptions = {}) {
       parentSignal.addEventListener('abort', onParentAbort, { once: true });
     }
   }
-  if (timeoutMs > 0) {
-    timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
-  }
-
+  if (timeoutMs > 0) { timeoutHandle = setTimeout(() => controller.abort(), timeoutMs); }
   try {
     return await orchestrator.exec('docker', args, { ...execOptions, signal: controller.signal });
   } catch (error) {
@@ -65,12 +44,8 @@ async function execTaskDocker(orchestrator, args, execOptions = {}) {
     }
     throw error;
   } finally {
-    if (timeoutHandle) {
-      clearTimeout(timeoutHandle);
-    }
-    if (onParentAbort) {
-      parentSignal.removeEventListener('abort', onParentAbort);
-    }
+    if (timeoutHandle) { clearTimeout(timeoutHandle); }
+    if (onParentAbort) { parentSignal.removeEventListener('abort', onParentAbort); }
   }
 }
 
@@ -84,34 +59,33 @@ async function execTaskDockerOrThrow(orchestrator, args, execOptions = {}) {
 
 async function waitForTaskDockerReady(orchestrator, taskId, execOptions = {}) {
   const socketPath = orchestrator.taskDockerSocketPath(taskId);
+  const sidecarName = taskSidecarName(orchestrator, taskId);
   const timeoutMs = orchestrator.taskDockerReadyTimeoutMs;
   const timeoutAt = timeoutMs > 0 ? Date.now() + timeoutMs : Number.POSITIVE_INFINITY;
   let lastError = null;
   while (Date.now() < timeoutAt) {
     try {
-      const infoResult = await execTaskDocker(orchestrator, [
-        '--host',
-        `unix://${socketPath}`,
-        'info'
-      ], execOptions);
-      if (infoResult.code === 0) {
-        return socketPath;
+      const infoResult = await execTaskDocker(orchestrator, ['--host', `unix://${socketPath}`, 'info'], execOptions);
+      if (infoResult.code === 0) { return socketPath; }
+      const output = `${infoResult.stderr || ''}\n${infoResult.stdout || ''}`.trim();
+      if (isPermissionDeniedOutput(output)) {
+        const inSidecar = await execTaskDocker(
+          orchestrator,
+          ['exec', sidecarName, 'docker', '--host', `unix://${TASK_DOCKER_SIDECAR_MOUNT_SOCKET_DIR}/${TASK_DOCKER_SIDECAR_SOCKET_FILE}`, 'info'],
+          execOptions
+        );
+        if (inSidecar.code === 0) { return socketPath; }
       }
+      if (output) { lastError = new Error(output); }
     } catch (error) {
-      if (isAbortError(error)) {
-        throw error;
-      }
-      if (error?.code !== 'DOCKER_COMMAND_TIMEOUT') {
-        throw error;
-      }
+      if (isAbortError(error)) { throw error; }
+      if (error?.code !== 'DOCKER_COMMAND_TIMEOUT') { throw error; }
       lastError = error;
     }
     await delay(orchestrator.taskDockerReadyIntervalMs);
   }
   const suffix = lastError?.message ? ` Last error: ${lastError.message}` : '';
-  throw new Error(
-    `Task Docker sidecar for ${taskId} did not become ready within ${orchestrator.taskDockerReadyTimeoutMs}ms.${suffix}`
-  );
+  throw new Error(`Task Docker sidecar for ${taskId} did not become ready within ${orchestrator.taskDockerReadyTimeoutMs}ms.${suffix}`);
 }
 
 function attachTaskDockerSidecarMethods(Orchestrator) {
@@ -120,10 +94,7 @@ function attachTaskDockerSidecarMethods(Orchestrator) {
   };
 
   Orchestrator.prototype.taskDockerSocketMount = function taskDockerSocketMount(taskId) {
-    return {
-      source: this.taskDockerSocketPath(taskId),
-      target: TASK_DOCKER_TARGET_SOCKET_PATH
-    };
+    return { source: this.taskDockerSocketPath(taskId), target: TASK_DOCKER_TARGET_SOCKET_PATH };
   };
 
   Orchestrator.prototype.taskDockerSidecarExists = async function taskDockerSidecarExists(taskId, execOptions = {}) {
@@ -140,37 +111,20 @@ function attachTaskDockerSidecarMethods(Orchestrator) {
 
     await ensureDir(socketDir);
     await execTaskDockerOrThrow(this, ['volume', 'create', volumeName], execOptions);
-    const inspectResult = await execTaskDocker(this, [
-      'container',
-      'inspect',
-      '--format',
-      '{{.State.Running}}',
-      sidecarName
-    ], execOptions);
+    const inspectResult = await execTaskDocker(this, ['container', 'inspect', '--format', '{{.State.Running}}', sidecarName], execOptions);
     const isRunning = inspectResult.code === 0 && parseBooleanFlag(inspectResult.stdout);
-    if (!isRunning && (await pathExists(socketPath))) {
-      await removePath(socketPath);
-    }
+    if (!isRunning && (await pathExists(socketPath))) { await removePath(socketPath); }
+
     if (inspectResult.code !== 0) {
-      await execTaskDockerOrThrow(this, [
-        'run',
-        '-d',
-        '--name',
-        sidecarName,
-        '--privileged',
-        '--restart',
-        'no',
-        '-e',
-        'DOCKER_TLS_CERTDIR=',
-        '-v',
-        `${volumeName}:/var/lib/docker`,
-        '-v',
-        `${socketDir}:${TASK_DOCKER_SIDECAR_MOUNT_SOCKET_DIR}`,
-        this.taskDockerSidecarImage,
-        'dockerd',
-        '--host',
-        `unix://${TASK_DOCKER_SIDECAR_MOUNT_SOCKET_DIR}/${TASK_DOCKER_SIDECAR_SOCKET_FILE}`
-      ], execOptions);
+      await execTaskDockerOrThrow(
+        this,
+        [
+          'run', '-d', '--name', sidecarName, '--privileged', '--restart', 'no', '-e', 'DOCKER_TLS_CERTDIR=',
+          '-v', `${volumeName}:/var/lib/docker`, '-v', `${socketDir}:${TASK_DOCKER_SIDECAR_MOUNT_SOCKET_DIR}`,
+          this.taskDockerSidecarImage, 'dockerd', '--host', `unix://${TASK_DOCKER_SIDECAR_MOUNT_SOCKET_DIR}/${TASK_DOCKER_SIDECAR_SOCKET_FILE}`
+        ],
+        execOptions
+      );
     } else if (!isRunning) {
       await execTaskDockerOrThrow(this, ['start', sidecarName], execOptions);
     }
@@ -193,6 +147,4 @@ function attachTaskDockerSidecarMethods(Orchestrator) {
   };
 }
 
-module.exports = {
-  attachTaskDockerSidecarMethods
-};
+module.exports = { attachTaskDockerSidecarMethods };

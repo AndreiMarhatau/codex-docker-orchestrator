@@ -2,7 +2,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { readJson, writeJson } = require('../../storage');
 const { buildRunEnv, createOutputTracker, updateRunMeta } = require('./run-helpers');
-const { createDeferredRunState, createStoppedDuringStartupError } = require('./deferred-run-state');
+const { createDeferredRunState, createStoppedDuringStartupError, isAbortError } = require('./deferred-run-state');
+
 function attachFailRunStartMethod(Orchestrator) {
   Orchestrator.prototype.failRunStart = async function failRunStart(taskId, runLabel, prompt, error) {
     let meta = null;
@@ -34,13 +35,18 @@ function attachDeferredRunStartMethod(Orchestrator) {
   Orchestrator.prototype.startCodexRunDeferred = function startCodexRunDeferred(options) {
     const { taskId, runLabel, prompt, useHostDockerSocket } = options;
     const pendingRun = createDeferredRunState();
+    pendingRun.startController = new AbortController();
     this.running.set(taskId, pendingRun);
     void (async () => {
-      let hadExistingSidecar = false;
+      let hadExistingSidecar = null;
       try {
         if (useHostDockerSocket) {
-          hadExistingSidecar = await this.taskDockerSidecarExists(taskId);
-          await this.ensureTaskDockerSidecar(taskId);
+          hadExistingSidecar = await this.taskDockerSidecarExists(taskId, {
+            signal: pendingRun.startController.signal
+          });
+          await this.ensureTaskDockerSidecar(taskId, {
+            signal: pendingRun.startController.signal
+          });
         }
         if (pendingRun.stopRequested) {
           throw createStoppedDuringStartupError();
@@ -56,7 +62,7 @@ function attachDeferredRunStartMethod(Orchestrator) {
         }
         if (useHostDockerSocket) {
           try {
-            if (hadExistingSidecar) {
+            if (hadExistingSidecar !== false) {
               await this.stopTaskDockerSidecar(taskId);
             } else {
               await this.removeTaskDockerSidecar(taskId);
@@ -65,8 +71,10 @@ function attachDeferredRunStartMethod(Orchestrator) {
             // Best-effort cleanup for sidecar startup failures.
           }
         }
+        const startupError =
+          pendingRun.stopRequested && isAbortError(error) ? createStoppedDuringStartupError() : error;
         try {
-          await this.failRunStart(taskId, runLabel, prompt, error);
+          await this.failRunStart(taskId, runLabel, prompt, startupError);
         } catch {
           // Never surface deferred bookkeeping failures as unhandled rejections.
         }
@@ -185,15 +193,11 @@ function attachStartRunMethod(Orchestrator) {
       tracker.onStderr(Buffer.from(`\n${error?.message || 'Unknown error'}`));
       finalize(1, null).catch(() => {});
     });
-    child.on('close', (code, signal) => {
-      finalize(code, signal).catch(() => {});
-    });
+    child.on('close', (code, signal) => { finalize(code, signal).catch(() => {}); });
   };
 }
 function attachTaskRunMethods(Orchestrator) {
-  attachFailRunStartMethod(Orchestrator);
-  attachDeferredRunStartMethod(Orchestrator);
-  attachFinalizeRunMethod(Orchestrator);
-  attachStartRunMethod(Orchestrator);
+  attachFailRunStartMethod(Orchestrator); attachDeferredRunStartMethod(Orchestrator);
+  attachFinalizeRunMethod(Orchestrator); attachStartRunMethod(Orchestrator);
 }
 module.exports = { attachTaskRunMethods };

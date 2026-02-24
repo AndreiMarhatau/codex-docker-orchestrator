@@ -173,6 +173,9 @@ it(
           label: account.id === 'acct-2' ? 'Ops Renamed' : account.label
         }))
       },
+      'POST /api/accounts/trigger-usage': {
+        triggeredAt: '2024-01-01T00:01:00Z'
+      },
       '/api/accounts/rate-limits': {
         rateLimits,
         fetchedAt: '2024-01-01T00:00:00Z'

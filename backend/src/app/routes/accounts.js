@@ -21,6 +21,18 @@ function createAccountsRouter(orchestrator) {
     }
   }));
 
+  router.post('/accounts/trigger-usage', asyncHandler(async (req, res) => {
+    try {
+      const info = await orchestrator.triggerAccountUsage();
+      res.json(info);
+    } catch (error) {
+      if (error?.code === 'NO_ACTIVE_ACCOUNT') {
+        return res.status(400).send(error.message);
+      }
+      throw error;
+    }
+  }));
+
   router.post('/accounts', asyncHandler(async (req, res) => {
     const { label, authJson } = req.body || {};
     if (!authJson || typeof authJson !== 'string') {

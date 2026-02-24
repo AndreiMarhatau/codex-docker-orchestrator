@@ -22,6 +22,11 @@ describe('accounts routes', () => {
     await request(app).get('/api/accounts/rate-limits').expect(400);
   });
 
+  it('returns 400 when usage trigger is requested without an active account', async () => {
+    const app = await createTestApp();
+    await request(app).post('/api/accounts/trigger-usage').expect(400);
+  });
+
   it('rejects missing or invalid authJson', async () => {
     const app = await createTestApp();
     await request(app).post('/api/accounts').send({ label: 'Primary' }).expect(400);
@@ -108,5 +113,17 @@ describe('accounts routes', () => {
       .send({ authJson: '{"token":"updated"}' })
       .expect(200);
     expect(updateRes.body.accounts[0].authJson).toContain('"token": "updated"');
+  });
+
+  it('triggers usage for the active account', async () => {
+    const app = await createTestApp();
+    const created = await request(app)
+      .post('/api/accounts')
+      .send({ label: 'Primary', authJson: '{}' })
+      .expect(201);
+
+    const triggerRes = await request(app).post('/api/accounts/trigger-usage').expect(200);
+    expect(triggerRes.body.account.id).toBe(created.body.id);
+    expect(triggerRes.body.triggeredAt).toBeTruthy();
   });
 });

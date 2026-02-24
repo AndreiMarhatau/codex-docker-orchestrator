@@ -45,6 +45,16 @@ async function setupOrchestrator({
   return { orchHome, codexHome, orchestrator, spawnCalls };
 }
 
+async function waitForSpawnCalls(spawnCalls, minCount) {
+  const deadline = Date.now() + 2000;
+  while (Date.now() < deadline) {
+    if (spawnCalls.length >= minCount) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
+
 describe('Orchestrator auto-rotate rate limits', () => {
   it('auto-rotates accounts on usage limit and resumes', async () => {
     const { codexHome, orchestrator, spawnCalls } = await setupOrchestrator({
@@ -74,6 +84,7 @@ describe('Orchestrator auto-rotate rate limits', () => {
 
     const completed = await waitForTaskStatus(orchestrator, task.taskId, 'completed');
     expect(completed.autoRotateCount).toBe(1);
+    await waitForSpawnCalls(spawnCalls, 3);
     expect(spawnCalls.length).toBe(3);
 
     const activeAuth = JSON.parse(await fs.readFile(path.join(codexHome, 'auth.json'), 'utf8'));
@@ -108,6 +119,7 @@ describe('Orchestrator auto-rotate rate limits', () => {
 
     const failed = await waitForTaskStatus(orchestrator, task.taskId, 'failed');
     expect(failed.autoRotateCount || 0).toBe(0);
+    await waitForSpawnCalls(spawnCalls, 2);
     expect(spawnCalls.length).toBe(2);
 
     const activeAuth = JSON.parse(await fs.readFile(path.join(codexHome, 'auth.json'), 'utf8'));
@@ -151,6 +163,7 @@ describe('Orchestrator auto-rotate rate limits', () => {
 
     const completed = await waitForTaskStatus(orchestrator, task.taskId, 'completed');
     expect(completed.autoRotateCount).toBe(1);
+    await waitForSpawnCalls(spawnCalls, 4);
     expect(spawnCalls.length).toBe(4);
 
     const activeAuth = JSON.parse(await fs.readFile(path.join(codexHome, 'auth.json'), 'utf8'));

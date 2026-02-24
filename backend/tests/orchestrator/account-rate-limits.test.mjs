@@ -4,7 +4,7 @@ import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
-import { createMockExec, createTempDir } from '../helpers.mjs';
+import { createMockExec, createMockSpawn, createTempDir } from '../helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
@@ -109,5 +109,35 @@ describe('Orchestrator account rate-limit reads', () => {
     const secondaryAuth = JSON.parse(accounts.accounts.find((entry) => entry.id === secondary.id).authJson);
     expect(primaryAuth).toEqual({ token: 'primary-old' });
     expect(secondaryAuth).toEqual({ token: 'secondary-old' });
+  });
+
+  it('triggers usage with a lightweight codex run in an empty workspace', async () => {
+    const orchHome = await createTempDir();
+    const codexHome = path.join(orchHome, 'codex-home');
+    await fs.mkdir(codexHome, { recursive: true });
+    const spawn = createMockSpawn();
+
+    const orchestrator = new Orchestrator({
+      orchHome,
+      codexHome,
+      exec: createMockExec({ branches: ['main'] }),
+      spawn,
+      now: () => '2025-12-19T00:00:00.000Z'
+    });
+
+    const account = await orchestrator.addAccount({ label: 'Primary', authJson: '{}' });
+    const result = await orchestrator.triggerAccountUsage();
+    expect(result.account.id).toBe(account.id);
+    expect(result.prompt).toContain('Reply with exactly "Hi"');
+
+    const triggerCall = spawn.calls.find(
+      (call) =>
+        call.command === 'codex-docker' &&
+        call.args.includes('exec') &&
+        call.args.includes('--skip-git-repo-check')
+    );
+    expect(triggerCall).toBeTruthy();
+    expect(triggerCall.options.cwd).toContain('codex-usage-trigger-');
+    expect(triggerCall.options.cwd).not.toBe(triggerCall.options.env.CODEX_HOME);
   });
 });

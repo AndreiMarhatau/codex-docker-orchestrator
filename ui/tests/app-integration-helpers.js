@@ -38,6 +38,7 @@ async function exerciseAccountsTab(user) {
   fireEvent.change(authFields[0], { target: { value: '{"token":"primary-updated"}' } });
   expect(saveAuthButton).toBeEnabled();
   await user.click(saveAuthButton);
+  await user.click(screen.getByRole('button', { name: 'Trigger usage' }));
   await user.click(screen.getByRole('button', { name: 'Check usage limits' }));
   await waitFor(() =>
     expect(screen.getByRole('button', { name: 'Rotate now' })).toBeEnabled()

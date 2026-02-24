@@ -8,6 +8,18 @@ import { waitForTaskStatus } from '../helpers/wait.mjs';
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
 
+async function waitForExecCalls(execCalls, predicate, minCount = 1) {
+  const deadline = Date.now() + 2000;
+  while (Date.now() < deadline) {
+    const matching = execCalls.filter(predicate);
+    if (matching.length >= minCount) {
+      return matching;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  return execCalls.filter(predicate);
+}
+
 describe('Orchestrator task context', () => {
   it('mounts context repos read-only and injects instructions', async () => {
     const orchHome = await createTempDir();
@@ -87,14 +99,16 @@ describe('Orchestrator task context', () => {
     const createAgentsContent = await fs.readFile(createAgentsFile, 'utf8');
     expect(createAgentsContent).toContain('Host Docker Socket');
     expect(createAgentsContent).not.toContain('Environment variables');
-    const dockerRunCalls = exec.calls.filter(
+    const dockerRunCalls = await waitForExecCalls(
+      exec.calls,
       (call) =>
         call.command === 'docker' &&
         call.args[0] === 'run' &&
         call.args.includes(orchestrator.taskDockerSidecarImage)
     );
     expect(dockerRunCalls.length).toBeGreaterThan(0);
-    const dockerStopCalls = exec.calls.filter(
+    const dockerStopCalls = await waitForExecCalls(
+      exec.calls,
       (call) => call.command === 'docker' && call.args[0] === 'stop'
     );
     expect(dockerStopCalls.length).toBeGreaterThan(0);

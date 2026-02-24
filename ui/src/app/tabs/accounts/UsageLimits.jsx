@@ -9,6 +9,51 @@ import {
 } from '../../formatters.js';
 import { formatAccountLabel } from '../../repo-helpers.js';
 
+function RateLimitWindow({ label, window }) {
+  const hasWindow = window && typeof window === 'object';
+  const leftPercent =
+    hasWindow && Number.isFinite(window.usedPercent)
+      ? Math.min(100, Math.max(0, 100 - window.usedPercent))
+      : 'unknown';
+  const leftDisplay = formatPercent(leftPercent);
+  const windowDuration = hasWindow
+    ? formatDurationFromMinutes(window.windowDurationMins)
+    : 'unknown';
+  const resetsAt = hasWindow ? formatEpochSeconds(window.resetsAt) : 'unknown';
+  const resetsRelative = hasWindow
+    ? formatRelativeTimeFromEpochSeconds(window.resetsAt)
+    : 'unknown';
+  const resetsDisplay = resetsRelative === 'unknown' ? resetsAt : `${resetsAt} (${resetsRelative})`;
+
+  return (
+    <Box
+      sx={{
+        flex: 1,
+        minWidth: 200,
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 2,
+        padding: 1.5
+      }}
+    >
+      <Stack spacing={0.5}>
+        <Typography variant="subtitle2">{label}</Typography>
+        {hasWindow ? (
+          <>
+            <Typography variant="body2">Left: {leftDisplay}</Typography>
+            <Typography variant="body2">Window: {windowDuration}</Typography>
+            <Typography variant="body2">Resets: {resetsDisplay}</Typography>
+          </>
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            No data.
+          </Typography>
+        )}
+      </Stack>
+    </Box>
+  );
+}
+
 function UsageLimits({ accountsState }) {
   const {
     activeAccount,
@@ -16,7 +61,11 @@ function UsageLimits({ accountsState }) {
     rateLimitsError,
     rateLimitsFetchedAt,
     rateLimitsLoading,
-    refreshRateLimits
+    refreshRateLimits,
+    triggerUsage,
+    triggerUsageError,
+    triggerUsageLoading,
+    triggerUsageTriggeredAt
   } = accountsState;
 
   const creditsSummary = useMemo(() => {
@@ -36,50 +85,6 @@ function UsageLimits({ accountsState }) {
     return 'Credits available.';
   }, [rateLimits]);
 
-  const renderRateLimitWindow = (label, window) => {
-    const hasWindow = window && typeof window === 'object';
-    const leftPercent =
-      hasWindow && Number.isFinite(window.usedPercent)
-        ? Math.min(100, Math.max(0, 100 - window.usedPercent))
-        : 'unknown';
-    const leftDisplay = formatPercent(leftPercent);
-    const windowDuration = hasWindow
-      ? formatDurationFromMinutes(window.windowDurationMins)
-      : 'unknown';
-    const resetsAt = hasWindow ? formatEpochSeconds(window.resetsAt) : 'unknown';
-    const resetsRelative = hasWindow
-      ? formatRelativeTimeFromEpochSeconds(window.resetsAt)
-      : 'unknown';
-    const resetsDisplay = resetsRelative === 'unknown' ? resetsAt : `${resetsAt} (${resetsRelative})`;
-    return (
-      <Box
-        sx={{
-          flex: 1,
-          minWidth: 200,
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 2,
-          padding: 1.5
-        }}
-      >
-        <Stack spacing={0.5}>
-          <Typography variant="subtitle2">{label}</Typography>
-          {hasWindow ? (
-            <>
-              <Typography variant="body2">Left: {leftDisplay}</Typography>
-              <Typography variant="body2">Window: {windowDuration}</Typography>
-              <Typography variant="body2">Resets: {resetsDisplay}</Typography>
-            </>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              No data.
-            </Typography>
-          )}
-        </Stack>
-      </Box>
-    );
-  };
-
   return (
     <>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
@@ -91,15 +96,29 @@ function UsageLimits({ accountsState }) {
               : 'No active account selected.'}
           </Typography>
         </Stack>
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={refreshRateLimits}
-          disabled={rateLimitsLoading}
-        >
-          Check usage limits
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={refreshRateLimits}
+            disabled={rateLimitsLoading || triggerUsageLoading}
+          >
+            Check usage limits
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={triggerUsage}
+            disabled={rateLimitsLoading || triggerUsageLoading}
+          >
+            Trigger usage
+          </Button>
+        </Stack>
       </Stack>
+      {triggerUsageLoading && (
+        <Typography color="text.secondary">Triggering usage...</Typography>
+      )}
+      {triggerUsageError && <Typography color="error">{triggerUsageError}</Typography>}
       {rateLimitsLoading && (
         <Typography color="text.secondary">Loading usage limits...</Typography>
       )}
@@ -111,8 +130,8 @@ function UsageLimits({ accountsState }) {
         <Box className="log-box">
           <Stack spacing={1.5}>
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              {renderRateLimitWindow('Primary', rateLimits.primary)}
-              {renderRateLimitWindow('Secondary', rateLimits.secondary)}
+              <RateLimitWindow label="Primary" window={rateLimits.primary} />
+              <RateLimitWindow label="Secondary" window={rateLimits.secondary} />
             </Stack>
             <Divider />
             <Stack spacing={0.5}>
@@ -128,6 +147,11 @@ function UsageLimits({ accountsState }) {
       {rateLimitsFetchedAt && (
         <Typography variant="caption" color="text.secondary">
           Last checked {formatTimestamp(rateLimitsFetchedAt)}
+        </Typography>
+      )}
+      {triggerUsageTriggeredAt && (
+        <Typography variant="caption" color="text.secondary">
+          Last usage trigger {formatTimestamp(triggerUsageTriggeredAt)}
         </Typography>
       )}
     </>

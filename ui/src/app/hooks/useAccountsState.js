@@ -88,6 +88,9 @@ function useAccountsState({ accountState, setAccountState, setError, setLoading 
   const [rateLimitsLoading, setRateLimitsLoading] = useState(false);
   const [rateLimitsError, setRateLimitsError] = useState('');
   const [rateLimitsFetchedAt, setRateLimitsFetchedAt] = useState('');
+  const [triggerUsageLoading, setTriggerUsageLoading] = useState(false);
+  const [triggerUsageError, setTriggerUsageError] = useState('');
+  const [triggerUsageTriggeredAt, setTriggerUsageTriggeredAt] = useState('');
 
   const activeAccount = useMemo(
     () => accountState.accounts.find((account) => account.isActive),
@@ -102,6 +105,26 @@ function useAccountsState({ accountState, setAccountState, setError, setLoading 
       setRateLimitsFetchedAt,
       setRateLimitsLoading
     });
+  const triggerUsage = async () => {
+    setTriggerUsageError('');
+    setTriggerUsageLoading(true);
+    try {
+      const info = await apiRequest('/api/accounts/trigger-usage', { method: 'POST' });
+      setTriggerUsageTriggeredAt(info?.triggeredAt || '');
+      await fetchRateLimits({
+        setRateLimits,
+        setRateLimitsError,
+        setRateLimitsFetchedAt,
+        setRateLimitsLoading
+      });
+      return info;
+    } catch (err) {
+      setTriggerUsageError(err.message);
+      return null;
+    } finally {
+      setTriggerUsageLoading(false);
+    }
+  };
   const handleAddAccount = createAddAccountHandler({
     accountForm,
     refreshAccounts,
@@ -166,6 +189,10 @@ function useAccountsState({ accountState, setAccountState, setError, setLoading 
     rateLimitsLoading,
     refreshAccounts,
     refreshRateLimits,
+    triggerUsage,
+    triggerUsageError,
+    triggerUsageLoading,
+    triggerUsageTriggeredAt,
     setAccountForm,
     setShowAccountForm,
     showAccountForm

@@ -72,7 +72,7 @@ function AppLayout({ accountsState, authState, data, envState, tabState, tasksSt
 
       <Box className="app-main">
         {activeTab === 0 && <EnvironmentsTab data={data} envState={envState} />}
-        {activeTab === 1 && <TasksTab data={data} envState={envState} tasksState={tasksState} />}
+        {activeTab === 1 && <TasksTab data={data} tasksState={tasksState} />}
         {activeTab === 2 && <AccountsTab accountsState={accountsState} data={data} />}
         {activeTab === 3 && <SettingsTab authState={authState} />}
       </Box>

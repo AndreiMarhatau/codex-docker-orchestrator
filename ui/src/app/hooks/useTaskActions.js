@@ -7,7 +7,6 @@ import {
 } from './task-action-hooks.js';
 
 function useTaskActions({
-  handleClearTaskImages,
   refreshAll,
   refreshTaskDetail,
   resumeAttachmentRemovals,
@@ -33,16 +32,11 @@ function useTaskActions({
   setTaskFileError,
   setTaskFileUploading,
   setTaskFiles,
-  setTaskImageError,
-  setTaskImageUploading,
   taskForm,
   taskFiles,
-  taskImages,
-  taskFileInputRef,
-  taskImageInputRef
+  taskFileInputRef
 }) {
   const handleCreateTask = useCreateTaskHandler({
-    handleClearTaskImages,
     refreshAll,
     setError,
     setLoading,
@@ -50,14 +44,10 @@ function useTaskActions({
     setTaskForm,
     setTaskFileError,
     setTaskFileUploading,
-    setTaskImageError,
-    setTaskImageUploading,
     setTaskFiles,
     taskForm,
     taskFiles,
-    taskImages,
-    taskFileInputRef,
-    taskImageInputRef
+    taskFileInputRef
   });
 
   const handleDeleteTask = useDeleteTaskHandler({

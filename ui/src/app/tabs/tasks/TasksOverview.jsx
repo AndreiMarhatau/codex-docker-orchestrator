@@ -4,13 +4,13 @@ import TaskForm from './TaskForm.jsx';
 import TaskList from './TaskList.jsx';
 import TasksHeader from './TasksHeader.jsx';
 
-function TasksOverview({ data, envState, tasksState }) {
+function TasksOverview({ data, tasksState }) {
   return (
     <Stack spacing={2}>
-      <TasksHeader data={data} tasksState={tasksState} />
+      <TasksHeader tasksState={tasksState} />
       <Divider />
       <TaskFilterBar data={data} tasksState={tasksState} />
-      <TaskForm data={data} envState={envState} tasksState={tasksState} />
+      <TaskForm data={data} tasksState={tasksState} />
       <Divider />
       <TaskList
         data={data}

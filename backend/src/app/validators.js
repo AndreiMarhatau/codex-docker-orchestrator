@@ -1,19 +1,3 @@
-const path = require('node:path');
-
-function isSupportedImageFile(file) {
-  const mimeType = (file.mimetype || '').toLowerCase();
-  const ext = path.extname(file.originalname || '').toLowerCase();
-  const allowedMimeTypes = new Set([
-    'image/png',
-    'image/jpeg',
-    'image/gif',
-    'image/webp',
-    'image/bmp'
-  ]);
-  const allowedExts = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp']);
-  return allowedMimeTypes.has(mimeType) || allowedExts.has(ext);
-}
-
 function normalizeContextReposInput(contextRepos) {
   if (contextRepos === undefined) {
     return null;
@@ -103,7 +87,6 @@ function normalizeEnvVarsInput(envVars) {
 }
 
 module.exports = {
-  isSupportedImageFile,
   normalizeAttachmentUploadsInput,
   normalizeContextReposInput,
   normalizeEnvVarsInput

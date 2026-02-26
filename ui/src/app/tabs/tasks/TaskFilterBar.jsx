@@ -2,7 +2,7 @@ import { Button, MenuItem, Stack, TextField } from '@mui/material';
 import { formatRepoDisplay } from '../../repo-helpers.js';
 
 function TaskFilterBar({ data, tasksState }) {
-  const { envs, refreshAll } = data;
+  const { envs } = data;
   const { formState, selection } = tasksState;
 
   return (
@@ -28,16 +28,9 @@ function TaskFilterBar({ data, tasksState }) {
             </MenuItem>
           ))}
         </TextField>
-        <Button size="small" variant="outlined" onClick={refreshAll}>
-          Refresh
-        </Button>
       </Stack>
-      <Button
-        size="small"
-        variant={formState.showTaskForm ? 'outlined' : 'contained'}
-        onClick={() => formState.setShowTaskForm((prev) => !prev)}
-      >
-        {formState.showTaskForm ? 'Hide new task' : 'New task'}
+      <Button size="small" variant="contained" onClick={() => formState.setShowTaskForm(true)}>
+        New task
       </Button>
     </Stack>
   );

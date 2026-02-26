@@ -2,11 +2,8 @@ const multer = require('multer');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { isSupportedImageFile } = require('./validators');
 const { MAX_TASK_FILES } = require('../orchestrator/tasks/attachments');
 
-const MAX_IMAGE_FILES = 5;
-const MAX_IMAGE_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_TASK_FILE_SIZE = 10 * 1024 * 1024;
 
 function createStorage(orchestrator) {
@@ -26,24 +23,6 @@ function createStorage(orchestrator) {
   });
 }
 
-function createImageUploadMiddleware(orchestrator) {
-  const storage = createStorage(orchestrator);
-  return multer({
-    storage,
-    limits: {
-      files: MAX_IMAGE_FILES,
-      fileSize: MAX_IMAGE_FILE_SIZE
-    },
-    fileFilter: (req, file, cb) => {
-      if (isSupportedImageFile(file)) {
-        cb(null, true);
-      } else {
-        cb(new Error('Only png, jpg, gif, webp, or bmp images are supported.'));
-      }
-    }
-  });
-}
-
 function createFileUploadMiddleware(orchestrator) {
   const storage = createStorage(orchestrator);
   return multer({
@@ -56,9 +35,6 @@ function createFileUploadMiddleware(orchestrator) {
 }
 
 module.exports = {
-  MAX_IMAGE_FILES,
-  MAX_IMAGE_FILE_SIZE,
   MAX_TASK_FILE_SIZE,
-  createFileUploadMiddleware,
-  createImageUploadMiddleware
+  createFileUploadMiddleware
 };

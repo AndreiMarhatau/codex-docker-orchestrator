@@ -1,8 +1,7 @@
-import { Box, Button, Chip, Stack, Typography } from '@mui/material';
+import { Box, Chip, Stack, Typography } from '@mui/material';
 import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined';
 
-function TasksHeader({ data, tasksState }) {
-  const { refreshAll, loading } = data;
+function TasksHeader({ tasksState }) {
   const { hasActiveRuns, taskStats } = tasksState;
 
   return (
@@ -31,9 +30,6 @@ function TasksHeader({ data, tasksState }) {
           <Chip label={`${taskStats.failed} failed`} size="small" />
         </Stack>
       </Stack>
-      <Button variant="outlined" size="small" onClick={refreshAll} disabled={loading}>
-        Sync now
-      </Button>
     </Stack>
   );
 }

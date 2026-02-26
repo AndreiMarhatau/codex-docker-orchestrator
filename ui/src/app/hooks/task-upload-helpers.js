@@ -6,32 +6,6 @@ function authHeaders() {
   return password ? { 'X-Orch-Password': password } : {};
 }
 
-async function uploadTaskImages(taskImages, setTaskImageUploading) {
-  if (taskImages.length === 0) {
-    return [];
-  }
-  setTaskImageUploading(true);
-  try {
-    const formData = new FormData();
-    taskImages.forEach((file) => {
-      formData.append('images', file);
-    });
-    const response = await fetch(apiUrl('/api/uploads'), {
-      method: 'POST',
-      body: formData,
-      headers: authHeaders()
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Image upload failed.');
-    }
-    const uploadPayload = await response.json();
-    return (uploadPayload.uploads || []).map((upload) => upload.path);
-  } finally {
-    setTaskImageUploading(false);
-  }
-}
-
 async function uploadTaskFiles(taskFiles, setTaskFileUploading) {
   if (taskFiles.length === 0) {
     return [];
@@ -95,4 +69,4 @@ async function removeTaskAttachments(taskId, names) {
   return payload.attachments || [];
 }
 
-export { addTaskAttachments, removeTaskAttachments, uploadTaskFiles, uploadTaskImages };
+export { addTaskAttachments, removeTaskAttachments, uploadTaskFiles };

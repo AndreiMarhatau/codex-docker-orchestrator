@@ -9,8 +9,7 @@ import {
 import {
   addTaskAttachments,
   removeTaskAttachments,
-  uploadTaskFiles,
-  uploadTaskImages
+  uploadTaskFiles
 } from './task-upload-helpers.js';
 
 function buildContextRepos(contextRepos) {
@@ -24,7 +23,6 @@ function buildContextRepos(contextRepos) {
 }
 
 function createHandleCreateTask({
-  handleClearTaskImages,
   refreshAll,
   setError,
   setLoading,
@@ -33,21 +31,15 @@ function createHandleCreateTask({
   setTaskFileUploading,
   setTaskFiles,
   setTaskForm,
-  setTaskImageError,
-  setTaskImageUploading,
   taskForm,
   taskFiles,
-  taskImages,
-  taskFileInputRef,
-  taskImageInputRef
+  taskFileInputRef
 }) {
   return async function handleCreateTask() {
     setError('');
-    setTaskImageError('');
     setTaskFileError('');
     setLoading(true);
     try {
-      const imagePaths = await uploadTaskImages(taskImages, setTaskImageUploading);
       const fileUploads = await uploadTaskFiles(taskFiles, setTaskFileUploading);
       const modelValue = resolveModelValue(taskForm.modelChoice, taskForm.customModel);
       const reasoningEffortValue = resolveReasoningEffortValue(taskForm);
@@ -58,7 +50,6 @@ function createHandleCreateTask({
           envId: taskForm.envId,
           ref: taskForm.ref,
           prompt: taskForm.prompt,
-          imagePaths,
           fileUploads,
           model: modelValue || undefined,
           reasoningEffort: reasoningEffortValue || undefined,
@@ -67,11 +58,7 @@ function createHandleCreateTask({
         })
       });
       setTaskForm(emptyTaskForm);
-      handleClearTaskImages();
       setTaskFiles([]);
-      if (taskImageInputRef.current) {
-        taskImageInputRef.current.value = '';
-      }
       if (taskFileInputRef.current) {
         taskFileInputRef.current.value = '';
       }

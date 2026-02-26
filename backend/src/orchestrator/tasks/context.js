@@ -1,46 +1,8 @@
-const path = require('node:path');
-const fsp = require('node:fs/promises');
 const { ensureDir } = require('../../storage');
-const { invalidImageError, invalidContextError } = require('../errors');
+const { invalidContextError } = require('../errors');
 const { normalizeOptionalString } = require('../utils');
 const { resolveRefInRepo } = require('../git');
 const { buildAgentsAppendFile } = require('./agents');
-async function resolveImagePath(uploadsRoot, imagePath) {
-  if (typeof imagePath !== 'string' || !imagePath.trim()) {
-    throw invalidImageError('Invalid image path provided.');
-  }
-  const resolvedPath = path.resolve(imagePath);
-  if (resolvedPath === uploadsRoot || !resolvedPath.startsWith(`${uploadsRoot}${path.sep}`)) {
-    throw invalidImageError('Images must be uploaded via orchestrator before use.');
-  }
-  let stat;
-  try {
-    stat = await fsp.stat(resolvedPath);
-  } catch (error) {
-    throw invalidImageError(`Image not found: ${imagePath}`);
-  }
-  if (!stat.isFile()) {
-    throw invalidImageError(`Image not found: ${imagePath}`);
-  }
-  return resolvedPath;
-}
-async function resolveImagePaths(imagePaths) {
-  if (!Array.isArray(imagePaths) || imagePaths.length === 0) {
-    return [];
-  }
-  if (imagePaths.length > 5) {
-    throw invalidImageError('Up to 5 images are supported per request.');
-  }
-  const uploadsRoot = path.resolve(this.uploadsDir());
-  const resolved = [];
-  for (const imagePath of imagePaths) {
-    const resolvedPath = await resolveImagePath(uploadsRoot, imagePath);
-    if (!resolved.includes(resolvedPath)) {
-      resolved.push(resolvedPath);
-    }
-  }
-  return resolved;
-}
 async function prepareContextRepos(taskId, contextRepos) {
   if (!Array.isArray(contextRepos) || contextRepos.length === 0) {
     return [];
@@ -125,7 +87,6 @@ async function resolveContextRepos(taskId, contextRepos) {
 }
 
 function attachTaskContextMethods(Orchestrator) {
-  Orchestrator.prototype.resolveImagePaths = resolveImagePaths;
   Orchestrator.prototype.prepareContextRepos = prepareContextRepos;
   Orchestrator.prototype.materializeContextRepos = materializeContextRepos;
   Orchestrator.prototype.resolveContextRepos = resolveContextRepos;

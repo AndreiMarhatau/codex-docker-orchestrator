@@ -505,6 +505,7 @@ body {
   background: var(--panel-bg);
   color: inherit;
   font-family: inherit;
+  font-size: 16px;
   padding: 12px 14px;
   resize: vertical;
   min-height: 120px;

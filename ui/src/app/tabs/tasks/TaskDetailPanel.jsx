@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
-  Button,
   IconButton,
   Stack,
   Tab,
@@ -17,7 +16,6 @@ import TaskRunOverrides from './detail/TaskRunOverrides.jsx';
 import TaskRuns from './detail/TaskRuns.jsx';
 
 function TaskDetailPanel({ data, tasksState }) {
-  const { refreshAll } = data;
   const { detail, selection } = tasksState;
   const hasTaskDetail = Boolean(detail.taskDetail);
   const [activeTab, setActiveTab] = useState(0);
@@ -96,9 +94,6 @@ function TaskDetailPanel({ data, tasksState }) {
             </Typography>
           </Stack>
         </Stack>
-        <Button size="small" variant="outlined" onClick={refreshAll}>
-          Refresh
-        </Button>
       </Box>
       <Tabs
         className="task-detail-tabs"

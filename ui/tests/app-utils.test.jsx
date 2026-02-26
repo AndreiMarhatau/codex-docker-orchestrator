@@ -19,7 +19,6 @@ import {
   getGitStatusDisplay,
   getLatestRun,
   isImageArtifact,
-  isSupportedTaskImage,
   normalizeAccountState,
   resolveModelValue,
   resolveReasoningEffortValue
@@ -96,9 +95,6 @@ describe('app helpers', () => {
   });
 
   it('handles files, logs, and artifacts', () => {
-    expect(isSupportedTaskImage({ type: 'image/png', name: 'ok.png' })).toBe(true);
-    expect(isSupportedTaskImage({ type: '', name: 'photo.jpeg' })).toBe(true);
-    expect(isSupportedTaskImage({ type: 'text/plain', name: 'nope.txt' })).toBe(false);
     expect(getElapsedMs('2024-01-01T00:00:00Z', '2024-01-01T00:00:10Z', 0)).toBe(10000);
     expect(getElapsedMs('2024-01-01T00:00:00Z', 'invalid', 0)).toBeNull();
     expect(getElapsedMs('bad-date', null, 0)).toBeNull();

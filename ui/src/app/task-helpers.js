@@ -1,18 +1,3 @@
-function isSupportedTaskImage(file) {
-  const type = (file.type || '').toLowerCase();
-  const name = (file.name || '').toLowerCase();
-  const ext = name.includes('.') ? `.${name.split('.').pop()}` : '';
-  const allowedTypes = new Set([
-    'image/png',
-    'image/jpeg',
-    'image/gif',
-    'image/webp',
-    'image/bmp'
-  ]);
-  const allowedExts = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp']);
-  return allowedTypes.has(type) || allowedExts.has(ext);
-}
-
 function getElapsedMs(startedAt, finishedAt, now) {
   if (!startedAt) {
     return null;
@@ -59,6 +44,5 @@ export {
   encodeArtifactPath,
   getElapsedMs,
   getLatestRun,
-  isImageArtifact,
-  isSupportedTaskImage
+  isImageArtifact
 };

@@ -8,7 +8,6 @@ import {
 } from './task-action-builders.js';
 
 function useCreateTaskHandler({
-  handleClearTaskImages,
   refreshAll,
   setError,
   setLoading,
@@ -16,19 +15,14 @@ function useCreateTaskHandler({
   setTaskForm,
   setTaskFileError,
   setTaskFileUploading,
-  setTaskImageError,
-  setTaskImageUploading,
   setTaskFiles,
   taskForm,
   taskFiles,
-  taskImages,
-  taskFileInputRef,
-  taskImageInputRef
+  taskFileInputRef
 }) {
   return useMemo(
     () =>
       createHandleCreateTask({
-        handleClearTaskImages,
         refreshAll,
         setError,
         setLoading,
@@ -36,17 +30,12 @@ function useCreateTaskHandler({
         setTaskForm,
         setTaskFileError,
         setTaskFileUploading,
-        setTaskImageError,
-        setTaskImageUploading,
         setTaskFiles,
         taskForm,
         taskFiles,
-        taskImages,
-        taskFileInputRef,
-        taskImageInputRef
+        taskFileInputRef
       }),
     [
-      handleClearTaskImages,
       refreshAll,
       setError,
       setLoading,
@@ -54,14 +43,10 @@ function useCreateTaskHandler({
       setTaskForm,
       setTaskFileError,
       setTaskFileUploading,
-      setTaskImageError,
-      setTaskImageUploading,
       setTaskFiles,
       taskForm,
       taskFiles,
-      taskImages,
-      taskFileInputRef,
-      taskImageInputRef
+      taskFileInputRef
     ]
   );
 }

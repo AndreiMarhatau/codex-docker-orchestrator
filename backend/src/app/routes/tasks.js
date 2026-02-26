@@ -11,7 +11,6 @@ function createTaskHandler(orchestrator) {
       envId,
       ref,
       prompt,
-      imagePaths,
       fileUploads,
       model,
       reasoningEffort,
@@ -37,7 +36,6 @@ function createTaskHandler(orchestrator) {
         envId,
         ref,
         prompt,
-        imagePaths,
         fileUploads: normalizedFileUploads,
         model,
         reasoningEffort,
@@ -46,9 +44,6 @@ function createTaskHandler(orchestrator) {
       });
       res.status(201).json(task);
     } catch (error) {
-      if (error.code === 'INVALID_IMAGE') {
-        return res.status(400).send(error.message);
-      }
       if (error.code === 'INVALID_CONTEXT') {
         return res.status(400).send(error.message);
       }

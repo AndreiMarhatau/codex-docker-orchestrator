@@ -5,8 +5,7 @@ const require = createRequire(import.meta.url);
 const {
   normalizeAttachmentUploadsInput,
   normalizeContextReposInput,
-  normalizeEnvVarsInput,
-  isSupportedImageFile
+  normalizeEnvVarsInput
 } = require('../src/app/validators');
 
 describe('validators', () => {
@@ -17,12 +16,6 @@ describe('validators', () => {
     expect(normalizeContextReposInput([{ envId: 'env-1', ref: 'main' }])).toEqual([
       { envId: 'env-1', ref: 'main' }
     ]);
-  });
-
-  it('validates supported image types', () => {
-    expect(isSupportedImageFile({ mimetype: 'image/png', originalname: 'a.bin' })).toBe(true);
-    expect(isSupportedImageFile({ mimetype: 'application/octet-stream', originalname: 'a.jpg' })).toBe(true);
-    expect(isSupportedImageFile({ mimetype: 'text/plain', originalname: 'a.txt' })).toBe(false);
   });
 
   it('normalizes attachment uploads input', () => {

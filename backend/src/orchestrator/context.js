@@ -82,7 +82,7 @@ function buildAttachmentsSection(attachments, options = {}) {
   }).trim();
 }
 
-function buildCodexArgs({ prompt, model, reasoningEffort, imageArgs = [], resumeThreadId }) {
+function buildCodexArgs({ prompt, model, reasoningEffort, resumeThreadId }) {
   const args = ['exec', '--dangerously-bypass-approvals-and-sandbox', '--json'];
   if (model) {
     args.push('--model', model);
@@ -94,7 +94,7 @@ function buildCodexArgs({ prompt, model, reasoningEffort, imageArgs = [], resume
     args.push('resume', resumeThreadId, prompt);
     return args;
   }
-  args.push(...imageArgs, prompt);
+  args.push(prompt);
   return args;
 }
 

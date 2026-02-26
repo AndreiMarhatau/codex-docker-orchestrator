@@ -8,13 +8,13 @@ import mockApi from './helpers/mock-api.js';
 async function configureNewTask(user) {
   expect(await screen.findByText('2 total')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'New task' }));
-  expect(await screen.findByText('New task')).toBeInTheDocument();
+  const createDialog = await screen.findByRole('dialog', { name: 'New task' });
 
-  const environmentSelect = screen.getByLabelText('Environment');
-  await user.click(environmentSelect);
-  await user.click(await screen.findByRole('option', { name: 'openai/codex' }));
-  await user.type(screen.getByLabelText('Task prompt'), 'Refactor UI');
+  await user.click(within(createDialog).getByRole('button', { name: 'Environment: openai/codex' }));
+  await user.click(await screen.findByRole('menuitem', { name: 'openai/codex' }));
+  await user.type(within(createDialog).getByLabelText('Task prompt'), 'Refactor UI');
 
+  await user.click(within(createDialog).getByLabelText('Advanced task settings'));
   const modelSelect = screen.getByLabelText('Model');
   await user.click(modelSelect);
   await user.click(await screen.findByRole('option', { name: 'gpt-5.2' }));
@@ -31,27 +31,15 @@ async function configureNewTask(user) {
   await user.click(screen.getByLabelText('Use host Docker socket'));
 
   await user.click(screen.getByRole('button', { name: 'Add reference repo' }));
-  const envSelects = screen.getAllByLabelText('Environment');
-  await user.click(envSelects[1]);
-  await user.click(await screen.findByRole('option', { name: 'openai/codex' }));
-  const refInputs = screen.getAllByLabelText('Branch / tag / ref');
-  await user.type(refInputs[1], 'dev');
   await user.click(screen.getByLabelText('Remove reference repo'));
 
-  const fileInputs = document.querySelectorAll('input[type="file"]');
-  const imageInput = fileInputs[0];
-  const fileInput = fileInputs[1];
-  const imageFile = new File(['image'], 'image.png', { type: 'image/png' });
+  const fileInput = createDialog.querySelector('input[type="file"]');
   const textFile = new File(['brief'], 'brief.txt', { type: 'text/plain' });
-  await user.upload(imageInput, [imageFile]);
   await user.upload(fileInput, [textFile]);
 
-  expect(await screen.findByText(/image.png/)).toBeInTheDocument();
   expect(screen.getByText(/brief.txt/)).toBeInTheDocument();
 
-  await user.click(screen.getByRole('button', { name: 'Clear images' }));
-  expect(screen.queryByText(/image.png/)).not.toBeInTheDocument();
-
+  await user.keyboard('{Escape}');
   await user.click(screen.getByRole('button', { name: 'Run task' }));
 }
 
@@ -117,7 +105,6 @@ it(
       '/api/envs': () => envsState,
       '/api/tasks': tasks,
       '/api/accounts': accounts,
-      'POST /api/uploads': { uploads: [{ path: '/tmp/uploaded.png' }] },
       'POST /api/uploads/files': {
         uploads: [
           {

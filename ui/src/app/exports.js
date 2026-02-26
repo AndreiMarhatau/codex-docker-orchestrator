@@ -20,7 +20,6 @@ export {
   encodeArtifactPath,
   getElapsedMs,
   getLatestRun,
-  isImageArtifact,
-  isSupportedTaskImage
+  isImageArtifact
 } from './task-helpers.js';
 export { getGitStatusDisplay } from './git-helpers.js';

@@ -4,10 +4,6 @@ function createError(code, message) {
   return error;
 }
 
-function invalidImageError(message) {
-  return createError('INVALID_IMAGE', message);
-}
-
 function invalidContextError(message) {
   return createError('INVALID_CONTEXT', message);
 }
@@ -22,7 +18,6 @@ function noActiveAccountError(message) {
 
 module.exports = {
   invalidAttachmentError,
-  invalidImageError,
   invalidContextError,
   noActiveAccountError
 };

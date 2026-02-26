@@ -21,20 +21,12 @@ async function createTestApp() {
 describe('uploads route', () => {
   it('rejects requests without files', async () => {
     const app = await createTestApp();
-    await request(app).post('/api/uploads').expect(400);
     await request(app).post('/api/uploads/files').expect(400);
   });
 
-  it('rejects unsupported file types', async () => {
+  it('returns 404 for removed image upload route', async () => {
     const app = await createTestApp();
-    const tempDir = await createTempDir();
-    const textPath = path.join(tempDir, 'note.txt');
-    await fs.writeFile(textPath, 'hello');
-
-    await request(app)
-      .post('/api/uploads')
-      .attach('images', textPath)
-      .expect(400);
+    await request(app).post('/api/uploads').expect(404);
   });
 
   it('accepts non-image files for task uploads', async () => {

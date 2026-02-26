@@ -90,7 +90,6 @@ function attachTaskCreateMethods(Orchestrator) {
     envId,
     ref,
     prompt,
-    imagePaths,
     fileUploads,
     model,
     reasoningEffort,
@@ -100,7 +99,6 @@ function attachTaskCreateMethods(Orchestrator) {
     await this.init();
     const env = await this.readEnv(envId);
     await this.ensureOwnership(env.mirrorPath);
-    const resolvedImagePaths = await this.resolveImagePaths(imagePaths);
     const normalizedModel = normalizeOptionalString(model);
     const normalizedReasoningEffort = normalizeOptionalString(reasoningEffort);
     const taskId = crypto.randomUUID();
@@ -143,12 +141,10 @@ function attachTaskCreateMethods(Orchestrator) {
       });
       await writeJson(this.taskMetaPath(taskId), meta);
       await this.ensureActiveAuth();
-      const imageArgs = resolvedImagePaths.flatMap((imagePath) => ['--image', imagePath]);
       const args = buildCodexArgs({
         prompt,
         model: normalizedModel,
-        reasoningEffort: normalizedReasoningEffort,
-        imageArgs
+        reasoningEffort: normalizedReasoningEffort
       });
       const attachmentsDir = this.taskAttachmentsDir(taskId);
       const hasAttachments = attachments.length > 0;
@@ -164,7 +160,7 @@ function attachTaskCreateMethods(Orchestrator) {
         prompt,
         cwd: worktreePath,
         args,
-        mountPaths: [exposedPaths.homeDir, env.mirrorPath, ...resolvedImagePaths],
+        mountPaths: [exposedPaths.homeDir, env.mirrorPath],
         mountPathsRo: [],
         mountMaps: shouldUseHostDockerSocket ? [this.taskDockerSocketMount(taskId)] : [],
         mountMapsRo: [...readonlyRepoMountMaps, ...readonlyAttachmentsMountMaps],

@@ -64,11 +64,7 @@ it(
     expect(await screen.findByText('2 total')).toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: 'New task' }));
 
-    const envSelect = await screen.findByLabelText('Environment');
-    await user.click(envSelect);
-
-    expect(await screen.findByRole('option', { name: 'openai/agents' }))
-      .toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('button', { name: 'Environment: openai/agents' })).toBeInTheDocument();
   },
   15000
 );

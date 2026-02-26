@@ -7,7 +7,6 @@ import useTaskActions from './useTaskActions.js';
 import useTaskDetail from './useTaskDetail.js';
 import useTaskFormState from './useTaskFormState.js';
 import useTaskFiles from './useTaskFiles.js';
-import useTaskImages from './useTaskImages.js';
 import useTaskSelection from './useTaskSelection.js';
 
 function useTasksState({ envs, refreshAll, setError, setLoading, tasks }) {
@@ -18,7 +17,6 @@ function useTasksState({ envs, refreshAll, setError, setLoading, tasks }) {
     tasks
   });
   const files = useTaskFiles();
-  const images = useTaskImages();
   const detail = useTaskDetail({
     selectedTaskId: selection.selectedTaskId,
     setError,
@@ -44,7 +42,6 @@ function useTasksState({ envs, refreshAll, setError, setLoading, tasks }) {
   }
 
   const actions = useTaskActions({
-    handleClearTaskImages: images.handleClearTaskImages,
     refreshAll,
     refreshTaskDetail: detail.refreshTaskDetail,
     resumeAttachmentRemovals: detail.resumeAttachmentRemovals,
@@ -69,14 +66,10 @@ function useTasksState({ envs, refreshAll, setError, setLoading, tasks }) {
     setTaskFileError: files.setTaskFileError,
     setTaskFileUploading: files.setTaskFileUploading,
     setTaskForm: formState.setTaskForm,
-    setTaskImageError: images.setTaskImageError,
-    setTaskImageUploading: images.setTaskImageUploading,
     setTaskFiles: files.setTaskFiles,
     taskForm: formState.taskForm,
     taskFiles: files.taskFiles,
-    taskImages: images.taskImages,
-    taskFileInputRef: files.taskFileInputRef,
-    taskImageInputRef: images.taskImageInputRef
+    taskFileInputRef: files.taskFileInputRef
   });
 
   const listActions = useMemo(
@@ -132,7 +125,6 @@ function useTasksState({ envs, refreshAll, setError, setLoading, tasks }) {
     gitStatusDisplay,
     handleResumeModelChoiceChange,
     hasActiveRuns,
-    images,
     listActions,
     now,
     selection,

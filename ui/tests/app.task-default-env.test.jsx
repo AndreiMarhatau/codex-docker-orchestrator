@@ -64,7 +64,7 @@ it(
     expect(await screen.findByText('2 total')).toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: 'New task' }));
 
-    expect(await screen.findByRole('button', { name: 'Environment: openai/agents' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'openai/agents' })).toBeInTheDocument();
   },
   15000
 );

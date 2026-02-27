@@ -10,7 +10,7 @@ async function configureNewTask(user) {
   await user.click(screen.getByRole('button', { name: 'New task' }));
   const createDialog = await screen.findByRole('dialog', { name: 'New task' });
 
-  await user.click(within(createDialog).getByRole('button', { name: 'Environment: openai/codex' }));
+  await user.click(within(createDialog).getByRole('button', { name: 'openai/codex' }));
   await user.click(await screen.findByRole('menuitem', { name: 'openai/codex' }));
   await user.type(within(createDialog).getByLabelText('Task prompt'), 'Refactor UI');
 

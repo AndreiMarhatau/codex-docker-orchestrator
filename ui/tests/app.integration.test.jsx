@@ -79,14 +79,16 @@ async function exerciseTaskDetail(user) {
     'Continue with more detail.'
   );
   const resumeDialog = screen.getByRole('dialog', { name: 'Ask for changes' });
-  const resumeRefInputs = within(resumeDialog).getAllByLabelText('Branch / tag / ref');
+  await user.click(within(resumeDialog).getByLabelText('Additional settings'));
+  const resumeRefInputs = screen.getAllByLabelText('Branch / tag / ref');
   await user.clear(resumeRefInputs[0]);
   await user.type(resumeRefInputs[0], 'release');
   const resumeFileInput = resumeDialog.querySelector('input[type="file"]');
   const resumeFile = new File(['notes'], 'notes.txt', { type: 'text/plain' });
   await user.upload(resumeFileInput, [resumeFile]);
-  await user.click(screen.getByLabelText(/requirements\.txt/i));
-  await user.click(screen.getByLabelText('Use host Docker socket for this run'));
+  await user.click(screen.getByRole('button', { name: 'docker' }));
+  await user.click(screen.getByLabelText('Close settings'));
+  await user.click(within(resumeDialog).getByRole('button', { name: /requirements\.txt/i }));
   await user.click(screen.getByRole('button', { name: 'Continue task' }));
   await waitFor(() =>
     expect(screen.queryByRole('dialog', { name: 'Ask for changes' })).not.toBeInTheDocument()

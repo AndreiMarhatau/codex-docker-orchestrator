@@ -4,7 +4,7 @@ import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined';
 import TaskResumeDialog from './TaskResumeDialog.jsx';
 
 function TaskDetailActions({ data, hasTaskDetail, isRunning, showPush, tasksState }) {
-  const { actions, detail } = tasksState;
+  const { actions, detail, handleResumeModelChoiceChange } = tasksState;
   const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
 
   return (
@@ -46,6 +46,7 @@ function TaskDetailActions({ data, hasTaskDetail, isRunning, showPush, tasksStat
         data={data}
         detail={detail}
         envs={data.envs}
+        handleResumeModelChoiceChange={handleResumeModelChoiceChange}
         open={resumeDialogOpen}
         onClose={() => setResumeDialogOpen(false)}
       />

@@ -26,12 +26,6 @@ async function verifyDefaultBranch({ execOrThrow, mirrorDir, defaultBranch }) {
 }
 
 function attachEnvMethods(Orchestrator) {
-  function emitEnvChange(orch, envId = null) {
-    if (typeof orch.emitStateEvent === 'function') {
-      orch.emitStateEvent('envs_changed', envId ? { envId } : {});
-    }
-  }
-
   Orchestrator.prototype.readEnv = async function readEnv(envId) {
     const repoUrl = await readText(this.envRepoUrlPath(envId));
     const defaultBranch = await readText(this.envDefaultBranchPath(envId));
@@ -95,7 +89,7 @@ function attachEnvMethods(Orchestrator) {
         throw new Error(`Default branch '${defaultBranch}' not found in repository.`);
       }
       const created = { envId, repoUrl, defaultBranch, envVars: envVars || {} };
-      emitEnvChange(this, envId);
+      this.notifyEnvsChanged(envId);
       return created;
     } catch (error) {
       await removePath(envDir);
@@ -121,7 +115,7 @@ function attachEnvMethods(Orchestrator) {
       await writeJson(this.envVarsPath(envId), envVars);
     }
     const updated = await this.readEnv(envId);
-    emitEnvChange(this, envId);
+    this.notifyEnvsChanged(envId);
     return updated;
   };
 
@@ -133,7 +127,7 @@ function attachEnvMethods(Orchestrator) {
     }
     await this.ensureOwnership(this.envDir(envId));
     await removePath(this.envDir(envId));
-    emitEnvChange(this, envId);
+    this.notifyEnvsChanged(envId);
   };
 
   Orchestrator.prototype.envExists = async function envExists(envId) {

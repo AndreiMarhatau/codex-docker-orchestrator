@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
 import { render, waitFor } from './test-utils.jsx';
 import useStateStream from '../src/app/hooks/useStateStream.js';

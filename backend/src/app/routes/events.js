@@ -1,17 +1,10 @@
 const express = require('express');
+const { STATE_EVENT_TYPES } = require('../state-event-types');
+const { buildStateSnapshot } = require('../state-snapshot');
 
 function writeEvent(res, event, data) {
   res.write(`event: ${event}\n`);
   res.write(`data: ${JSON.stringify(data)}\n\n`);
-}
-
-async function buildSnapshot(orchestrator) {
-  const [envs, tasks, accounts] = await Promise.all([
-    orchestrator.listEnvs(),
-    orchestrator.listTasks(),
-    orchestrator.listAccounts()
-  ]);
-  return { envs, tasks, accounts };
 }
 
 async function streamStateEvents(orchestrator, req, res) {
@@ -43,7 +36,7 @@ async function streamStateEvents(orchestrator, req, res) {
   req.on('close', cleanup);
 
   try {
-    const snapshot = await buildSnapshot(orchestrator);
+    const snapshot = await buildStateSnapshot(orchestrator);
     if (closed) {
       return;
     }
@@ -53,7 +46,7 @@ async function streamStateEvents(orchestrator, req, res) {
       Connection: 'keep-alive',
       'X-Accel-Buffering': 'no'
     });
-    writeEvent(res, 'init', snapshot);
+    writeEvent(res, STATE_EVENT_TYPES.init, snapshot);
     initSent = true;
     for (const message of pendingEvents) {
       if (closed) {

@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { Orchestrator } = require('./orchestrator');
+const { createStateEventBus } = require('./app/state-events');
 const { createAuthMiddleware } = require('./app/middleware/auth');
 const { createHealthRouter } = require('./app/routes/health');
 const { createEnvsRouter } = require('./app/routes/envs');
@@ -12,26 +13,9 @@ const { createEventsRouter } = require('./app/routes/events');
 
 function createApp({ orchestrator = new Orchestrator() } = {}) {
   const app = express();
-  const stateEventListeners = new Set();
-  const emitStateEvent = (event, data = {}) => {
-    const message = { event, data };
-    for (const listener of stateEventListeners) {
-      try {
-        listener(message);
-      } catch {
-        // Never let one stream listener failure affect others.
-      }
-    }
-  };
-  const subscribeStateEvents = (listener) => {
-    stateEventListeners.add(listener);
-    return () => {
-      stateEventListeners.delete(listener);
-    };
-  };
-
-  orchestrator.emitStateEvent = emitStateEvent;
-  orchestrator.subscribeStateEvents = subscribeStateEvents;
+  const stateEventBus = createStateEventBus();
+  orchestrator.emitStateEvent = stateEventBus.emit;
+  orchestrator.subscribeStateEvents = stateEventBus.subscribe;
 
   app.use(
     cors({

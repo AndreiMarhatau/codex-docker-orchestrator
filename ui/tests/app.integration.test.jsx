@@ -86,7 +86,7 @@ async function exerciseTaskDetail(user) {
   const resumeFileInput = resumeDialog.querySelector('input[type="file"]');
   const resumeFile = new File(['notes'], 'notes.txt', { type: 'text/plain' });
   await user.upload(resumeFileInput, [resumeFile]);
-  await user.click(screen.getByRole('button', { name: 'docker' }));
+  await user.click(screen.getByLabelText('Use host Docker socket'));
   await user.click(screen.getByLabelText('Close settings'));
   await user.click(within(resumeDialog).getByRole('button', { name: /requirements\.txt/i }));
   await user.click(screen.getByRole('button', { name: 'Continue task' }));

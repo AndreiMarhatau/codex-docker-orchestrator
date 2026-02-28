@@ -1,5 +1,6 @@
 import {
-  Chip,
+  Checkbox,
+  FormControlLabel,
   IconButton,
   Popover,
   Stack,
@@ -10,15 +11,6 @@ import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import TaskFormContextRepos from '../form/TaskFormContextRepos.jsx';
 import RunOverrideForm from './RunOverrideForm.jsx';
-
-const tagBaseSx = {
-  height: 24,
-  fontWeight: 600,
-  borderRadius: '8px',
-  '.MuiChip-label': { px: 1 },
-  '.MuiChip-deleteIcon': { color: 'inherit', opacity: 0.92 },
-  '.MuiChip-deleteIcon:hover': { color: 'inherit', opacity: 1 }
-};
 
 function TaskResumeSettingsPopover({
   anchorEl,
@@ -55,17 +47,19 @@ function TaskResumeSettingsPopover({
           handleResumeModelChoiceChange={handleResumeModelChoiceChange}
         />
         <Stack direction="row" spacing={1} alignItems="center">
-          <Chip
-            label="docker"
-            size="small"
-            color={detail.resumeUseHostDockerSocket ? 'success' : 'default'}
-            onClick={() => {
-              detail.setResumeUseHostDockerSocket((prev) => !prev);
-              detail.setResumeDockerTouched(true);
-            }}
-            sx={tagBaseSx}
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={detail.resumeUseHostDockerSocket}
+                onChange={(event) => {
+                  detail.setResumeUseHostDockerSocket(event.target.checked);
+                  detail.setResumeDockerTouched(true);
+                }}
+              />
+            }
+            label="Use host Docker socket"
           />
-          <Tooltip title="Grants root-equivalent access to the host via Docker. Disable if you do not trust the task.">
+          <Tooltip title="Enables Docker via an isolated per-task sidecar daemon (not host Docker).">
             <WarningAmberIcon color="warning" fontSize="small" />
           </Tooltip>
         </Stack>

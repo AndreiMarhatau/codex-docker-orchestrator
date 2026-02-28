@@ -51,6 +51,11 @@ afterAll(() => {
 });
 
 beforeEach(() => {
+  global.EventSource = class MockEventSource {
+    addEventListener() {}
+    removeEventListener() {}
+    close() {}
+  };
   global.fetch = vi.fn(async (input) => {
     const url = typeof input === 'string' ? input : input.url;
     if (url.includes('/api/settings/password')) {

@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 const fs = require('node:fs');
 const path = require('node:path');
 const { readJson, writeJson } = require('../../storage');
@@ -29,6 +30,9 @@ function attachFailRunStartMethod(Orchestrator) {
       };
     }
     await writeJson(this.taskMetaPath(taskId), meta);
+    if (typeof this.emitStateEvent === 'function') {
+      this.emitStateEvent('tasks_changed', { taskId });
+    }
   };
 }
 function attachDeferredRunStartMethod(Orchestrator) {
@@ -96,10 +100,16 @@ function attachFinalizeRunMethod(Orchestrator) {
     const runEntry = meta.runs.find((run) => run.runId === runLabel);
     try {
       await this.accountStore.syncAccountFromHost(runEntry?.accountId || null);
+      if (typeof this.emitStateEvent === 'function' && runEntry?.accountId) {
+        this.emitStateEvent('accounts_changed', { accountId: runEntry.accountId });
+      }
     } catch (error) {
       // Best-effort: keep task finalization resilient to auth sync issues.
     }
     await this.maybeAutoRotate(taskId, prompt, { ...result, usageLimit, meta });
+    if (typeof this.emitStateEvent === 'function') {
+      this.emitStateEvent('tasks_changed', { taskId });
+    }
   };
 }
 function attachStartRunMethod(Orchestrator) {

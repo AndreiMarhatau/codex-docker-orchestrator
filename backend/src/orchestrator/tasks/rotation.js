@@ -188,6 +188,9 @@ function attachTaskRotationMethods(Orchestrator) {
     }
 
     await this.accountStore.setActiveAccount(nextAccountId);
+    if (typeof this.emitStateEvent === 'function') {
+      this.emitStateEvent('accounts_changed', { accountId: nextAccountId });
+    }
     logAutoRotate(this, {
       taskId,
       reason: 'rotated',

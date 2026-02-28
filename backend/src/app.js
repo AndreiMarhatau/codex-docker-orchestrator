@@ -8,9 +8,31 @@ const { createAccountsRouter } = require('./app/routes/accounts');
 const { createUploadsRouter } = require('./app/routes/uploads');
 const { createTasksRouter } = require('./app/routes/tasks');
 const { createSettingsRouter } = require('./app/routes/settings');
+const { createEventsRouter } = require('./app/routes/events');
 
 function createApp({ orchestrator = new Orchestrator() } = {}) {
   const app = express();
+  const stateEventListeners = new Set();
+  const emitStateEvent = (event, data = {}) => {
+    const message = { event, data };
+    for (const listener of stateEventListeners) {
+      try {
+        listener(message);
+      } catch {
+        // Never let one stream listener failure affect others.
+      }
+    }
+  };
+  const subscribeStateEvents = (listener) => {
+    stateEventListeners.add(listener);
+    return () => {
+      stateEventListeners.delete(listener);
+    };
+  };
+
+  orchestrator.emitStateEvent = emitStateEvent;
+  orchestrator.subscribeStateEvents = subscribeStateEvents;
+
   app.use(
     cors({
       origin: '*',
@@ -22,6 +44,7 @@ function createApp({ orchestrator = new Orchestrator() } = {}) {
 
   app.use('/api', createAuthMiddleware(orchestrator));
   app.use('/api', createHealthRouter());
+  app.use('/api', createEventsRouter(orchestrator));
   app.use('/api', createSettingsRouter(orchestrator));
   app.use('/api', createEnvsRouter(orchestrator));
   app.use('/api', createAccountsRouter(orchestrator));

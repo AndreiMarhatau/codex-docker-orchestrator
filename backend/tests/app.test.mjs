@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { createRequire } from 'node:module';
 import { createMockExec, createMockSpawn, createTempDir } from './helpers.mjs';
@@ -31,7 +31,7 @@ async function createTestApp({ branches } = {}) {
     spawn,
     now: () => '2025-12-19T00:00:00.000Z'
   });
-  return { app: createApp({ orchestrator }), exec, orchHome, spawn };
+  return { app: createApp({ orchestrator }), exec, orchHome, orchestrator, spawn };
 }
 
 describe('API', () => {
@@ -147,5 +147,21 @@ describe('API', () => {
     expect(rateRes.body.rateLimits.primary.windowDurationMins).toBe(15);
     expect(rateRes.body.rateLimits.primary.resetsAt).toBe(1730947200);
     expect(rateRes.body.fetchedAt).toBeTruthy();
+  });
+
+  it('isolates state-event listener failures from mutations', async () => {
+    const { orchestrator } = await createTestApp();
+    const healthyListener = vi.fn();
+    orchestrator.subscribeStateEvents(() => {
+      throw new Error('listener failed');
+    });
+    orchestrator.subscribeStateEvents(healthyListener);
+    expect(() => {
+      orchestrator.emitStateEvent('tasks_changed', { taskId: 'task-1' });
+    }).not.toThrow();
+    expect(healthyListener).toHaveBeenCalledWith({
+      event: 'tasks_changed',
+      data: { taskId: 'task-1' }
+    });
   });
 });

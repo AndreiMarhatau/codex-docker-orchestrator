@@ -204,6 +204,4 @@ function createTasksRouter(orchestrator) {
   return router;
 }
 
-module.exports = {
-  createTasksRouter
-};
+module.exports = { createTasksRouter };

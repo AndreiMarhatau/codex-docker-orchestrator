@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 const fs = require('node:fs');
 const path = require('node:path');
 const { readJson, writeJson } = require('../../storage');
@@ -29,6 +30,9 @@ function attachFailRunStartMethod(Orchestrator) {
       };
     }
     await writeJson(this.taskMetaPath(taskId), meta);
+    if (typeof this.emitStateEvent === 'function') {
+      this.emitStateEvent('tasks_changed', { taskId });
+    }
   };
 }
 function attachDeferredRunStartMethod(Orchestrator) {
@@ -100,6 +104,9 @@ function attachFinalizeRunMethod(Orchestrator) {
       // Best-effort: keep task finalization resilient to auth sync issues.
     }
     await this.maybeAutoRotate(taskId, prompt, { ...result, usageLimit, meta });
+    if (typeof this.emitStateEvent === 'function') {
+      this.emitStateEvent('tasks_changed', { taskId });
+    }
   };
 }
 function attachStartRunMethod(Orchestrator) {

@@ -5,6 +5,7 @@ import useAppData from './useAppData.js';
 import useAuthState from './useAuthState.js';
 import useEnvironmentState from './useEnvironmentState.js';
 import usePolling from './usePolling.js';
+import useStateStream from './useStateStream.js';
 import useTasksState from './useTasksState.js';
 
 function useAppState() {
@@ -37,8 +38,19 @@ function useAppState() {
   const { setSelectedTaskId } = tasksState.selection;
   const { setTaskDetail } = tasksState.detail;
 
+  useStateStream({
+    enabled: authState.isUnlocked,
+    refreshAll: data.refreshAll,
+    refreshTaskDetail: tasksState.detail.refreshTaskDetail,
+    selectedTaskId: tasksState.selection.selectedTaskId,
+    setAccountState: data.setAccountState,
+    setEnvs: data.setEnvs,
+    setError: data.setError,
+    setTasks: data.setTasks
+  });
   usePolling({
     enabled: authState.isUnlocked,
+    intervalMs: 60000,
     refreshAll: data.refreshAll,
     refreshTaskDetail: tasksState.detail.refreshTaskDetail,
     selectedTaskId: tasksState.selection.selectedTaskId

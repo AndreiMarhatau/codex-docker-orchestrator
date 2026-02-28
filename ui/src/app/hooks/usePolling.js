@@ -2,7 +2,13 @@ import { useEffect } from 'react';
 
 const isTestEnv = Boolean(import.meta.env.VITEST) || import.meta.env.MODE === 'test';
 
-function usePolling({ enabled = true, refreshAll, refreshTaskDetail, selectedTaskId }) {
+function usePolling({
+  enabled = true,
+  intervalMs = 8000,
+  refreshAll,
+  refreshTaskDetail,
+  selectedTaskId
+}) {
   useEffect(() => {
     if (!enabled || isTestEnv) {
       return undefined;
@@ -12,9 +18,9 @@ function usePolling({ enabled = true, refreshAll, refreshTaskDetail, selectedTas
       if (selectedTaskId) {
         refreshTaskDetail(selectedTaskId).catch(() => {});
       }
-    }, 8000);
+    }, intervalMs);
     return () => clearInterval(interval);
-  }, [enabled, refreshAll, refreshTaskDetail, selectedTaskId]);
+  }, [enabled, intervalMs, refreshAll, refreshTaskDetail, selectedTaskId]);
 }
 
 export default usePolling;

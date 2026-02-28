@@ -71,6 +71,9 @@ function attachTaskCleanupMethods(Orchestrator) {
       // Best-effort: task deletion should proceed even if Docker cleanup fails.
     }
     await removePath(this.taskDir(taskId));
+    if (typeof this.emitStateEvent === 'function') {
+      this.emitStateEvent('tasks_changed', { taskId });
+    }
   };
 
   Orchestrator.prototype.pushTask = async function pushTask(taskId) {
@@ -88,6 +91,9 @@ function attachTaskCleanupMethods(Orchestrator) {
     const githubToken = process.env.ORCH_GITHUB_TOKEN;
     const githubRepo = process.env.ORCH_GITHUB_REPO;
     if (!githubToken || !githubRepo) {
+      if (typeof this.emitStateEvent === 'function') {
+        this.emitStateEvent('tasks_changed', { taskId });
+      }
       return { pushed: true, prCreated: false };
     }
 
@@ -112,6 +118,9 @@ function attachTaskCleanupMethods(Orchestrator) {
     }
 
     const data = await response.json();
+    if (typeof this.emitStateEvent === 'function') {
+      this.emitStateEvent('tasks_changed', { taskId });
+    }
     return { pushed: true, prCreated: true, prUrl: data.html_url };
   };
 }

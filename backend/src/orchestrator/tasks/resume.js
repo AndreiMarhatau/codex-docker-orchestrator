@@ -101,6 +101,9 @@ function attachStopTaskMethod(Orchestrator) {
       };
     }
     await writeJson(this.taskMetaPath(taskId), meta);
+    if (typeof this.emitStateEvent === 'function') {
+      this.emitStateEvent('tasks_changed', { taskId });
+    }
     return meta;
   };
 }
@@ -178,6 +181,9 @@ function attachTaskResumeMethods(Orchestrator) {
       exposedPaths,
       stopTaskDockerSidecarOnExit: shouldUseHostDockerSocket
     });
+    if (typeof this.emitStateEvent === 'function') {
+      this.emitStateEvent('tasks_changed', { taskId });
+    }
     return meta;
   };
   attachStopTaskMethod(Orchestrator);

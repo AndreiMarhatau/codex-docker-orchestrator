@@ -4,6 +4,11 @@ const { normalizeEnvVarsInput } = require('../validators');
 
 function createEnvsRouter(orchestrator) {
   const router = express.Router();
+  const emitEnvChange = (envId = null) => {
+    if (typeof orchestrator.emitStateEvent === 'function') {
+      orchestrator.emitStateEvent('envs_changed', envId ? { envId } : {});
+    }
+  };
 
   router.get('/envs', asyncHandler(async (req, res) => {
     const envs = await orchestrator.listEnvs();
@@ -22,11 +27,13 @@ function createEnvsRouter(orchestrator) {
       return res.status(400).send(error.message || 'Invalid env input');
     }
     const env = await orchestrator.createEnv({ repoUrl, defaultBranch, envVars: normalizedEnvVars });
+    emitEnvChange(env.envId);
     res.status(201).json(env);
   }));
 
   router.delete('/envs/:envId', asyncHandler(async (req, res) => {
     await orchestrator.deleteEnv(req.params.envId);
+    emitEnvChange(req.params.envId);
     res.status(204).send();
   }));
 
@@ -56,9 +63,11 @@ function createEnvsRouter(orchestrator) {
         defaultBranch: trimmed,
         envVars: normalizedEnvVars
       });
+      emitEnvChange(envId);
       return res.json(env);
     }
     const env = await orchestrator.updateEnv(envId, { envVars: normalizedEnvVars });
+    emitEnvChange(envId);
     return res.json(env);
   }));
 

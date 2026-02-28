@@ -1,4 +1,5 @@
-import { Button, Menu, MenuItem, Popover, Stack, TextField } from '@mui/material';
+import { Button, IconButton, Menu, MenuItem, Popover, Stack, TextField, Typography } from '@mui/material';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import { formatRepoDisplay } from '../../../repo-helpers.js';
 import TaskFormContextRepos from './TaskFormContextRepos.jsx';
 import TaskFormModel from './TaskFormModel.jsx';
@@ -68,6 +69,12 @@ function TaskCreatePopovers({
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
       >
         <Stack spacing={2} sx={{ p: 2, width: { xs: 320, sm: 520 }, maxWidth: '90vw' }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Typography variant="subtitle2">Additional settings</Typography>
+            <IconButton size="small" aria-label="Close settings" onClick={() => setSettingsAnchor(null)}>
+              <CloseOutlinedIcon fontSize="small" />
+            </IconButton>
+          </Stack>
           <TaskFormModel
             handleTaskModelChoiceChange={formState.handleTaskModelChoiceChange}
             taskForm={formState.taskForm}

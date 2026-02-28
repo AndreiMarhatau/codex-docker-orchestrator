@@ -100,6 +100,9 @@ function attachFinalizeRunMethod(Orchestrator) {
     const runEntry = meta.runs.find((run) => run.runId === runLabel);
     try {
       await this.accountStore.syncAccountFromHost(runEntry?.accountId || null);
+      if (typeof this.emitStateEvent === 'function' && runEntry?.accountId) {
+        this.emitStateEvent('accounts_changed', { accountId: runEntry.accountId });
+      }
     } catch (error) {
       // Best-effort: keep task finalization resilient to auth sync issues.
     }

@@ -80,9 +80,6 @@ function createTaskAttachmentsHandler(orchestrator, uploadFiles) {
             mimeType: file.mimetype
           }))
         );
-        if (typeof orchestrator.emitStateEvent === 'function') {
-          orchestrator.emitStateEvent('tasks_changed', { taskId: req.params.taskId });
-        }
         res.status(201).json({ attachments });
       } catch (err) {
         if (err.code === 'INVALID_ATTACHMENT') {
@@ -102,9 +99,6 @@ function createRemoveTaskAttachmentsHandler(orchestrator) {
     const { names } = req.body || {};
     try {
       const attachments = await orchestrator.removeTaskAttachments(req.params.taskId, names);
-      if (typeof orchestrator.emitStateEvent === 'function') {
-        orchestrator.emitStateEvent('tasks_changed', { taskId: req.params.taskId });
-      }
       res.json({ attachments });
     } catch (err) {
       if (err.code === 'INVALID_ATTACHMENT') {

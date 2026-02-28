@@ -3,11 +3,6 @@ const { asyncHandler } = require('../middleware/async-handler');
 
 function createAccountsRouter(orchestrator) {
   const router = express.Router();
-  const emitAccountChange = (accountId = null) => {
-    if (typeof orchestrator.emitStateEvent === 'function') {
-      orchestrator.emitStateEvent('accounts_changed', accountId ? { accountId } : {});
-    }
-  };
 
   router.get('/accounts', asyncHandler(async (req, res) => {
     const accounts = await orchestrator.listAccounts();
@@ -45,7 +40,6 @@ function createAccountsRouter(orchestrator) {
     }
     try {
       const account = await orchestrator.addAccount({ label, authJson });
-      emitAccountChange(account.id);
       res.status(201).json(account);
     } catch (error) {
       const message = error?.message || 'Invalid authJson';
@@ -58,20 +52,17 @@ function createAccountsRouter(orchestrator) {
 
   router.post('/accounts/:accountId/activate', asyncHandler(async (req, res) => {
     const accounts = await orchestrator.activateAccount(req.params.accountId);
-    emitAccountChange(req.params.accountId);
     res.json(accounts);
   }));
 
   router.post('/accounts/rotate', asyncHandler(async (req, res) => {
     const accounts = await orchestrator.rotateAccount();
-    emitAccountChange();
     res.json(accounts);
   }));
 
   router.delete('/accounts/:accountId', asyncHandler(async (req, res) => {
     try {
       const accounts = await orchestrator.removeAccount(req.params.accountId);
-      emitAccountChange(req.params.accountId);
       res.json(accounts);
     } catch (error) {
       const message = error?.message || 'Unable to remove account';
@@ -88,7 +79,6 @@ function createAccountsRouter(orchestrator) {
       return res.status(400).send('label is required');
     }
     const accounts = await orchestrator.updateAccountLabel(req.params.accountId, label);
-    emitAccountChange(req.params.accountId);
     res.json(accounts);
   }));
 
@@ -99,7 +89,6 @@ function createAccountsRouter(orchestrator) {
     }
     try {
       const accounts = await orchestrator.updateAccountAuthJson(req.params.accountId, authJson);
-      emitAccountChange(req.params.accountId);
       res.json(accounts);
     } catch (error) {
       const message = error?.message || 'Invalid authJson';

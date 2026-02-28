@@ -150,6 +150,9 @@ function attachTaskAttachmentMethods(Orchestrator) {
     meta.attachments = nextAttachments;
     meta.updatedAt = this.now();
     await writeJson(this.taskMetaPath(taskId), meta);
+    if (typeof this.emitStateEvent === 'function') {
+      this.emitStateEvent('tasks_changed', { taskId });
+    }
     return meta.attachments;
   };
 
@@ -176,6 +179,9 @@ function attachTaskAttachmentMethods(Orchestrator) {
     meta.attachments = remaining;
     meta.updatedAt = this.now();
     await writeJson(this.taskMetaPath(taskId), meta);
+    if (typeof this.emitStateEvent === 'function') {
+      this.emitStateEvent('tasks_changed', { taskId });
+    }
     return meta.attachments;
   };
 }

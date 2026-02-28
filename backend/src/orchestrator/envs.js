@@ -26,6 +26,12 @@ async function verifyDefaultBranch({ execOrThrow, mirrorDir, defaultBranch }) {
 }
 
 function attachEnvMethods(Orchestrator) {
+  function emitEnvChange(orch, envId = null) {
+    if (typeof orch.emitStateEvent === 'function') {
+      orch.emitStateEvent('envs_changed', envId ? { envId } : {});
+    }
+  }
+
   Orchestrator.prototype.readEnv = async function readEnv(envId) {
     const repoUrl = await readText(this.envRepoUrlPath(envId));
     const defaultBranch = await readText(this.envDefaultBranchPath(envId));
@@ -88,7 +94,9 @@ function attachEnvMethods(Orchestrator) {
       if (!verified) {
         throw new Error(`Default branch '${defaultBranch}' not found in repository.`);
       }
-      return { envId, repoUrl, defaultBranch, envVars: envVars || {} };
+      const created = { envId, repoUrl, defaultBranch, envVars: envVars || {} };
+      emitEnvChange(this, envId);
+      return created;
     } catch (error) {
       await removePath(envDir);
       throw error;
@@ -112,7 +120,9 @@ function attachEnvMethods(Orchestrator) {
     if (envVars !== undefined) {
       await writeJson(this.envVarsPath(envId), envVars);
     }
-    return this.readEnv(envId);
+    const updated = await this.readEnv(envId);
+    emitEnvChange(this, envId);
+    return updated;
   };
 
   Orchestrator.prototype.deleteEnv = async function deleteEnv(envId) {
@@ -123,6 +133,7 @@ function attachEnvMethods(Orchestrator) {
     }
     await this.ensureOwnership(this.envDir(envId));
     await removePath(this.envDir(envId));
+    emitEnvChange(this, envId);
   };
 
   Orchestrator.prototype.envExists = async function envExists(envId) {

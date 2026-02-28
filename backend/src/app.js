@@ -15,7 +15,11 @@ function createApp({ orchestrator = new Orchestrator() } = {}) {
   const app = express();
   const stateEvents = new EventEmitter();
   const emitStateEvent = (event, data = {}) => {
-    stateEvents.emit('state', { event, data });
+    try {
+      stateEvents.emit('state', { event, data });
+    } catch {
+      // Never let stream fan-out failures break orchestrator mutations.
+    }
   };
   const subscribeStateEvents = (listener) => {
     stateEvents.on('state', listener);

@@ -117,4 +117,89 @@ describe('useStateStream', () => {
     unmount();
     expect(stream.closed).toBe(true);
   });
+
+  it('triggers throttled refresh when stream errors persist', async () => {
+    MockEventSource.instances = [];
+    global.EventSource = MockEventSource;
+
+    const refreshAll = vi.fn(async () => {});
+    const refreshTaskDetail = vi.fn(async () => {});
+    const nowSpy = vi.spyOn(Date, 'now');
+    nowSpy.mockReturnValue(61000);
+
+    render(
+      <StreamHarness
+        enabled
+        reconnectRefreshMs={60000}
+        refreshAll={refreshAll}
+        refreshTaskDetail={refreshTaskDetail}
+        selectedTaskId="task-3"
+        setAccountState={vi.fn()}
+        setEnvs={vi.fn()}
+        setError={vi.fn()}
+        setTasks={vi.fn()}
+      />
+    );
+
+    const stream = MockEventSource.instances[0];
+    stream.emit('error');
+    stream.emit('error');
+
+    await waitFor(() => {
+      expect(refreshAll).toHaveBeenCalledTimes(1);
+      expect(refreshTaskDetail).toHaveBeenCalledWith('task-3');
+    });
+
+    nowSpy.mockReturnValue(122000);
+    stream.emit('error');
+
+    await waitFor(() => {
+      expect(refreshAll).toHaveBeenCalledTimes(2);
+    });
+
+    nowSpy.mockRestore();
+  });
+
+  it('falls back to interval refresh when EventSource is unavailable', async () => {
+    global.EventSource = undefined;
+
+    const refreshAll = vi.fn(async () => {});
+    const refreshTaskDetail = vi.fn(async () => {});
+    const intervalCallbacks = [];
+    const setIntervalSpy = vi
+      .spyOn(globalThis, 'setInterval')
+      .mockImplementation((callback) => {
+        intervalCallbacks.push(callback);
+        return 1;
+      });
+    const clearIntervalSpy = vi
+      .spyOn(globalThis, 'clearInterval')
+      .mockImplementation(() => {});
+    render(
+      <StreamHarness
+        enabled
+        reconnectRefreshMs={1000}
+        refreshAll={refreshAll}
+        refreshTaskDetail={refreshTaskDetail}
+        selectedTaskId="task-4"
+        setAccountState={vi.fn()}
+        setEnvs={vi.fn()}
+        setError={vi.fn()}
+        setTasks={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(refreshAll).toHaveBeenCalledTimes(1);
+      expect(refreshTaskDetail).toHaveBeenCalledWith('task-4');
+    });
+
+    intervalCallbacks[0]();
+    await waitFor(() => {
+      expect(refreshAll).toHaveBeenCalledTimes(2);
+    });
+
+    setIntervalSpy.mockRestore();
+    clearIntervalSpy.mockRestore();
+  });
 });

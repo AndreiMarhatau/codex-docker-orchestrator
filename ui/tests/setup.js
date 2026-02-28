@@ -8,11 +8,6 @@ vi.mock('../src/app/hooks/useNow.js', () => ({
   default: () => Date.now()
 }));
 
-vi.mock('../src/app/hooks/usePolling.js', () => ({
-  __esModule: true,
-  default: () => {}
-}));
-
 vi.mock('@mui/material/Tooltip', async () => {
   const React = await vi.importActual('react');
   const Tooltip = ({ children }) => React.createElement(React.Fragment, null, children);

@@ -177,9 +177,7 @@ function attachTaskCreateMethods(Orchestrator) {
         exposedPaths,
         stopTaskDockerSidecarOnExit: shouldUseHostDockerSocket
       });
-      if (typeof this.emitStateEvent === 'function') {
-        this.emitStateEvent('tasks_changed', { taskId });
-      }
+      this.notifyTasksChanged(taskId);
       return meta;
     } catch (error) {
       await cleanupFailedWorktree(this, env.mirrorPath, createdWorktreePath);

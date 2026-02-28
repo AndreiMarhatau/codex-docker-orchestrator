@@ -2,12 +2,6 @@ const { USAGE_TRIGGER_PROMPT, runAccountUsageTrigger } = require('./account-usag
 const { buildRateLimitEnv, readAccountRateLimits } = require('./account-rate-limits-client');
 
 function attachAccountMethods(Orchestrator) {
-  function emitAccountsChange(orch, accountId = null) {
-    if (typeof orch.emitStateEvent === 'function') {
-      orch.emitStateEvent('accounts_changed', accountId ? { accountId } : {});
-    }
-  }
-
   Orchestrator.prototype.listAccounts = async function listAccounts() {
     return this.accountStore.listAccounts();
   };
@@ -15,31 +9,31 @@ function attachAccountMethods(Orchestrator) {
   Orchestrator.prototype.addAccount = async function addAccount({ label, authJson }) {
     const account = await this.accountStore.addAccount({ label, authJson });
     await this.accountStore.applyActiveAccount();
-    emitAccountsChange(this, account?.id || null);
+    this.notifyAccountsChanged(account?.id || null);
     return account;
   };
 
   Orchestrator.prototype.activateAccount = async function activateAccount(accountId) {
     await this.accountStore.setActiveAccount(accountId);
-    emitAccountsChange(this, accountId);
+    this.notifyAccountsChanged(accountId);
     return this.listAccounts();
   };
 
   Orchestrator.prototype.rotateAccount = async function rotateAccount() {
     await this.accountStore.rotateActiveAccount();
-    emitAccountsChange(this);
+    this.notifyAccountsChanged();
     return this.listAccounts();
   };
 
   Orchestrator.prototype.removeAccount = async function removeAccount(accountId) {
     await this.accountStore.removeAccount(accountId);
-    emitAccountsChange(this, accountId);
+    this.notifyAccountsChanged(accountId);
     return this.listAccounts();
   };
 
   Orchestrator.prototype.updateAccountLabel = async function updateAccountLabel(accountId, label) {
     const accounts = await this.accountStore.updateAccountLabel(accountId, label);
-    emitAccountsChange(this, accountId);
+    this.notifyAccountsChanged(accountId);
     return accounts;
   };
 
@@ -48,7 +42,7 @@ function attachAccountMethods(Orchestrator) {
     authJson
   ) {
     const accounts = await this.accountStore.updateAccountAuthJson(accountId, authJson);
-    emitAccountsChange(this, accountId);
+    this.notifyAccountsChanged(accountId);
     return accounts;
   };
 
@@ -64,7 +58,7 @@ function attachAccountMethods(Orchestrator) {
     if (latestActiveAccount?.id === activeAccount.id) {
       try {
         await this.accountStore.syncAccountFromHost(activeAccount.id);
-        emitAccountsChange(this, activeAccount.id);
+        this.notifyAccountsChanged(activeAccount.id);
       } catch (error) {
         // Best-effort: keep rate-limit reads resilient to auth sync issues.
       }
@@ -91,7 +85,7 @@ function attachAccountMethods(Orchestrator) {
     if (latestActiveAccount?.id === activeAccount.id) {
       try {
         await this.accountStore.syncAccountFromHost(activeAccount.id);
-        emitAccountsChange(this, activeAccount.id);
+        this.notifyAccountsChanged(activeAccount.id);
       } catch (error) {
         // Best-effort: keep usage triggers resilient to auth sync issues.
       }

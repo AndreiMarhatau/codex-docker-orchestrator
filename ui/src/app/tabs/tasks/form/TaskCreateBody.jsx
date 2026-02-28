@@ -10,6 +10,14 @@ const tagBaseSx = {
   borderRadius: '8px',
   '.MuiChip-label': {
     px: 1
+  },
+  '.MuiChip-deleteIcon': {
+    color: 'inherit',
+    opacity: 0.92
+  },
+  '.MuiChip-deleteIcon:hover': {
+    color: 'inherit',
+    opacity: 1
   }
 };
 

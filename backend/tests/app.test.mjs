@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { createRequire } from 'node:module';
 import { createMockExec, createMockSpawn, createTempDir } from './helpers.mjs';
@@ -151,11 +151,17 @@ describe('API', () => {
 
   it('isolates state-event listener failures from mutations', async () => {
     const { orchestrator } = await createTestApp();
+    const healthyListener = vi.fn();
     orchestrator.subscribeStateEvents(() => {
       throw new Error('listener failed');
     });
+    orchestrator.subscribeStateEvents(healthyListener);
     expect(() => {
       orchestrator.emitStateEvent('tasks_changed', { taskId: 'task-1' });
     }).not.toThrow();
+    expect(healthyListener).toHaveBeenCalledWith({
+      event: 'tasks_changed',
+      data: { taskId: 'task-1' }
+    });
   });
 });

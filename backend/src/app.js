@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const { EventEmitter } = require('node:events');
 const { Orchestrator } = require('./orchestrator');
 const { createAuthMiddleware } = require('./app/middleware/auth');
 const { createHealthRouter } = require('./app/routes/health');
@@ -13,18 +12,21 @@ const { createEventsRouter } = require('./app/routes/events');
 
 function createApp({ orchestrator = new Orchestrator() } = {}) {
   const app = express();
-  const stateEvents = new EventEmitter();
+  const stateEventListeners = new Set();
   const emitStateEvent = (event, data = {}) => {
-    try {
-      stateEvents.emit('state', { event, data });
-    } catch {
-      // Never let stream fan-out failures break orchestrator mutations.
+    const message = { event, data };
+    for (const listener of stateEventListeners) {
+      try {
+        listener(message);
+      } catch {
+        // Never let one stream listener failure affect others.
+      }
     }
   };
   const subscribeStateEvents = (listener) => {
-    stateEvents.on('state', listener);
+    stateEventListeners.add(listener);
     return () => {
-      stateEvents.off('state', listener);
+      stateEventListeners.delete(listener);
     };
   };
 

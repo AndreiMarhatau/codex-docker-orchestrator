@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { apiUrlWithPassword } from '../../api.js';
 import { normalizeAccountState } from '../repo-helpers.js';
+import { STATE_EVENT_TYPES } from '../state-event-types.js';
 
 function useStateStream({
   enabled = true,
@@ -65,17 +66,17 @@ function useStateStream({
       handleRefresh();
     };
 
-    eventSource.addEventListener('init', handleInit);
-    eventSource.addEventListener('tasks_changed', handleRefresh);
-    eventSource.addEventListener('envs_changed', handleRefresh);
-    eventSource.addEventListener('accounts_changed', handleRefresh);
+    eventSource.addEventListener(STATE_EVENT_TYPES.init, handleInit);
+    eventSource.addEventListener(STATE_EVENT_TYPES.tasksChanged, handleRefresh);
+    eventSource.addEventListener(STATE_EVENT_TYPES.envsChanged, handleRefresh);
+    eventSource.addEventListener(STATE_EVENT_TYPES.accountsChanged, handleRefresh);
     eventSource.addEventListener('error', handleError);
 
     return () => {
-      eventSource.removeEventListener('init', handleInit);
-      eventSource.removeEventListener('tasks_changed', handleRefresh);
-      eventSource.removeEventListener('envs_changed', handleRefresh);
-      eventSource.removeEventListener('accounts_changed', handleRefresh);
+      eventSource.removeEventListener(STATE_EVENT_TYPES.init, handleInit);
+      eventSource.removeEventListener(STATE_EVENT_TYPES.tasksChanged, handleRefresh);
+      eventSource.removeEventListener(STATE_EVENT_TYPES.envsChanged, handleRefresh);
+      eventSource.removeEventListener(STATE_EVENT_TYPES.accountsChanged, handleRefresh);
       eventSource.removeEventListener('error', handleError);
       eventSource.close();
     };

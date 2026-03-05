@@ -88,4 +88,36 @@ describe('Orchestrator task lifecycle', () => {
     expect(mountRw.split(':')).toContain(orchestrator.mirrorDir(env.envId));
     expect(runCall.options?.env?.CODEX_MOUNT_PATHS_RO).toBeUndefined();
   });
+
+  it('syncs branch name from worktree after run finishes', async () => {
+    const orchHome = await createTempDir();
+    const baseExec = createMockExec({ branches: ['main'] });
+    const exec = async (command, args, options) => {
+      const worktreeIndex = args.indexOf('-C');
+      if (
+        command === 'git' &&
+        worktreeIndex >= 0 &&
+        args[worktreeIndex + 2] === 'branch' &&
+        args[worktreeIndex + 3] === '--show-current'
+      ) {
+        return { stdout: 'feat/improve-branching\n', stderr: '', code: 0 };
+      }
+      return baseExec(command, args, options);
+    };
+    const spawn = createMockSpawn();
+    const orchestrator = new Orchestrator({
+      orchHome,
+      codexHome: path.join(orchHome, 'codex-home'),
+      exec,
+      spawn
+    });
+
+    const env = await orchestrator.createEnv({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' });
+    const task = await orchestrator.createTask({ envId: env.envId, ref: 'main', prompt: 'Do work' });
+    await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+
+    const metaPath = path.join(orchHome, 'tasks', task.taskId, 'meta.json');
+    const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
+    expect(meta.branchName).toBe('feat/improve-branching');
+  });
 });

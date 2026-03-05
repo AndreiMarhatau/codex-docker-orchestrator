@@ -5,6 +5,31 @@ const { readJson, writeJson } = require('../../storage');
 const { buildRunEnv, createOutputTracker, updateRunMeta } = require('./run-helpers');
 const { createDeferredRunState, createStoppedDuringStartupError, isAbortError } = require('./deferred-run-state');
 
+async function resolveCurrentBranch(exec, worktreePath) {
+  const result = await exec('git', ['-C', worktreePath, 'branch', '--show-current']);
+  if (result.code !== 0) {
+    return null;
+  }
+  const branchName = result.stdout.trim();
+  return branchName || null;
+}
+
+async function syncTaskBranchFromWorktree(exec, taskMetaPath, taskId, worktreePath) {
+  if (!worktreePath) {
+    return;
+  }
+  const resolvedBranch = await resolveCurrentBranch(exec, worktreePath);
+  if (!resolvedBranch) {
+    return;
+  }
+  const meta = await readJson(taskMetaPath(taskId));
+  if (meta.branchName === resolvedBranch) {
+    return;
+  }
+  meta.branchName = resolvedBranch;
+  await writeJson(taskMetaPath(taskId), meta);
+}
+
 function attachFailRunStartMethod(Orchestrator) {
   Orchestrator.prototype.failRunStart = async function failRunStart(taskId, runLabel, prompt, error) {
     let meta = null;
@@ -95,6 +120,8 @@ function attachFinalizeRunMethod(Orchestrator) {
       taskMetaPath: this.taskMetaPath.bind(this),
       runArtifactsDir: this.runArtifactsDir.bind(this)
     });
+    await syncTaskBranchFromWorktree(this.exec, this.taskMetaPath.bind(this), taskId, meta.worktreePath)
+      .catch(() => {});
     const runEntry = meta.runs.find((run) => run.runId === runLabel);
     try {
       await this.accountStore.syncAccountFromHost(runEntry?.accountId || null);

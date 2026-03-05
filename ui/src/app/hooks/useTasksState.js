@@ -18,6 +18,7 @@ function useTasksState({ envs, refreshAll, setError, setLoading, tasks }) {
   });
   const files = useTaskFiles();
   const detail = useTaskDetail({
+    envs,
     selectedTaskId: selection.selectedTaskId,
     setError,
     setSelectedTaskId: selection.setSelectedTaskId,

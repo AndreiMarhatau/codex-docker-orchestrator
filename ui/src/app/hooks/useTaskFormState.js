@@ -76,10 +76,25 @@ function useTaskFormState({ envs, selectedTaskId, tasks }) {
 
   function handleContextRepoChange(index, field, value) {
     setTaskForm((prev) => {
-      const updated = prev.contextRepos.map((repo, idx) =>
-        idx === index ? { ...repo, [field]: value } : repo
-      );
-      return { ...prev, contextRepos: updated };
+      const contextRepos = [...prev.contextRepos];
+      const targetRepo = contextRepos[index] || emptyContextRepo;
+      const nextRepo = { ...targetRepo };
+      if (field === 'envId') {
+        const contextEnv = envs.find((env) => env.envId === value);
+        nextRepo[field] = value;
+        nextRepo.ref = (contextEnv?.defaultBranch || 'main').trim();
+      } else {
+        nextRepo[field] = value;
+      }
+      if (index >= contextRepos.length) {
+        if (!value) {
+          return prev;
+        }
+        contextRepos.push(nextRepo);
+      } else {
+        contextRepos[index] = nextRepo;
+      }
+      return { ...prev, contextRepos };
     });
   }
 

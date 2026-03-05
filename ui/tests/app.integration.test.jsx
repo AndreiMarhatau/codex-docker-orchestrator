@@ -30,8 +30,17 @@ async function configureNewTask(user) {
 
   await user.click(screen.getByLabelText('Use host Docker socket'));
 
-  await user.click(screen.getByRole('button', { name: 'Add reference repo' }));
-  await user.click(screen.getByLabelText('Remove reference repo'));
+  const envSelect = await screen.findByLabelText('Environment');
+  await user.click(envSelect);
+  await user.click(await screen.findByRole('option', { name: 'openai/codex' }));
+  expect(screen.getByLabelText('Branch / tag / ref')).toHaveValue('main');
+  expect(screen.getAllByLabelText('Environment')).toHaveLength(2);
+
+  const secondEnvSelect = screen.getAllByLabelText('Environment')[1];
+  await user.click(secondEnvSelect);
+  await user.click(await screen.findByRole('option', { name: 'openai/reference' }));
+  expect(screen.getAllByLabelText('Environment')).toHaveLength(2);
+  await user.click(screen.getAllByLabelText('Remove reference repo')[1]);
 
   const fileInput = createDialog.querySelector('input[type="file"]');
   const textFile = new File(['brief'], 'brief.txt', { type: 'text/plain' });

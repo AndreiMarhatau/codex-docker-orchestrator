@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createRequire } from 'node:module';
+import fs from 'node:fs/promises';
 import { createTempDir } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
@@ -14,7 +15,7 @@ async function createTestApp() {
   return { app: createApp({ orchestrator }) };
 }
 
-describe('settings password', () => {
+describe('settings routes', () => {
   it('requires the password once set', async () => {
     const { app } = await createTestApp();
 
@@ -57,5 +58,31 @@ describe('settings password', () => {
 
     await request(app).get('/api/envs').set('X-Orch-Password', 'first-pass').expect(401);
     await request(app).get('/api/envs').set('X-Orch-Password', 'next-pass').expect(200);
+  });
+
+  it('returns empty content when config.toml is missing', async () => {
+    const { app } = await createTestApp();
+    const getRes = await request(app).get('/api/settings/config').expect(200);
+    expect(getRes.body.content).toBe('');
+  });
+
+  it('reads and writes config.toml', async () => {
+    const orchHome = await createTempDir();
+    const codexHome = await createTempDir();
+    const orchestrator = new Orchestrator({ orchHome, codexHome });
+    const app = createApp({ orchestrator });
+    const configPath = `${codexHome}/config.toml`;
+
+    await fs.writeFile(configPath, 'model = "gpt-5.3-codex-spark"');
+    const getRes = await request(app).get('/api/settings/config').expect(200);
+    expect(getRes.body.content).toBe('model = "gpt-5.3-codex-spark"');
+
+    await request(app)
+      .post('/api/settings/config')
+      .send({ content: 'personality = "pragmatic"' })
+      .expect(204);
+
+    const refreshedRes = await request(app).get('/api/settings/config').expect(200);
+    expect(refreshedRes.body.content).toBe('personality = "pragmatic"');
   });
 });

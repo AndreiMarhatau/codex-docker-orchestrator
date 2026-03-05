@@ -55,7 +55,13 @@ describe('app helpers', () => {
   });
 
   it('handles model and effort selections', () => {
-    expect(getEffortOptionsForModel('gpt-5.2')).toEqual(['none', 'low', 'medium', 'high', 'xhigh']);
+    expect(getEffortOptionsForModel('gpt-5.3-codex-spark')).toEqual([
+      'low',
+      'medium',
+      'high',
+      'xhigh'
+    ]);
+    expect(getEffortOptionsForModel('gpt-5.2')).toEqual(['low', 'medium', 'high', 'xhigh']);
     expect(getEffortOptionsForModel('unknown')).toEqual([]);
     expect(resolveModelValue(MODEL_CUSTOM_VALUE, '  custom-model ')).toBe('custom-model');
     expect(resolveModelValue('', 'ignored')).toBe('');

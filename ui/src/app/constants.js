@@ -1,6 +1,8 @@
 const MODEL_CUSTOM_VALUE = 'custom';
 const MODEL_OPTIONS = [
   { value: '', label: 'Default (Codex decides)' },
+  { value: 'gpt-5.3-codex', label: 'gpt-5.3-codex' },
+  { value: 'gpt-5.3-codex-spark', label: 'gpt-5.3-codex-spark' },
   { value: 'gpt-5.1-codex-mini', label: 'gpt-5.1-codex-mini' },
   { value: 'gpt-5.1-codex-max', label: 'gpt-5.1-codex-max' },
   { value: 'gpt-5.2', label: 'gpt-5.2' },
@@ -8,9 +10,11 @@ const MODEL_OPTIONS = [
   { value: MODEL_CUSTOM_VALUE, label: 'Custom model...' }
 ];
 const MODEL_EFFORTS = {
+  'gpt-5.3-codex': ['low', 'medium', 'high', 'xhigh'],
+  'gpt-5.3-codex-spark': ['low', 'medium', 'high', 'xhigh'],
   'gpt-5.1-codex-mini': ['low', 'medium', 'high'],
   'gpt-5.1-codex-max': ['low', 'medium', 'high', 'xhigh'],
-  'gpt-5.2': ['none', 'low', 'medium', 'high', 'xhigh'],
+  'gpt-5.2': ['low', 'medium', 'high', 'xhigh'],
   'gpt-5.2-codex': ['low', 'medium', 'high', 'xhigh']
 };
 const EFFORT_LABELS = {

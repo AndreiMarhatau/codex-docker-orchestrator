@@ -1,7 +1,16 @@
 const express = require('express');
+const path = require('node:path');
+const fs = require('node:fs/promises');
 const { asyncHandler } = require('../middleware/async-handler');
 const { extractPassword } = require('../middleware/auth');
 const { hasPassword, setPassword, verifyPassword } = require('../../ui-auth');
+const { writeText } = require('../../storage');
+
+const CONFIG_FILE_NAME = 'config.toml';
+
+function getConfigPath(orchestrator) {
+  return path.join(orchestrator.codexHome, CONFIG_FILE_NAME);
+}
 
 function createSettingsRouter(orchestrator) {
   const router = express.Router();
@@ -49,6 +58,27 @@ function createSettingsRouter(orchestrator) {
       res.status(204).send();
     })
   );
+
+  router.get('/settings/config', asyncHandler(async (_req, res) => {
+    try {
+      const content = await fs.readFile(getConfigPath(orchestrator), 'utf8');
+      res.json({ content });
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        return res.json({ content: '' });
+      }
+      throw error;
+    }
+  }));
+
+  router.post('/settings/config', asyncHandler(async (req, res) => {
+    const { content } = req.body || {};
+    if (typeof content !== 'string') {
+      return res.status(400).send('config content is required');
+    }
+    await writeText(getConfigPath(orchestrator), content);
+    res.status(204).send();
+  }));
 
   return router;
 }

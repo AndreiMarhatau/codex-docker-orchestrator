@@ -4,7 +4,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { MAX_TASK_FILES } = require('../orchestrator/tasks/attachments');
 
-const MAX_TASK_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_TASK_FILE_SIZE = 1024 * 1024 * 1024;
 
 function createStorage(orchestrator) {
   return multer.diskStorage({

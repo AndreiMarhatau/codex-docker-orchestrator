@@ -65,6 +65,7 @@ function useTasksState({ envs, refreshAll, setError, setLoading, tasks }) {
     setShowTaskForm: formState.setShowTaskForm,
     setTaskDetail: detail.setTaskDetail,
     setTaskFileError: files.setTaskFileError,
+    setTaskFileUploadProgress: files.setTaskFileUploadProgress,
     setTaskFileUploading: files.setTaskFileUploading,
     setTaskForm: formState.setTaskForm,
     setTaskFiles: files.setTaskFiles,

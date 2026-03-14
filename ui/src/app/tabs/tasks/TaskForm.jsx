@@ -34,6 +34,10 @@ function TaskForm({ data, tasksState }) {
     Boolean(reasoningEffortValue) ||
     formState.taskForm.useHostDockerSocket ||
     formState.taskForm.contextRepos.some((repo) => repo.envId);
+  const uploadPercent = Math.max(
+    0,
+    Math.min(100, Math.round(files.taskFileUploadProgress?.percent || 0))
+  );
   const envLabel = selectedEnv
     ? formatRepoDisplay(selectedEnv.repoUrl) || selectedEnv.repoUrl
     : 'Select environment';
@@ -76,7 +80,7 @@ function TaskForm({ data, tasksState }) {
             !formState.taskForm.prompt.trim()
           }
         >
-          {files.taskFileUploading ? 'Uploading attachments...' : 'Run task'}
+          {files.taskFileUploading ? `Uploading attachments... ${uploadPercent}%` : 'Run task'}
         </Button>
       </DialogActions>
       <TaskCreatePopovers

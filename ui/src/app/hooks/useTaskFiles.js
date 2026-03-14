@@ -5,6 +5,7 @@ function useTaskFiles() {
   const [taskFiles, setTaskFiles] = useState([]);
   const [taskFileError, setTaskFileError] = useState('');
   const [taskFileUploading, setTaskFileUploading] = useState(false);
+  const [taskFileUploadProgress, setTaskFileUploadProgress] = useState(null);
   const taskFileInputRef = useRef(null);
 
   function handleTaskFilesSelected(event) {
@@ -30,6 +31,7 @@ function useTaskFiles() {
   function handleClearTaskFiles() {
     setTaskFiles([]);
     setTaskFileError('');
+    setTaskFileUploadProgress(null);
     if (taskFileInputRef.current) {
       taskFileInputRef.current.value = '';
     }
@@ -40,10 +42,12 @@ function useTaskFiles() {
     handleRemoveTaskFile,
     handleTaskFilesSelected,
     setTaskFileError,
+    setTaskFileUploadProgress,
     setTaskFileUploading,
     setTaskFiles,
     taskFileError,
     taskFileInputRef,
+    taskFileUploadProgress,
     taskFileUploading,
     taskFiles
   };

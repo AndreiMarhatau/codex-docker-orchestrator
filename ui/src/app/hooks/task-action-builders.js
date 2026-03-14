@@ -28,6 +28,7 @@ function createHandleCreateTask({
   setLoading,
   setShowTaskForm,
   setTaskFileError,
+  setTaskFileUploadProgress,
   setTaskFileUploading,
   setTaskFiles,
   setTaskForm,
@@ -40,7 +41,11 @@ function createHandleCreateTask({
     setTaskFileError('');
     setLoading(true);
     try {
-      const fileUploads = await uploadTaskFiles(taskFiles, setTaskFileUploading);
+      const fileUploads = await uploadTaskFiles(
+        taskFiles,
+        setTaskFileUploading,
+        setTaskFileUploadProgress
+      );
       const modelValue = resolveModelValue(taskForm.modelChoice, taskForm.customModel);
       const reasoningEffortValue = resolveReasoningEffortValue(taskForm);
       const contextRepos = buildContextRepos(taskForm.contextRepos);
@@ -64,8 +69,10 @@ function createHandleCreateTask({
       }
       setShowTaskForm(false);
       await refreshAll();
+      return true;
     } catch (err) {
       setError(err.message);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -94,7 +101,7 @@ function createHandleResumeTask({
 }) {
   return async function handleResumeTask() {
     if (!selectedTaskId || !resumePrompt.trim()) {
-      return;
+      return false;
     }
     setError('');
     setLoading(true);
@@ -106,7 +113,8 @@ function createHandleResumeTask({
         await addTaskAttachments(
           selectedTaskId,
           resumeFiles.taskFiles,
-          resumeFiles.setTaskFileUploading
+          resumeFiles.setTaskFileUploading,
+          resumeFiles.setTaskFileUploadProgress
         );
       }
       const modelValue = resolveModelValue(resumeConfig.modelChoice, resumeConfig.customModel);
@@ -131,8 +139,10 @@ function createHandleResumeTask({
       setResumeDockerTouched(false);
       await refreshAll();
       await refreshTaskDetail(selectedTaskId);
+      return true;
     } catch (err) {
       setError(err.message);
+      return false;
     } finally {
       setLoading(false);
     }

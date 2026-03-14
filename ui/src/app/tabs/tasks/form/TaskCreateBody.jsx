@@ -1,6 +1,7 @@
 import { Chip, IconButton, InputAdornment, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import AttachFileOutlinedIcon from '@mui/icons-material/AttachFileOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import UploadProgress from '../../../components/UploadProgress.jsx';
 import { MAX_TASK_FILES } from '../../../constants.js';
 import { formatBytes } from '../../../formatters.js';
 import { formatRepoDisplay } from '../../../repo-helpers.js';
@@ -161,6 +162,7 @@ function FileTags({ files }) {
     </Stack>
   );
 }
+
 function TaskCreateBody(props) {
   const { effectiveRef, envLabel, envs, files, formState, hasAdvancedSettings, hasCustomRef, loading } = props;
   const { modelValue, reasoningEffortValue, setEnvMenuAnchor, setRefPopoverAnchor, setSettingsAnchor } = props;
@@ -189,6 +191,7 @@ function TaskCreateBody(props) {
         reasoningEffortValue={reasoningEffortValue}
       />
       {files.taskFileError && <Typography color="error">{files.taskFileError}</Typography>}
+      <UploadProgress progress={files.taskFileUploadProgress} />
       <FileTags files={files} />
     </Stack>
   );

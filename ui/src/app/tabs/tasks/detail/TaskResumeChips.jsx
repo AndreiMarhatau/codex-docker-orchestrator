@@ -12,7 +12,7 @@ const tagBaseSx = {
   '.MuiChip-deleteIcon:hover': { color: 'inherit', opacity: 1 }
 };
 
-function ResumeActiveTags({ detail }) {
+function ResumeActiveTags({ detail, loading = false }) {
   const modelValue = resolveModelValue(detail.resumeConfig.modelChoice, detail.resumeConfig.customModel);
   const effortValue = resolveReasoningEffortValue(detail.resumeConfig);
   const branchLabel = detail.taskDetail?.branchName || 'current branch';
@@ -27,7 +27,8 @@ function ResumeActiveTags({ detail }) {
         <Chip
           label={`${modelValue || 'default'}${effortValue ? ` • ${effortValue}` : ''}`}
           size="small"
-          onDelete={() => detail.setResumeConfig(emptyResumeConfig)}
+          onDelete={loading ? undefined : () => detail.setResumeConfig(emptyResumeConfig)}
+          disabled={loading}
           sx={{ ...tagBaseSx, bgcolor: '#ede9fe', color: '#4c1d95' }}
         />
       )}
@@ -35,10 +36,13 @@ function ResumeActiveTags({ detail }) {
         <Chip
           label="docker"
           size="small"
-          onDelete={() => {
-            detail.setResumeUseHostDockerSocket(false);
-            detail.setResumeDockerTouched(true);
-          }}
+          onDelete={loading
+            ? undefined
+            : () => {
+                detail.setResumeUseHostDockerSocket(false);
+                detail.setResumeDockerTouched(true);
+              }}
+          disabled={loading}
           sx={{ ...tagBaseSx, bgcolor: '#dcfce7', color: '#14532d' }}
         />
       )}
@@ -47,7 +51,8 @@ function ResumeActiveTags({ detail }) {
           key={`resume-context-${entry.index}`}
           label={`${entry.envId}${entry.ref ? ` (${entry.ref})` : ''}`}
           size="small"
-          onDelete={() => detail.handleRemoveResumeContextRepo(entry.index)}
+          onDelete={loading ? undefined : () => detail.handleRemoveResumeContextRepo(entry.index)}
+          disabled={loading}
           sx={{ ...tagBaseSx, bgcolor: '#fef3c7', color: '#78350f' }}
         />
       ))}
@@ -55,7 +60,7 @@ function ResumeActiveTags({ detail }) {
   );
 }
 
-function ResumeExistingAttachments({ detail }) {
+function ResumeExistingAttachments({ detail, loading = false }) {
   const attachments = detail.taskDetail?.attachments || [];
   if (attachments.length === 0) {
     return null;
@@ -71,10 +76,11 @@ function ResumeExistingAttachments({ detail }) {
           return (
             <Chip
               key={file.name}
-              clickable
+              clickable={!loading}
               label={`${file.originalName || file.name} (${formatBytes(file.size)})`}
               size="small"
-              onClick={() => detail.toggleResumeAttachmentRemoval(file.name)}
+              onClick={loading ? undefined : () => detail.toggleResumeAttachmentRemoval(file.name)}
+              disabled={loading}
               sx={{
                 ...tagBaseSx,
                 bgcolor: pendingRemoval ? '#fee2e2' : '#e5e7eb',
@@ -110,7 +116,8 @@ function ResumeNewAttachments({ detail, loading }) {
               key={`${file.name}-${index}`}
               label={`${file.name} (${formatBytes(file.size)})`}
               size="small"
-              onDelete={() => detail.resumeFiles.handleRemoveTaskFile(index)}
+              onDelete={loading ? undefined : () => detail.resumeFiles.handleRemoveTaskFile(index)}
+              disabled={loading}
               sx={{ ...tagBaseSx, bgcolor: '#dbeafe', color: '#1e3a8a' }}
             />
           ))}

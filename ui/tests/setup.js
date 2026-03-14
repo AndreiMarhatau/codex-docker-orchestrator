@@ -51,6 +51,19 @@ beforeEach(() => {
     removeEventListener() {}
     close() {}
   };
+  global.XMLHttpRequest = class MockXMLHttpRequest {
+    upload = {
+      addEventListener() {}
+    };
+
+    open() {}
+
+    setRequestHeader() {}
+
+    send() {
+      throw new Error('Unhandled XMLHttpRequest');
+    }
+  };
   global.fetch = vi.fn(async (input) => {
     const url = typeof input === 'string' ? input : input.url;
     if (url.includes('/api/settings/password')) {

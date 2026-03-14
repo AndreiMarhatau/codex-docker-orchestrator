@@ -50,6 +50,12 @@ async function configureNewTask(user) {
 
   await user.keyboard('{Escape}');
   await user.click(screen.getByRole('button', { name: 'Run task' }));
+  expect(
+    await screen.findByRole('button', { name: 'Uploading attachments... 50%' })
+  ).toBeInTheDocument();
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog', { name: 'New task' })).not.toBeInTheDocument()
+  );
 }
 
 async function exerciseTaskDetail(user) {
@@ -99,6 +105,9 @@ async function exerciseTaskDetail(user) {
   await user.click(screen.getByLabelText('Close settings'));
   await user.click(within(resumeDialog).getByRole('button', { name: /requirements\.txt/i }));
   await user.click(screen.getByRole('button', { name: 'Continue task' }));
+  expect(
+    await screen.findByRole('button', { name: 'Uploading attachments... 50%' })
+  ).toBeInTheDocument();
   await waitFor(() =>
     expect(screen.queryByRole('dialog', { name: 'Ask for changes' })).not.toBeInTheDocument()
   );
@@ -117,6 +126,7 @@ it(
       '/api/tasks': tasks,
       '/api/accounts': accounts,
       'POST /api/uploads/files': {
+        delay: 300,
         uploads: [
           {
             path: '/tmp/brief.txt',
@@ -127,7 +137,7 @@ it(
         ]
       },
       'POST /api/tasks': {},
-      'POST /api/tasks/task-1/attachments': { attachments: [] },
+      'POST /api/tasks/task-1/attachments': { delay: 300, attachments: [] },
       'DELETE /api/tasks/task-1/attachments': { attachments: [] },
       'POST /api/tasks/task-1/resume': {},
       'POST /api/tasks/task-1/push': {},
@@ -199,5 +209,5 @@ it(
 
     await user.click(screen.getByRole('tab', { name: 'Settings' }));
   },
-  60000
+  90000
 );

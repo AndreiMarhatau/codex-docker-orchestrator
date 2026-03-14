@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import AttachFileOutlinedIcon from '@mui/icons-material/AttachFileOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import UploadProgress from '../../../components/UploadProgress.jsx';
 import { resolveModelValue, resolveReasoningEffortValue } from '../../../model-helpers.js';
 import TaskResumeSettingsPopover from './TaskResumeSettingsPopover.jsx';
 import {
@@ -32,7 +33,11 @@ function TaskResumeDialog({
   open
 }) {
   const [settingsAnchor, setSettingsAnchor] = useState(null);
+  const dialogBusy = data.loading || detail.resumeFiles.taskFileUploading;
   const closeDialog = () => {
+    if (dialogBusy) {
+      return;
+    }
     setSettingsAnchor(null);
     onClose();
   };
@@ -44,6 +49,8 @@ function TaskResumeDialog({
       detail.resumeContextRepos.some((repo) => repo.envId),
     [detail]
   );
+  const uploadProgress = detail.resumeFiles.taskFileUploadProgress;
+  const uploadPercent = Math.max(0, Math.min(100, Math.round(uploadProgress?.percent || 0)));
 
   return (
     <Dialog open={open} onClose={closeDialog} maxWidth="sm" fullWidth>
@@ -57,7 +64,7 @@ function TaskResumeDialog({
             minRows={4}
             value={detail.resumePrompt}
             onChange={(event) => detail.setResumePrompt(event.target.value)}
-            disabled={data.loading}
+            disabled={dialogBusy}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end" sx={{ alignSelf: 'flex-end', mb: 0.5 }}>
@@ -68,7 +75,7 @@ function TaskResumeDialog({
                         component="label"
                         aria-label="Add attachments"
                         color={detail.resumeFiles.taskFiles.length > 0 ? 'primary' : 'default'}
-                        disabled={data.loading || detail.resumeFiles.taskFileUploading}
+                        disabled={dialogBusy}
                       >
                         <AttachFileOutlinedIcon fontSize="small" />
                         <input
@@ -85,6 +92,7 @@ function TaskResumeDialog({
                         size="small"
                         aria-label="Additional settings"
                         color={hasSettingsEnabled ? 'primary' : 'default'}
+                        disabled={dialogBusy}
                         onClick={(event) => setSettingsAnchor(event.currentTarget)}
                       >
                         <SettingsOutlinedIcon fontSize="small" />
@@ -95,25 +103,32 @@ function TaskResumeDialog({
               )
             }}
           />
-          <ResumeActiveTags detail={detail} />
+          <ResumeActiveTags detail={detail} loading={dialogBusy} />
           {detail.resumeFiles.taskFileError && (
             <Typography color="error">{detail.resumeFiles.taskFileError}</Typography>
           )}
-          <ResumeExistingAttachments detail={detail} />
-          <ResumeNewAttachments detail={detail} loading={data.loading} />
+          <UploadProgress progress={uploadProgress} />
+          <ResumeExistingAttachments detail={detail} loading={dialogBusy} />
+          <ResumeNewAttachments detail={detail} loading={dialogBusy} />
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={closeDialog}>Cancel</Button>
+        <Button onClick={closeDialog} disabled={dialogBusy}>Cancel</Button>
         <Button
           variant="contained"
-          onClick={() => {
-            actions.handleResumeTask();
-            closeDialog();
+          onClick={async () => {
+            setSettingsAnchor(null);
+            const completed = await actions.handleResumeTask();
+            if (completed !== false) {
+              setSettingsAnchor(null);
+              onClose();
+            }
           }}
-          disabled={data.loading || detail.resumeFiles.taskFileUploading || !detail.resumePrompt.trim()}
+          disabled={dialogBusy || !detail.resumePrompt.trim()}
         >
-          Continue task
+          {detail.resumeFiles.taskFileUploading
+            ? `Uploading attachments... ${uploadPercent}%`
+            : 'Continue task'}
         </Button>
       </DialogActions>
       <TaskResumeSettingsPopover

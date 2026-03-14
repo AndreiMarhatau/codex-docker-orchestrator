@@ -8,6 +8,7 @@ import { createMockExec, createMockSpawn, createTempDir } from './helpers.mjs';
 const require = createRequire(import.meta.url);
 const { createApp } = require('../src/app');
 const { Orchestrator } = require('../src/orchestrator');
+const { MAX_TASK_FILE_SIZE } = require('../src/app/uploads');
 
 async function createTestApp() {
   const orchHome = await createTempDir();
@@ -19,6 +20,10 @@ async function createTestApp() {
 }
 
 describe('uploads route', () => {
+  it('allows uploads up to 1 GiB per file', () => {
+    expect(MAX_TASK_FILE_SIZE).toBe(1024 * 1024 * 1024);
+  });
+
   it('rejects requests without files', async () => {
     const app = await createTestApp();
     await request(app).post('/api/uploads/files').expect(400);

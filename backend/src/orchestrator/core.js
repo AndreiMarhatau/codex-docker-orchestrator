@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const path = require('node:path');
 const { AccountStore } = require('../accounts');
 const {
   DEFAULT_GIT_CREDENTIAL_HELPER,
@@ -24,8 +25,8 @@ class Orchestrator {
     this.now = config.now;
     this.fetch = config.fetch;
     this.imageName = config.imageName;
-    this.orchAgentsFile = config.orchAgentsFile;
-    this.hostDockerAgentsFile = config.hostDockerAgentsFile;
+    this.codexDockerHome = path.join(this.orchHome, 'codex-docker-home');
+    this.orchInstructionsFile = config.orchInstructionsFile;
     this.contextReposTemplateFile = config.contextReposTemplateFile;
     this.attachmentsTemplateFile = config.attachmentsTemplateFile;
     this.getUid = config.getUid;

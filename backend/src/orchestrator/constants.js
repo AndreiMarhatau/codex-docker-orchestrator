@@ -3,13 +3,12 @@ const os = require('node:os');
 
 const DEFAULT_ORCH_HOME = path.join(os.homedir(), '.codex-orchestrator');
 const DEFAULT_IMAGE_NAME = 'ghcr.io/andreimarhatau/codex-docker:latest';
-const DEFAULT_ORCH_AGENTS_FILE = path.join(__dirname, '..', '..', '..', 'ORCHESTRATOR_AGENTS.md');
-const DEFAULT_HOST_DOCKER_AGENTS_FILE = path.join(
+const DEFAULT_ORCH_INSTRUCTIONS_FILE = path.join(
   __dirname,
   '..',
   '..',
   '..',
-  'ORCHESTRATOR_AGENTS_HOST_DOCKER.md'
+  'ORCHESTRATOR_DEVELOPER_INSTRUCTIONS.md'
 );
 const DEFAULT_CONTEXT_REPOS_TEMPLATE_FILE = path.join(
   __dirname,
@@ -38,8 +37,7 @@ const DEFAULT_TASK_DOCKER_COMMAND_TIMEOUT_MS = 600_000;
 module.exports = {
   DEFAULT_ORCH_HOME,
   DEFAULT_IMAGE_NAME,
-  DEFAULT_ORCH_AGENTS_FILE,
-  DEFAULT_HOST_DOCKER_AGENTS_FILE,
+  DEFAULT_ORCH_INSTRUCTIONS_FILE,
   DEFAULT_CONTEXT_REPOS_TEMPLATE_FILE,
   DEFAULT_ATTACHMENTS_TEMPLATE_FILE,
   COMMIT_SHA_REGEX,

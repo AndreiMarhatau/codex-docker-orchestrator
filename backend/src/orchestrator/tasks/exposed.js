@@ -1,27 +1,4 @@
-const path = require('node:path');
-const fsp = require('node:fs/promises');
-const { ensureDir } = require('../../storage');
 const { repoNameFromUrl } = require('../utils');
-
-async function removePathIfExists(targetPath) {
-  try {
-    const stat = await fsp.lstat(targetPath);
-    if (stat.isSymbolicLink() || stat.isFile()) {
-      await fsp.unlink(targetPath);
-      return;
-    }
-    await fsp.rm(targetPath, { recursive: true, force: true });
-  } catch (error) {
-    if (error.code !== 'ENOENT') {
-      throw error;
-    }
-  }
-}
-
-async function ensureSymlink(targetPath, linkPath) {
-  await removePathIfExists(linkPath);
-  await fsp.symlink(targetPath, linkPath);
-}
 
 function buildRepoAliases(contextRepos) {
   if (!Array.isArray(contextRepos) || contextRepos.length === 0) {
@@ -52,31 +29,12 @@ function buildRepoAliases(contextRepos) {
 
 function attachTaskExposedMethods(Orchestrator) {
   Orchestrator.prototype.prepareTaskExposedPaths = async function prepareTaskExposedPaths(
-    taskId,
-    { contextRepos = [], codexHome } = {}
+    _taskId,
+    { contextRepos = [] } = {}
   ) {
-    const homeDir = this.taskHomeDir(taskId);
-    await ensureDir(homeDir);
-
-    if (codexHome) {
-      await ensureSymlink(codexHome, path.join(homeDir, '.codex'));
-    }
-
-    const attachmentsDir = this.taskAttachmentsDir(taskId);
-    await ensureDir(attachmentsDir);
     const repoAliases = buildRepoAliases(contextRepos);
 
-    const uploadsPath = path.join(homeDir, 'uploads');
-    const repositoriesPath = path.join(homeDir, 'repositories');
-    const repositoriesAliasPath = path.join(homeDir, 'repos');
-    await Promise.all([
-      removePathIfExists(uploadsPath),
-      removePathIfExists(repositoriesPath),
-      removePathIfExists(repositoriesAliasPath)
-    ]);
-
     return {
-      homeDir,
       uploadsPath: '/attachments',
       repositoriesPath: '/readonly',
       repositoriesAliasPath: '/readonly',

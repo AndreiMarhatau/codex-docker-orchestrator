@@ -128,8 +128,7 @@ function attachTaskResumeMethods(Orchestrator) {
     await this.ensureOwnership(env.mirrorPath);
     const exposedPaths = await this.prepareTaskExposedPaths(taskId, {
       contextRepos: resolvedContextRepos,
-      attachments,
-      codexHome: this.codexHome
+      attachments
     });
     const runLabel = nextRunLabel(meta.runs.length + 1);
     const activeAccount = await this.accountStore.getActiveAccount();
@@ -146,11 +145,19 @@ function attachTaskResumeMethods(Orchestrator) {
     await ensureDir(this.runArtifactsDir(taskId, runLabel));
     await writeJson(this.taskMetaPath(taskId), meta);
     await this.ensureActiveAuth();
+    const developerInstructions = this.buildDeveloperInstructions({
+      contextRepos: resolvedContextRepos,
+      attachments,
+      useHostDockerSocket: shouldUseHostDockerSocket,
+      envVars: env.envVars,
+      exposedPaths
+    });
     const args = buildCodexArgs({
       prompt: codexPrompt,
       model: runModel,
       reasoningEffort: runReasoningEffort,
-      resumeThreadId: meta.threadId
+      resumeThreadId: meta.threadId,
+      developerInstructions
     });
     const attachmentsDir = this.taskAttachmentsDir(taskId);
     const hasAttachments = attachments.length > 0;
@@ -166,17 +173,12 @@ function attachTaskResumeMethods(Orchestrator) {
       prompt,
       cwd: meta.worktreePath,
       args,
-      mountPaths: [exposedPaths.homeDir, env.mirrorPath],
+      mountPaths: [env.mirrorPath],
       mountPathsRo: [],
       mountMaps: shouldUseHostDockerSocket ? [this.taskDockerSocketMount(taskId)] : [],
       mountMapsRo: [...readonlyRepoMountMaps, ...readonlyAttachmentsMountMaps],
-      contextRepos: resolvedContextRepos,
-      attachments,
       useHostDockerSocket: shouldUseHostDockerSocket,
       envOverrides: env.envVars,
-      envVars: env.envVars,
-      homeDir: exposedPaths.homeDir,
-      exposedPaths,
       stopTaskDockerSidecarOnExit: shouldUseHostDockerSocket
     });
     this.notifyTasksChanged(taskId);

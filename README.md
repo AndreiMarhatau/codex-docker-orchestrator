@@ -68,6 +68,9 @@ You can also set the variable in a `.env` file in `ui/` (for example, `VITE_API_
 - `codex-docker` also forwards non-system environment variables from the orchestrator process by
   default. If you set `CODEX_PASSTHROUGH_ENV=FOO,BAR`, only that allowlist is forwarded; the
   orchestrator appends the environment-specific keys so they still pass through.
+- The orchestrator injects its developer instructions directly through the Codex CLI config override,
+  then appends runtime task context such as mounted reference repos, attachments, env var names, and
+  isolated Docker availability.
 
 ## Docker (host-path)
 This runs the orchestrator in a container while using the host Docker engine. It keeps `codex-docker`
@@ -88,8 +91,8 @@ working and reuses your host Codex + GitHub credentials.
 ./bin/orch-up
 ```
 This script detects the Docker socket (macOS + Linux), sets the needed env vars, and runs
-`docker compose up`. It also sets `TMPDIR` to a host-mounted path so `codex-docker` can mount
-the generated `AGENTS.override.md` file.
+`docker compose up`. It also sets `TMPDIR` to a host-mounted path for temporary runtime files used
+by the orchestrator.
 On macOS it runs the container as root by default to avoid Docker socket permission errors.
 Set `ORCH_FORCE_ROOT=0` if you want to run as your host user instead.
 

@@ -5,8 +5,7 @@ const { spawn } = require('node:child_process');
 const {
   DEFAULT_ORCH_HOME,
   DEFAULT_IMAGE_NAME,
-  DEFAULT_ORCH_AGENTS_FILE,
-  DEFAULT_HOST_DOCKER_AGENTS_FILE,
+  DEFAULT_ORCH_INSTRUCTIONS_FILE,
   DEFAULT_CONTEXT_REPOS_TEMPLATE_FILE,
   DEFAULT_ATTACHMENTS_TEMPLATE_FILE,
   DEFAULT_TASK_DOCKER_SIDECAR_IMAGE,
@@ -47,17 +46,11 @@ function resolveConfig(options) {
     now: options.now || (() => new Date().toISOString()),
     fetch: options.fetch || global.fetch,
     imageName: resolveOptional(options, 'imageName', 'IMAGE_NAME', DEFAULT_IMAGE_NAME),
-    orchAgentsFile: resolveOptional(
+    orchInstructionsFile: resolveOptional(
       options,
-      'orchAgentsFile',
-      'ORCH_AGENTS_FILE',
-      DEFAULT_ORCH_AGENTS_FILE
-    ),
-    hostDockerAgentsFile: resolveOptional(
-      options,
-      'hostDockerAgentsFile',
-      'ORCH_HOST_DOCKER_AGENTS_FILE',
-      DEFAULT_HOST_DOCKER_AGENTS_FILE
+      'orchInstructionsFile',
+      'ORCH_INSTRUCTIONS_FILE',
+      DEFAULT_ORCH_INSTRUCTIONS_FILE
     ),
     contextReposTemplateFile: resolveOptional(
       options,

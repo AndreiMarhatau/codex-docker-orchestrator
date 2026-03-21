@@ -4,6 +4,10 @@ const { resolveRefInRepo } = require('../git');
 const { buildCodexArgs } = require('../context');
 const { nextRunLabel, normalizeOptionalString } = require('../utils');
 const { buildRunEntry } = require('./run-entry');
+const {
+  mergeDeveloperInstructions,
+  readEffectiveDeveloperInstructions
+} = require('./instructions');
 async function setupWorktree(orch, { env, ref, taskId }) {
   const targetRef = ref || env.defaultBranch;
   await orch.execOrThrow('git', ['--git-dir', env.mirrorPath, 'fetch', 'origin', '--prune', '+refs/heads/*:refs/remotes/origin/*']);
@@ -126,6 +130,10 @@ function attachTaskCreateMethods(Orchestrator) {
         envVars: env.envVars,
         exposedPaths
       });
+      const effectiveDeveloperInstructions = mergeDeveloperInstructions(
+        readEffectiveDeveloperInstructions({ codexHome: this.codexHome, cwd: worktreePath }),
+        developerInstructions
+      );
       const meta = buildTaskMeta({
         taskId,
         envId,
@@ -150,7 +158,7 @@ function attachTaskCreateMethods(Orchestrator) {
         prompt,
         model: normalizedModel,
         reasoningEffort: normalizedReasoningEffort,
-        developerInstructions
+        developerInstructions: effectiveDeveloperInstructions
       });
       const attachmentsDir = this.taskAttachmentsDir(taskId);
       const hasAttachments = attachments.length > 0;

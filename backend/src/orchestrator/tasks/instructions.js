@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const { buildAttachmentsSection, buildContextReposSection } = require('../context');
+const { readConfigDeveloperInstructions } = require('./instructions-config');
 
 const HOST_DOCKER_SECTION = [
   '# Host Docker Socket',
@@ -28,13 +29,40 @@ function readInstructionsFile(filePath) {
     return '';
   }
   try {
-    if (fs.existsSync(filePath)) {
-      return fs.readFileSync(filePath, 'utf8').trim();
+    const stats = fs.statSync(filePath);
+    if (!stats.isFile()) {
+      throw new Error(`Orchestrator instructions path is not a file: ${filePath}`);
     }
+    return fs.readFileSync(filePath, 'utf8').trim();
   } catch (error) {
-    // Best-effort: if the file cannot be read, continue without it.
+    if (error?.message?.startsWith('Orchestrator instructions path is not a file:')) {
+      throw error;
+    }
+    if (error?.code === 'ENOENT') {
+      throw new Error(`Orchestrator instructions file not found: ${filePath}`);
+    }
+    throw new Error(
+      `Failed to read orchestrator instructions file at ${filePath}: ${error?.message || 'Unknown error'}`
+    );
   }
-  return '';
+}
+
+function readTopLevelDeveloperInstructions(codexHome) {
+  return readConfigDeveloperInstructions({ codexHome, cwd: null });
+}
+
+function readEffectiveDeveloperInstructions(options) {
+  return readConfigDeveloperInstructions(options);
+}
+
+function mergeDeveloperInstructions(userInstructions, orchestratorInstructions) {
+  const sections = [userInstructions, orchestratorInstructions]
+    .map((value) => (typeof value === 'string' ? value.trim() : ''))
+    .filter(Boolean);
+  if (sections.length === 0) {
+    return null;
+  }
+  return `${sections.join('\n\n')}\n`;
 }
 
 function buildDeveloperInstructions({
@@ -79,5 +107,8 @@ function buildDeveloperInstructions({
 }
 
 module.exports = {
-  buildDeveloperInstructions
+  buildDeveloperInstructions,
+  mergeDeveloperInstructions,
+  readEffectiveDeveloperInstructions,
+  readTopLevelDeveloperInstructions
 };

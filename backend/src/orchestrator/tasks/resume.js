@@ -3,6 +3,7 @@ const { buildCodexArgs } = require('../context');
 const { nextRunLabel, normalizeOptionalString } = require('../utils');
 const { buildRunEntry } = require('./run-entry');
 const { cleanupContextRepos } = require('./cleanup');
+const { mergeDeveloperInstructions, readEffectiveDeveloperInstructions } = require('./instructions');
 
 function signalRunChild(run, signal) {
   if (!run?.child) {
@@ -58,8 +59,7 @@ function applyResumeMetaUpdates({
     meta.useHostDockerSocket = shouldUseHostDockerSocket;
   }
   const runModel = normalizeOptionalString(options.model) ?? normalizeOptionalString(meta.model);
-  const runReasoningEffort =
-    normalizeOptionalString(options.reasoningEffort) ?? normalizeOptionalString(meta.reasoningEffort);
+  const runReasoningEffort = normalizeOptionalString(options.reasoningEffort) ?? normalizeOptionalString(meta.reasoningEffort);
   meta.runs.push(
     buildRunEntry({
       runLabel,
@@ -117,72 +117,90 @@ function attachTaskResumeMethods(Orchestrator) {
     const attachments = Array.isArray(meta.attachments) ? meta.attachments : [];
     const hasContextReposOverride = Object.prototype.hasOwnProperty.call(options, 'contextRepos');
     let resolvedContextRepos = contextRepos;
-    if (hasContextReposOverride) {
-      const contextPlan = await this.prepareContextRepos(taskId, options.contextRepos || []);
-      await cleanupContextRepos(this, contextRepos);
-      resolvedContextRepos = await this.materializeContextRepos(contextPlan);
-      meta.contextRepos = resolvedContextRepos;
+    let nextContextRepos = null;
+    try {
+      if (hasContextReposOverride) {
+        const contextPlan = await this.prepareContextRepos(taskId, options.contextRepos || []);
+        nextContextRepos = await this.materializeContextRepos(contextPlan);
+        resolvedContextRepos = nextContextRepos;
+      }
+
+      const { hasDockerSocketOverride, shouldUseHostDockerSocket } = resolveDockerUsage(meta, options);
+      const env = await this.readEnv(meta.envId);
+      await this.ensureOwnership(env.mirrorPath);
+      const exposedPaths = await this.prepareTaskExposedPaths(taskId, {
+        contextRepos: resolvedContextRepos,
+        attachments
+      });
+      const developerInstructions = this.buildDeveloperInstructions({
+        contextRepos: resolvedContextRepos,
+        attachments,
+        useHostDockerSocket: shouldUseHostDockerSocket,
+        envVars: env.envVars,
+        exposedPaths
+      });
+      const effectiveDeveloperInstructions = mergeDeveloperInstructions(
+        readEffectiveDeveloperInstructions({ codexHome: this.codexHome, cwd: meta.worktreePath }),
+        developerInstructions
+      );
+
+      if (hasContextReposOverride) {
+        await cleanupContextRepos(this, contextRepos);
+        meta.contextRepos = resolvedContextRepos;
+      }
+
+      const runLabel = nextRunLabel(meta.runs.length + 1);
+      const activeAccount = await this.accountStore.getActiveAccount();
+      const { codexPrompt, runModel, runReasoningEffort } = applyResumeMetaUpdates({
+        meta,
+        prompt,
+        options,
+        hasDockerSocketOverride,
+        shouldUseHostDockerSocket,
+        now: this.now.bind(this),
+        activeAccount,
+        runLabel
+      });
+      await ensureDir(this.runArtifactsDir(taskId, runLabel));
+      await writeJson(this.taskMetaPath(taskId), meta);
+      await this.ensureActiveAuth();
+      const args = buildCodexArgs({
+        prompt: codexPrompt,
+        model: runModel,
+        reasoningEffort: runReasoningEffort,
+        resumeThreadId: meta.threadId,
+        developerInstructions: effectiveDeveloperInstructions
+      });
+      const attachmentsDir = this.taskAttachmentsDir(taskId);
+      const hasAttachments = attachments.length > 0;
+      const readonlyRepoMountMaps = (exposedPaths.contextRepos || [])
+        .filter((repo) => repo?.worktreePath && repo?.aliasName)
+        .map((repo) => ({ source: repo.worktreePath, target: `/readonly/${repo.aliasName}` }));
+      const readonlyAttachmentsMountMaps = hasAttachments
+        ? [{ source: attachmentsDir, target: exposedPaths.readonlyAttachmentsPath || '/attachments' }]
+        : [];
+      this.startCodexRunDeferred({
+        taskId,
+        runLabel,
+        prompt,
+        cwd: meta.worktreePath,
+        args,
+        mountPaths: [env.mirrorPath],
+        mountPathsRo: [],
+        mountMaps: shouldUseHostDockerSocket ? [this.taskDockerSocketMount(taskId)] : [],
+        mountMapsRo: [...readonlyRepoMountMaps, ...readonlyAttachmentsMountMaps],
+        useHostDockerSocket: shouldUseHostDockerSocket,
+        envOverrides: env.envVars,
+        stopTaskDockerSidecarOnExit: shouldUseHostDockerSocket
+      });
+      this.notifyTasksChanged(taskId);
+      return meta;
+    } catch (error) {
+      if (nextContextRepos) {
+        await cleanupContextRepos(this, nextContextRepos).catch(() => {});
+      }
+      throw error;
     }
-    const { hasDockerSocketOverride, shouldUseHostDockerSocket } = resolveDockerUsage(meta, options);
-    const env = await this.readEnv(meta.envId);
-    await this.ensureOwnership(env.mirrorPath);
-    const exposedPaths = await this.prepareTaskExposedPaths(taskId, {
-      contextRepos: resolvedContextRepos,
-      attachments
-    });
-    const runLabel = nextRunLabel(meta.runs.length + 1);
-    const activeAccount = await this.accountStore.getActiveAccount();
-    const { codexPrompt, runModel, runReasoningEffort } = applyResumeMetaUpdates({
-      meta,
-      prompt,
-      options,
-      hasDockerSocketOverride,
-      shouldUseHostDockerSocket,
-      now: this.now.bind(this),
-      activeAccount,
-      runLabel
-    });
-    await ensureDir(this.runArtifactsDir(taskId, runLabel));
-    await writeJson(this.taskMetaPath(taskId), meta);
-    await this.ensureActiveAuth();
-    const developerInstructions = this.buildDeveloperInstructions({
-      contextRepos: resolvedContextRepos,
-      attachments,
-      useHostDockerSocket: shouldUseHostDockerSocket,
-      envVars: env.envVars,
-      exposedPaths
-    });
-    const args = buildCodexArgs({
-      prompt: codexPrompt,
-      model: runModel,
-      reasoningEffort: runReasoningEffort,
-      resumeThreadId: meta.threadId,
-      developerInstructions
-    });
-    const attachmentsDir = this.taskAttachmentsDir(taskId);
-    const hasAttachments = attachments.length > 0;
-    const readonlyRepoMountMaps = (exposedPaths.contextRepos || [])
-      .filter((repo) => repo?.worktreePath && repo?.aliasName)
-      .map((repo) => ({ source: repo.worktreePath, target: `/readonly/${repo.aliasName}` }));
-    const readonlyAttachmentsMountMaps = hasAttachments
-      ? [{ source: attachmentsDir, target: exposedPaths.readonlyAttachmentsPath || '/attachments' }]
-      : [];
-    this.startCodexRunDeferred({
-      taskId,
-      runLabel,
-      prompt,
-      cwd: meta.worktreePath,
-      args,
-      mountPaths: [env.mirrorPath],
-      mountPathsRo: [],
-      mountMaps: shouldUseHostDockerSocket ? [this.taskDockerSocketMount(taskId)] : [],
-      mountMapsRo: [...readonlyRepoMountMaps, ...readonlyAttachmentsMountMaps],
-      useHostDockerSocket: shouldUseHostDockerSocket,
-      envOverrides: env.envVars,
-      stopTaskDockerSidecarOnExit: shouldUseHostDockerSocket
-    });
-    this.notifyTasksChanged(taskId);
-    return meta;
   };
   attachStopTaskMethod(Orchestrator);
 }

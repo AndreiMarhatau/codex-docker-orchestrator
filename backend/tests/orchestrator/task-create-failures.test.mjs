@@ -72,4 +72,27 @@ describe('orchestrator create task failures', () => {
       exec.calls.some((call) => call.command === 'docker' && call.args[0] === 'rm')
     ).toBe(false);
   });
+
+  it('fails immediately when the orchestrator instructions file is missing', async () => {
+    const orchHome = await createTempDir();
+    const exec = createMockExec({ branches: ['main'] });
+    const spawn = createMockSpawn();
+    const orchestrator = new Orchestrator({
+      orchHome,
+      exec,
+      spawn,
+      orchInstructionsFile: path.join(orchHome, 'missing-instructions.md')
+    });
+    const env = await orchestrator.createEnv({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' });
+
+    await expect(
+      orchestrator.createTask({
+        envId: env.envId,
+        ref: 'main',
+        prompt: 'Do work'
+      })
+    ).rejects.toThrow(/instructions file not found/i);
+
+    expect(spawn.calls).toHaveLength(0);
+  });
 });

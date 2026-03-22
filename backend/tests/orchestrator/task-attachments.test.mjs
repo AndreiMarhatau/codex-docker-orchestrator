@@ -9,6 +9,16 @@ const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
 const { MAX_TASK_FILES } = require('../../src/orchestrator/tasks/attachments');
 
+function extractDeveloperInstructions(args = []) {
+  const entry = args.find(
+    (arg) => typeof arg === 'string' && arg.startsWith('developer_instructions=')
+  );
+  if (!entry) {
+    return null;
+  }
+  return JSON.parse(entry.slice('developer_instructions='.length));
+}
+
 describe('Orchestrator task attachments', () => {
   it('mounts task files and injects attachments instructions', async () => {
     const orchHome = await createTempDir();
@@ -53,14 +63,13 @@ describe('Orchestrator task attachments', () => {
     const mountRw = runCall.options?.env?.CODEX_MOUNT_PATHS || '';
     const mountRo = runCall.options?.env?.CODEX_MOUNT_PATHS_RO || '';
     const mountMapsRo = runCall.options?.env?.CODEX_MOUNT_MAPS_RO || '';
-    expect(mountRw.split(':')).toContain(orchestrator.taskHomeDir(task.taskId));
+    expect(mountRw.split(':')).toContain(path.join(orchHome, 'codex-home'));
     expect(mountRo).toBe('');
     expect(mountMapsRo.split(':')).toContain(`${attachmentsDir}=/attachments`);
 
-    const agentsFile = runCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
-    const agentsContent = await fs.readFile(agentsFile, 'utf8');
-    expect(agentsContent).toContain('User-uploaded files');
-    expect(agentsContent).toContain('/attachments/notes.txt');
+    const developerInstructions = extractDeveloperInstructions(runCall.args);
+    expect(developerInstructions).toContain('User-uploaded files');
+    expect(developerInstructions).toContain('/attachments/notes.txt');
   });
 
   it('dedupes attachment filenames and validates limits', async () => {
@@ -117,6 +126,5 @@ describe('Orchestrator task attachments', () => {
       orchestrator.prepareTaskAttachments(task.taskId, new Array(MAX_TASK_FILES + 1).fill({}))
     ).rejects.toMatchObject({ code: 'INVALID_ATTACHMENT' });
   });
-
 
 });

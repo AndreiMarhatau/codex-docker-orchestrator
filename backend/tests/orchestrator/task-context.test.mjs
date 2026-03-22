@@ -8,6 +8,16 @@ import { waitForTaskStatus } from '../helpers/wait.mjs';
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
 
+function extractDeveloperInstructions(args = []) {
+  const index = args.findIndex(
+    (arg) => typeof arg === 'string' && arg.startsWith('developer_instructions=')
+  );
+  if (index === -1) {
+    return null;
+  }
+  return JSON.parse(args[index].slice('developer_instructions='.length));
+}
+
 async function waitForExecCalls(execCalls, predicate, minCount = 1) {
   const deadline = Date.now() + 2000;
   while (Date.now() < deadline) {
@@ -41,6 +51,11 @@ describe('Orchestrator task context', () => {
       repoUrl: 'git@example.com:context.git',
       defaultBranch: 'main'
     });
+    await fs.mkdir(path.join(orchHome, 'codex-home'), { recursive: true });
+    await fs.writeFile(
+      path.join(orchHome, 'codex-home', 'config.toml'),
+      'developer_instructions = "Preserve my team rules."\n'
+    );
 
     const task = await orchestrator.createTask({
       envId: primaryEnv.envId,
@@ -53,22 +68,24 @@ describe('Orchestrator task context', () => {
     const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
     expect(runCall).toBeTruthy();
     const mountRw = runCall.options?.env?.CODEX_MOUNT_PATHS || '';
-    const homeDir = orchestrator.taskHomeDir(task.taskId);
     const mountRo = runCall.options?.env?.CODEX_MOUNT_PATHS_RO || '';
     const mountMapsRo = runCall.options?.env?.CODEX_MOUNT_MAPS_RO || '';
     const contextPath = orchestrator.taskContextWorktree(task.taskId, contextEnv.repoUrl, contextEnv.envId);
-    expect(mountRw.split(':')).toContain(homeDir);
+    expect(mountRw.split(':')).toContain(path.join(orchHome, 'codex-home'));
     expect(mountRo).toBe('');
     expect(mountMapsRo.split(':')).toContain(`${contextPath}=/readonly/context`);
+    expect(runCall.options?.env?.CODEX_PASSTHROUGH_ENV || '').toContain('CODEX_HOME');
+    expect(runCall.options?.env?.CODEX_AGENTS_APPEND_FILE).toBeUndefined();
 
-    const agentsFile = runCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
-    expect(agentsFile).toBeTruthy();
-    const agentsContent = await fs.readFile(agentsFile, 'utf8');
-    expect(agentsContent).toContain('Read-only reference repositories');
-    expect(agentsContent).toContain('/readonly/context');
-    expect(agentsContent).toContain('Environment variables');
-    expect(agentsContent).toContain('API_TOKEN');
-    expect(agentsContent).toContain('FEATURE_FLAG');
+    const developerInstructions = extractDeveloperInstructions(runCall.args);
+    expect(developerInstructions).toContain('Preserve my team rules.');
+    expect(developerInstructions).toContain('orchestrator-developer-instructions');
+    expect(developerInstructions).toContain('ephemeral Docker container');
+    expect(developerInstructions).toContain('Read-only reference repositories');
+    expect(developerInstructions).toContain('/readonly/context');
+    expect(developerInstructions).toContain('Environment variables');
+    expect(developerInstructions).toContain('API_TOKEN');
+    expect(developerInstructions).toContain('FEATURE_FLAG');
   });
 
   it('mounts per-task docker sidecar socket when enabled and skips when disabled', async () => {
@@ -94,11 +111,9 @@ describe('Orchestrator task context', () => {
     const createMountMaps = createCall.options?.env?.CODEX_MOUNT_MAPS || '';
     const expectedSocketPath = orchestrator.taskDockerSocketPath(task.taskId);
     expect(createMountMaps.split(':')).toContain(`${expectedSocketPath}=/var/run/docker.sock`);
-    const createAgentsFile = createCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
-    expect(createAgentsFile).toBeTruthy();
-    const createAgentsContent = await fs.readFile(createAgentsFile, 'utf8');
-    expect(createAgentsContent).toContain('Host Docker Socket');
-    expect(createAgentsContent).not.toContain('Environment variables');
+    const createDeveloperInstructions = extractDeveloperInstructions(createCall.args);
+    expect(createDeveloperInstructions).toContain('Host Docker Socket');
+    expect(createDeveloperInstructions).not.toContain('Environment variables');
     const dockerRunCalls = await waitForExecCalls(
       exec.calls,
       (call) =>
@@ -119,10 +134,8 @@ describe('Orchestrator task context', () => {
     const resumeCalls = spawn.calls.filter((call) => call.command === 'codex-docker');
     const resumeCall = resumeCalls[1];
     expect(resumeCall.options?.env?.CODEX_MOUNT_MAPS || '').toBe('');
-    const resumeAgentsFile = resumeCall.options?.env?.CODEX_AGENTS_APPEND_FILE;
-    expect(resumeAgentsFile).toBeTruthy();
-    const resumeAgentsContent = await fs.readFile(resumeAgentsFile, 'utf8');
-    expect(resumeAgentsContent).not.toContain('Host Docker Socket');
+    const resumeDeveloperInstructions = extractDeveloperInstructions(resumeCall.args);
+    expect(resumeDeveloperInstructions).not.toContain('Host Docker Socket');
 
     const metaPath = path.join(orchHome, 'tasks', task.taskId, 'meta.json');
     const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));

@@ -27,10 +27,6 @@ function attachPathMethods(Orchestrator) {
     return path.join(this.tasksDir(), taskId);
   };
 
-  Orchestrator.prototype.taskHomeDir = function taskHomeDir(taskId) {
-    return path.join(this.taskDir(taskId), 'home');
-  };
-
   Orchestrator.prototype.taskDockerDir = function taskDockerDir(taskId) {
     return path.join(this.taskDir(taskId), 'docker');
   };

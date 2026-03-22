@@ -146,13 +146,7 @@ function attachStartRunMethod(Orchestrator) {
     mountPathsRo = [],
     mountMaps = [],
     mountMapsRo = [],
-    contextRepos = [],
-    attachments = [],
-    useHostDockerSocket,
     envOverrides,
-    envVars,
-    homeDir,
-    exposedPaths,
     stopTaskDockerSidecarOnExit = false
   }) {
     const logFile = `${runLabel}.jsonl`;
@@ -160,15 +154,6 @@ function attachStartRunMethod(Orchestrator) {
     const stderrPath = path.join(this.taskLogsDir(taskId), `${runLabel}.stderr`);
     const logStream = fs.createWriteStream(logPath, { flags: 'a' });
     const stderrStream = fs.createWriteStream(stderrPath, { flags: 'a' });
-    const agentsAppendFile = this.buildAgentsAppendFile({
-      taskId,
-      runLabel,
-      useHostDockerSocket,
-      contextRepos,
-      attachments,
-      envVars,
-      exposedPaths
-    });
     const artifactsDir = this.runArtifactsDir(taskId, runLabel);
     const env = buildRunEnv({
       codexHome: this.codexHome,
@@ -177,9 +162,7 @@ function attachStartRunMethod(Orchestrator) {
       mountPathsRo,
       mountMaps,
       mountMapsRo,
-      agentsAppendFile,
-      envOverrides,
-      homeDir
+      envOverrides
     });
     const useProcessGroup = process.platform !== 'win32';
     const child = this.spawn('codex-docker', args, {

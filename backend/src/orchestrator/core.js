@@ -24,10 +24,6 @@ class Orchestrator {
     this.now = config.now;
     this.fetch = config.fetch;
     this.imageName = config.imageName;
-    this.orchAgentsFile = config.orchAgentsFile;
-    this.hostDockerAgentsFile = config.hostDockerAgentsFile;
-    this.contextReposTemplateFile = config.contextReposTemplateFile;
-    this.attachmentsTemplateFile = config.attachmentsTemplateFile;
     this.getUid = config.getUid;
     this.getGid = config.getGid;
     this.taskDockerSidecarImage = config.taskDockerSidecarImage;

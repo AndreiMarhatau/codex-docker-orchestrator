@@ -116,8 +116,14 @@ function attachTaskCreateMethods(Orchestrator) {
       const attachments = await this.prepareTaskAttachments(taskId, fileUploads);
       const exposedPaths = await this.prepareTaskExposedPaths(taskId, {
         contextRepos: resolvedContextRepos,
+        attachments
+      });
+      const developerInstructions = this.buildDeveloperInstructions({
+        useHostDockerSocket: shouldUseHostDockerSocket,
+        contextRepos: resolvedContextRepos,
         attachments,
-        codexHome: this.codexHome
+        envVars: env.envVars,
+        exposedPaths
       });
       const now = this.now();
       const activeAccount = await this.accountStore.getActiveAccount();
@@ -144,7 +150,8 @@ function attachTaskCreateMethods(Orchestrator) {
       const args = buildCodexArgs({
         prompt,
         model: normalizedModel,
-        reasoningEffort: normalizedReasoningEffort
+        reasoningEffort: normalizedReasoningEffort,
+        developerInstructions
       });
       const attachmentsDir = this.taskAttachmentsDir(taskId);
       const hasAttachments = attachments.length > 0;
@@ -160,17 +167,12 @@ function attachTaskCreateMethods(Orchestrator) {
         prompt,
         cwd: worktreePath,
         args,
-        mountPaths: [exposedPaths.homeDir, env.mirrorPath],
+        mountPaths: [env.mirrorPath],
         mountPathsRo: [],
         mountMaps: shouldUseHostDockerSocket ? [this.taskDockerSocketMount(taskId)] : [],
         mountMapsRo: [...readonlyRepoMountMaps, ...readonlyAttachmentsMountMaps],
-        contextRepos: resolvedContextRepos,
-        attachments,
         useHostDockerSocket: shouldUseHostDockerSocket,
         envOverrides: env.envVars,
-        envVars: env.envVars,
-        homeDir: exposedPaths.homeDir,
-        exposedPaths,
         stopTaskDockerSidecarOnExit: shouldUseHostDockerSocket
       });
       this.notifyTasksChanged(taskId);

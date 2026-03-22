@@ -86,7 +86,7 @@ function attachTaskCleanupMethods(Orchestrator) {
       meta.branchName
     ]);
 
-    const githubToken = process.env.ORCH_GITHUB_TOKEN;
+    const githubToken = this.readGitToken();
     const githubRepo = process.env.ORCH_GITHUB_REPO;
     if (!githubToken || !githubRepo) {
       this.notifyTasksChanged(taskId);

@@ -1,5 +1,5 @@
 const { USAGE_TRIGGER_PROMPT, runAccountUsageTrigger } = require('./account-usage-trigger');
-const { buildRateLimitEnv, readAccountRateLimits } = require('./account-rate-limits-client');
+const { readAccountRateLimits } = require('./account-rate-limits-client');
 
 function attachAccountMethods(Orchestrator) {
   Orchestrator.prototype.listAccounts = async function listAccounts() {
@@ -10,6 +10,7 @@ function attachAccountMethods(Orchestrator) {
     const account = await this.accountStore.addAccount({ label, authJson });
     await this.accountStore.applyActiveAccount();
     this.notifyAccountsChanged(account?.id || null);
+    this.notifySetupChanged();
     return account;
   };
 
@@ -22,12 +23,14 @@ function attachAccountMethods(Orchestrator) {
   Orchestrator.prototype.rotateAccount = async function rotateAccount() {
     await this.accountStore.rotateActiveAccount();
     this.notifyAccountsChanged();
+    this.notifySetupChanged();
     return this.listAccounts();
   };
 
   Orchestrator.prototype.removeAccount = async function removeAccount(accountId) {
     await this.accountStore.removeAccount(accountId);
     this.notifyAccountsChanged(accountId);
+    this.notifySetupChanged();
     return this.listAccounts();
   };
 
@@ -79,7 +82,7 @@ function attachAccountMethods(Orchestrator) {
     await this.ensureActiveAuth();
     await runAccountUsageTrigger({
       spawn: this.spawn,
-      env: buildRateLimitEnv(this.codexHome)
+      env: this.buildCodexDockerEnv()
     });
     const latestActiveAccount = await this.accountStore.getActiveAccount();
     if (latestActiveAccount?.id === activeAccount.id) {
@@ -104,7 +107,10 @@ function attachAccountMethods(Orchestrator) {
   Orchestrator.prototype.fetchAccountRateLimitsForHome = async function fetchAccountRateLimitsForHome(
     codexHome
   ) {
-    return readAccountRateLimits({ spawn: this.spawn, codexHome });
+    return readAccountRateLimits({
+      spawn: this.spawn,
+      env: this.buildCodexDockerEnv({ codexHomePath: codexHome })
+    });
   };
 }
 

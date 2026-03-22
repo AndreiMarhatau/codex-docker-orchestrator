@@ -1,9 +1,10 @@
-const path = require('node:path');
-const os = require('node:os');
 const { runCommand } = require('../commands');
 const { spawn } = require('node:child_process');
 const {
+  DEFAULT_DATA_ROOT,
   DEFAULT_ORCH_HOME,
+  DEFAULT_CODEX_HOME,
+  DEFAULT_GIT_CONFIG_GLOBAL,
   DEFAULT_IMAGE_NAME,
   DEFAULT_TASK_DOCKER_SIDECAR_IMAGE,
   DEFAULT_TASK_DOCKER_SIDECAR_NAME_PREFIX,
@@ -31,12 +32,20 @@ function resolveOptional(options, key, envKey, defaultValue) {
 
 function resolveConfig(options) {
   return {
-    orchHome: resolveOptional(options, 'orchHome', 'ORCH_HOME', DEFAULT_ORCH_HOME),
-    codexHome: resolveOptional(
+    dataRoot: resolveOptional(options, 'dataRoot', 'ORCH_DATA_DIR', DEFAULT_DATA_ROOT),
+    dataVolumeName: resolveOptional(
       options,
-      'codexHome',
-      'CODEX_HOME',
-      path.join(os.homedir(), '.codex')
+      'dataVolumeName',
+      'ORCH_DATA_VOLUME',
+      'codex-orchestrator-data'
+    ),
+    orchHome: resolveOptional(options, 'orchHome', 'ORCH_HOME', DEFAULT_ORCH_HOME),
+    codexHome: resolveOptional(options, 'codexHome', 'CODEX_HOME', DEFAULT_CODEX_HOME),
+    gitConfigGlobalPath: resolveOptional(
+      options,
+      'gitConfigGlobalPath',
+      'GIT_CONFIG_GLOBAL',
+      DEFAULT_GIT_CONFIG_GLOBAL
     ),
     exec: options.exec || runCommand,
     spawn: options.spawn || spawn,

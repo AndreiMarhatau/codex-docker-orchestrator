@@ -16,8 +16,13 @@ function noActiveAccountError(message) {
   return createError('NO_ACTIVE_ACCOUNT', message);
 }
 
+function setupRequiredError(message) {
+  return createError('SETUP_REQUIRED', message);
+}
+
 module.exports = {
   invalidAttachmentError,
   invalidContextError,
-  noActiveAccountError
+  noActiveAccountError,
+  setupRequiredError
 };

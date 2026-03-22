@@ -10,10 +10,17 @@ function createAccountsRouter(orchestrator) {
   }));
 
   router.get('/accounts/rate-limits', asyncHandler(async (req, res) => {
+    const setup = await orchestrator.getSetupStatus();
+    if (!setup.ready) {
+      return res.status(409).send('Setup incomplete. Missing: git token, codex account.');
+    }
     try {
       const limits = await orchestrator.getAccountRateLimits();
       res.json(limits);
     } catch (error) {
+      if (error?.code === 'SETUP_REQUIRED') {
+        return res.status(409).send(error.message);
+      }
       if (error?.code === 'NO_ACTIVE_ACCOUNT') {
         return res.status(400).send(error.message);
       }
@@ -22,10 +29,17 @@ function createAccountsRouter(orchestrator) {
   }));
 
   router.post('/accounts/trigger-usage', asyncHandler(async (req, res) => {
+    const setup = await orchestrator.getSetupStatus();
+    if (!setup.ready) {
+      return res.status(409).send('Setup incomplete. Missing: git token, codex account.');
+    }
     try {
       const info = await orchestrator.triggerAccountUsage();
       res.json(info);
     } catch (error) {
+      if (error?.code === 'SETUP_REQUIRED') {
+        return res.status(409).send(error.message);
+      }
       if (error?.code === 'NO_ACTIVE_ACCOUNT') {
         return res.status(400).send(error.message);
       }

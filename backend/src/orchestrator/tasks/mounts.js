@@ -67,9 +67,61 @@ function resolveMountMaps(maps) {
   return unique;
 }
 
+async function addContextRepoMounts(orch, volumeMounts, contextRepos = []) {
+  for (const repo of contextRepos) {
+    if (!repo?.worktreePath || !repo?.aliasName) {
+      continue;
+    }
+    volumeMounts.push(
+      orch.volumeMountFor(repo.worktreePath, `/readonly/${repo.aliasName}`, true)
+    );
+    if (!repo.envId) {
+      continue;
+    }
+    const contextEnv = await orch.readEnv(repo.envId);
+    volumeMounts.push(orch.volumeMountFor(contextEnv.mirrorPath, contextEnv.mirrorPath, true));
+  }
+}
+
+function buildTaskRunVolumeMounts(orch, {
+  worktreePath,
+  workspaceDir,
+  mirrorPath,
+  attachmentsDir,
+  hasAttachments,
+  contextRepos,
+  dockerSocketDir,
+  useHostDockerSocket
+}) {
+  const volumeMounts = [
+    orch.volumeMountFor(worktreePath, workspaceDir),
+    orch.volumeMountFor(mirrorPath, mirrorPath)
+  ];
+  if (hasAttachments) {
+    volumeMounts.push(orch.volumeMountFor(attachmentsDir, '/attachments', true));
+  }
+  if (useHostDockerSocket) {
+    volumeMounts.push(orch.volumeMountFor(dockerSocketDir, '/var/run/orch-task-docker'));
+  }
+  return addContextRepoMounts(orch, volumeMounts, contextRepos).then(() => volumeMounts);
+}
+
+function buildTaskRunEnvOverrides(envVars, useHostDockerSocket) {
+  if (!useHostDockerSocket) {
+    return envVars;
+  }
+  return {
+    ...envVars,
+    DOCKER_HOST: 'unix:///var/run/orch-task-docker/docker.sock'
+  };
+}
+
 module.exports = {
   addMountPaths,
   addMountMaps,
+  addContextRepoMounts,
+  buildTaskRunEnvOverrides,
+  buildTaskRunVolumeMounts,
   resolveMountPaths,
   resolveMountMaps
 };

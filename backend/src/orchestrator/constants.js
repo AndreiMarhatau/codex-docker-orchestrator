@@ -1,7 +1,14 @@
 const path = require('node:path');
 const os = require('node:os');
 
-const DEFAULT_ORCH_HOME = path.join(os.homedir(), '.codex-orchestrator');
+const DEFAULT_DATA_ROOT = process.env.ORCH_DATA_DIR || path.join(os.homedir(), '.codex-orchestrator-data');
+const DEFAULT_ORCH_HOME = path.join(DEFAULT_DATA_ROOT, '.codex-orchestrator');
+const DEFAULT_CODEX_HOME = path.join(DEFAULT_DATA_ROOT, '.codex');
+const DEFAULT_GIT_CONFIG_GLOBAL = path.join(DEFAULT_DATA_ROOT, 'git', '.gitconfig');
+const DEFAULT_GIT_CONFIG_CONTAINER_PATH = '/orchestrator-git/.gitconfig';
+const DEFAULT_GIT_CONFIG_CONTAINER_DIR = '/orchestrator-git';
+const DEFAULT_INNER_CODEX_HOME = '/root/.codex';
+const DEFAULT_INNER_ARTIFACTS_DIR = '/root/.artifacts';
 const DEFAULT_IMAGE_NAME = 'ghcr.io/andreimarhatau/codex-docker:latest';
 const DEFAULT_DEVELOPER_INSTRUCTIONS_FILE = path.join(
   __dirname,
@@ -35,7 +42,14 @@ const DEFAULT_TASK_DOCKER_READY_INTERVAL_MS = 500;
 const DEFAULT_TASK_DOCKER_COMMAND_TIMEOUT_MS = 600_000;
 
 module.exports = {
+  DEFAULT_DATA_ROOT,
   DEFAULT_ORCH_HOME,
+  DEFAULT_CODEX_HOME,
+  DEFAULT_GIT_CONFIG_GLOBAL,
+  DEFAULT_GIT_CONFIG_CONTAINER_PATH,
+  DEFAULT_GIT_CONFIG_CONTAINER_DIR,
+  DEFAULT_INNER_CODEX_HOME,
+  DEFAULT_INNER_ARTIFACTS_DIR,
   DEFAULT_IMAGE_NAME,
   DEFAULT_DEVELOPER_INSTRUCTIONS_FILE,
   DEFAULT_CONTEXT_REPOS_TEMPLATE_FILE,

@@ -60,12 +60,9 @@ describe('Orchestrator task attachments', () => {
     expect(task.attachments[0].path.startsWith(attachmentsDir)).toBe(true);
 
     const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
-    const mountRw = runCall.options?.env?.CODEX_MOUNT_PATHS || '';
-    const mountRo = runCall.options?.env?.CODEX_MOUNT_PATHS_RO || '';
-    const mountMapsRo = runCall.options?.env?.CODEX_MOUNT_MAPS_RO || '';
-    expect(mountRw.split(':')).toContain(path.join(orchHome, 'codex-home'));
-    expect(mountRo).toBe('');
-    expect(mountMapsRo.split(':')).toContain(`${attachmentsDir}=/attachments`);
+    const volumeMounts = (runCall.options?.env?.CODEX_VOLUME_MOUNTS || '').split(',');
+    expect(volumeMounts.some((entry) => entry.endsWith('=/root/.codex'))).toBe(true);
+    expect(volumeMounts.some((entry) => entry.endsWith('=/attachments:ro'))).toBe(true);
 
     const developerInstructions = extractDeveloperInstructions(runCall.args);
     expect(developerInstructions).toContain('User-uploaded files');

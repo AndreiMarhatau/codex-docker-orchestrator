@@ -58,6 +58,10 @@ describe('Orchestrator auto-rotate', () => {
       spawn,
       now: () => '2025-12-19T00:00:00.000Z'
     });
+    await orchestrator.addAccount({
+      label: 'Primary',
+      authJson: JSON.stringify({ token: 'primary' })
+    });
 
     await orchestrator.addAccount({
       label: 'Secondary',
@@ -101,6 +105,10 @@ describe('Orchestrator auto-rotate', () => {
       exec,
       spawn,
       now: () => '2025-12-19T00:00:00.000Z'
+    });
+    await orchestrator.addAccount({
+      label: 'Primary',
+      authJson: JSON.stringify({ token: 'primary' })
     });
 
     await orchestrator.addAccount({

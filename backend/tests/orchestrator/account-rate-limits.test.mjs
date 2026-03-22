@@ -9,6 +9,28 @@ import { createMockExec, createMockSpawn, createTempDir } from '../helpers.mjs';
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
 
+function resolveMountedPath(options, targetPath) {
+  const mounts = String(options?.env?.CODEX_VOLUME_MOUNTS || '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  const match = mounts.find((entry) => entry.includes(`=${targetPath}`) || entry.includes(`=${targetPath}:ro`));
+  if (!match) {
+    return null;
+  }
+  const [source] = match.split('=');
+  const slashIndex = source.indexOf('/');
+  if (slashIndex === -1) {
+    return null;
+  }
+  const subpath = source.slice(slashIndex + 1);
+  const root = options?.env?.ORCH_DATA_DIR;
+  if (!root) {
+    return null;
+  }
+  return path.join(root, subpath);
+}
+
 function createRateLimitSpawn({ updatedAuth, responseDelayMs = 0 } = {}) {
   return (command, args, options = {}) => {
     const child = new EventEmitter();
@@ -39,8 +61,9 @@ function createRateLimitSpawn({ updatedAuth, responseDelayMs = 0 } = {}) {
             child.stdout.write(`${JSON.stringify({ id: message.id, result: { userAgent: 'codex-mock' } })}\n`);
           }
           if (message.method === 'account/rateLimits/read') {
+            const codexHome = resolveMountedPath(options, '/root/.codex');
             const persistAuth = updatedAuth
-              ? fs.writeFile(path.join(options.env.CODEX_HOME, 'auth.json'), JSON.stringify(updatedAuth, null, 2))
+              ? fs.writeFile(path.join(codexHome, 'auth.json'), JSON.stringify(updatedAuth, null, 2))
               : Promise.resolve();
             persistAuth.then(() => {
               child.stdout.write(
@@ -138,6 +161,6 @@ describe('Orchestrator account rate-limit reads', () => {
     );
     expect(triggerCall).toBeTruthy();
     expect(triggerCall.options.cwd).toContain('codex-usage-trigger-');
-    expect(triggerCall.options.cwd).not.toBe(triggerCall.options.env.CODEX_HOME);
+    expect(triggerCall.options.cwd).not.toBe('/root/.codex');
   });
 });

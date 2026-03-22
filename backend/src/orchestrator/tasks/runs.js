@@ -142,10 +142,8 @@ function attachStartRunMethod(Orchestrator) {
     prompt,
     cwd,
     args,
-    mountPaths = [],
-    mountPathsRo = [],
-    mountMaps = [],
-    mountMapsRo = [],
+    workspaceDir,
+    volumeMounts = [],
     envOverrides,
     stopTaskDockerSidecarOnExit = false
   }) {
@@ -156,12 +154,10 @@ function attachStartRunMethod(Orchestrator) {
     const stderrStream = fs.createWriteStream(stderrPath, { flags: 'a' });
     const artifactsDir = this.runArtifactsDir(taskId, runLabel);
     const env = buildRunEnv({
-      codexHome: this.codexHome,
+      orchestrator: this,
+      workspaceDir,
       artifactsDir,
-      mountPaths,
-      mountPathsRo,
-      mountMaps,
-      mountMapsRo,
+      volumeMounts,
       envOverrides
     });
     const useProcessGroup = process.platform !== 'win32';

@@ -1,8 +1,9 @@
 const { ensureDir, readJson, writeJson } = require('../../storage');
 const { buildCodexArgs } = require('../context');
-const { nextRunLabel, normalizeOptionalString } = require('../utils');
+const { nextRunLabel, normalizeOptionalString, repoNameFromUrl } = require('../utils');
 const { buildRunEntry } = require('./run-entry');
 const { cleanupContextRepos } = require('./cleanup');
+const { buildTaskRunEnvOverrides, buildTaskRunVolumeMounts } = require('./mounts');
 
 function signalRunChild(run, signal) {
   if (!run?.child) {
@@ -159,26 +160,27 @@ function attachTaskResumeMethods(Orchestrator) {
       developerInstructions,
       resumeThreadId: meta.threadId
     });
-    const attachmentsDir = this.taskAttachmentsDir(taskId);
-    const hasAttachments = attachments.length > 0;
-    const readonlyRepoMountMaps = (exposedPaths.contextRepos || [])
-      .filter((repo) => repo?.worktreePath && repo?.aliasName)
-      .map((repo) => ({ source: repo.worktreePath, target: `/readonly/${repo.aliasName}` }));
-    const readonlyAttachmentsMountMaps = hasAttachments
-      ? [{ source: attachmentsDir, target: exposedPaths.readonlyAttachmentsPath || '/attachments' }]
-      : [];
+    const workspaceDir = `/workspace/${repoNameFromUrl(meta.repoUrl)}`;
+    const volumeMounts = await buildTaskRunVolumeMounts(this, {
+      worktreePath: meta.worktreePath,
+      workspaceDir,
+      mirrorPath: env.mirrorPath,
+      attachmentsDir: this.taskAttachmentsDir(taskId),
+      hasAttachments: attachments.length > 0,
+      contextRepos: exposedPaths.contextRepos || [],
+      dockerSocketDir: this.taskDockerSocketDir(taskId),
+      useHostDockerSocket: shouldUseHostDockerSocket
+    });
     this.startCodexRunDeferred({
       taskId,
       runLabel,
       prompt,
       cwd: meta.worktreePath,
       args,
-      mountPaths: [env.mirrorPath],
-      mountPathsRo: [],
-      mountMaps: shouldUseHostDockerSocket ? [this.taskDockerSocketMount(taskId)] : [],
-      mountMapsRo: [...readonlyRepoMountMaps, ...readonlyAttachmentsMountMaps],
+      workspaceDir,
+      volumeMounts,
       useHostDockerSocket: shouldUseHostDockerSocket,
-      envOverrides: env.envVars,
+      envOverrides: buildTaskRunEnvOverrides(env.envVars, shouldUseHostDockerSocket),
       stopTaskDockerSidecarOnExit: shouldUseHostDockerSocket
     });
     this.notifyTasksChanged(taskId);

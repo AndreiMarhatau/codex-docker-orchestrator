@@ -80,6 +80,29 @@ function createSettingsRouter(orchestrator) {
     res.status(204).send();
   }));
 
+  router.get('/settings/setup', asyncHandler(async (_req, res) => {
+    const setup = await orchestrator.getSetupStatus();
+    res.json(setup);
+  }));
+
+  router.get('/settings/git', asyncHandler(async (_req, res) => {
+    const setup = await orchestrator.getSetupStatus();
+    res.json({
+      tokenConfigured: setup.gitTokenConfigured,
+      gitUserName: setup.gitUserName,
+      gitUserEmail: setup.gitUserEmail
+    });
+  }));
+
+  router.post('/settings/git', asyncHandler(async (req, res) => {
+    const { token } = req.body || {};
+    if (typeof token !== 'string') {
+      return res.status(400).send('token is required');
+    }
+    const setup = await orchestrator.setGitToken(token);
+    res.json(setup);
+  }));
+
   return router;
 }
 

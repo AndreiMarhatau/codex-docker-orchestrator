@@ -116,11 +116,12 @@ function attachTaskDockerSidecarMethods(Orchestrator) {
     if (!isRunning && (await pathExists(socketPath))) { await removePath(socketPath); }
 
     if (inspectResult.code !== 0) {
+      const socketMount = `type=volume,src=${this.dataVolumeName},dst=${TASK_DOCKER_SIDECAR_MOUNT_SOCKET_DIR},volume-subpath=${this.volumeSubpathFor(socketDir)}`;
       await execTaskDockerOrThrow(
         this,
         [
           'run', '-d', '--name', sidecarName, '--privileged', '--restart', 'no', '-e', 'DOCKER_TLS_CERTDIR=',
-          '-v', `${volumeName}:/var/lib/docker`, '-v', `${socketDir}:${TASK_DOCKER_SIDECAR_MOUNT_SOCKET_DIR}`,
+          '-v', `${volumeName}:/var/lib/docker`, '--mount', socketMount,
           this.taskDockerSidecarImage, 'dockerd', '--host', `unix://${TASK_DOCKER_SIDECAR_MOUNT_SOCKET_DIR}/${TASK_DOCKER_SIDECAR_SOCKET_FILE}`
         ],
         execOptions

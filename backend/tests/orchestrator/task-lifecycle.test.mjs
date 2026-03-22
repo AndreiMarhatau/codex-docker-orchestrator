@@ -84,9 +84,8 @@ describe('Orchestrator task lifecycle', () => {
 
     const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
     expect(runCall).toBeTruthy();
-    const mountRw = runCall.options?.env?.CODEX_MOUNT_PATHS || '';
-    expect(mountRw.split(':')).toContain(orchestrator.mirrorDir(env.envId));
-    expect(runCall.options?.env?.CODEX_MOUNT_PATHS_RO).toBeUndefined();
+    const volumeMounts = (runCall.options?.env?.CODEX_VOLUME_MOUNTS || '').split(',');
+    expect(volumeMounts.some((entry) => entry.endsWith(`=${orchestrator.mirrorDir(env.envId)}`))).toBe(true);
   });
 
   it('syncs branch name from worktree after run finishes', async () => {

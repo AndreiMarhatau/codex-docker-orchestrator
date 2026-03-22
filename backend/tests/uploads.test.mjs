@@ -3,7 +3,7 @@ import request from 'supertest';
 import { createRequire } from 'node:module';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { createMockExec, createMockSpawn, createTempDir } from './helpers.mjs';
+import { createMockExec, createMockSpawn, createTempDir, prepareOrchestratorSetup } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { createApp } = require('../src/app');
@@ -12,10 +12,11 @@ const { MAX_TASK_FILE_SIZE } = require('../src/app/uploads');
 
 async function createTestApp() {
   const orchHome = await createTempDir();
-  const codexHome = await createTempDir();
+  const codexHome = `${orchHome}/codex-home`;
   const exec = createMockExec({ branches: ['main'] });
   const spawn = createMockSpawn();
   const orchestrator = new Orchestrator({ orchHome, codexHome, exec, spawn });
+  await prepareOrchestratorSetup(orchestrator);
   return createApp({ orchestrator });
 }
 

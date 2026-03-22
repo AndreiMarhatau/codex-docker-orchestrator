@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-host_home="${HOST_HOME:-$HOME}"
 orch_image="${ORCH_IMAGE:-ghcr.io/andreimarhatau/codex-docker-orchestrator:latest}"
 orch_image_digest="${ORCH_IMAGE_DIGEST:-}"
+orch_data_volume="${ORCH_DATA_VOLUME:-codex-orchestrator-data}"
 
 docker_sock="${DOCKER_SOCK:-/var/run/docker.sock}"
 if [[ ! -S "${docker_sock}" && -S "${HOME}/.docker/run/docker.sock" ]]; then
@@ -14,24 +14,6 @@ if [[ ! -S "${docker_sock}" ]]; then
   echo "Docker socket not found at ${docker_sock}" >&2
   echo "Set DOCKER_SOCK to your Docker Desktop socket path." >&2
   exit 1
-fi
-
-uid_value="$(id -u)"
-gid_value="$(id -g)"
-docker_gid="${DOCKER_GID:-}"
-if [[ -z "${docker_gid}" ]]; then
-  docker_gid="$(stat -c %g "${docker_sock}" 2>/dev/null || stat -f %g "${docker_sock}")"
-fi
-
-if [[ "$(uname -s)" == "Darwin" && -z "${ORCH_FORCE_ROOT:-}" ]]; then
-  uid_value="0"
-  gid_value="0"
-  docker_gid="0"
-fi
-
-gh_token="${GH_TOKEN:-}"
-if [[ -z "${gh_token}" ]] && command -v gh >/dev/null 2>&1; then
-  gh_token="$(gh auth token -h github.com 2>/dev/null || true)"
 fi
 
 if [[ -n "${orch_image_digest}" ]]; then
@@ -47,16 +29,7 @@ if [[ -n "${orch_image_digest}" ]]; then
 fi
 
 exec env \
-  HOST_HOME="${host_home}" \
   ORCH_IMAGE="${orch_image}" \
-  UID="${uid_value}" \
-  GID="${gid_value}" \
+  ORCH_DATA_VOLUME="${orch_data_volume}" \
   DOCKER_SOCK="${docker_sock}" \
-  DOCKER_GID="${docker_gid}" \
-  GIT_CONFIG_COUNT="2" \
-  GIT_CONFIG_KEY_0="credential.helper" \
-  GIT_CONFIG_VALUE_0="" \
-  GIT_CONFIG_KEY_1="credential.helper" \
-  GIT_CONFIG_VALUE_1="!/usr/bin/gh auth git-credential" \
-  GH_TOKEN="${gh_token}" \
   docker compose up "$@"

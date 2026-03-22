@@ -10,6 +10,7 @@ const { createUploadsRouter } = require('./app/routes/uploads');
 const { createTasksRouter } = require('./app/routes/tasks');
 const { createSettingsRouter } = require('./app/routes/settings');
 const { createEventsRouter } = require('./app/routes/events');
+const { createSetupMiddleware } = require('./app/middleware/setup');
 
 function createApp({ orchestrator = new Orchestrator() } = {}) {
   const app = express();
@@ -30,13 +31,20 @@ function createApp({ orchestrator = new Orchestrator() } = {}) {
   app.use('/api', createHealthRouter());
   app.use('/api', createEventsRouter(orchestrator));
   app.use('/api', createSettingsRouter(orchestrator));
-  app.use('/api', createEnvsRouter(orchestrator));
   app.use('/api', createAccountsRouter(orchestrator));
+  app.use('/api/envs', createSetupMiddleware(orchestrator));
+  app.use('/api/tasks', createSetupMiddleware(orchestrator));
+  app.use('/api/uploads', createSetupMiddleware(orchestrator));
+  app.use('/api', createEnvsRouter(orchestrator));
   app.use('/api', createUploadsRouter(orchestrator));
   app.use('/api', createTasksRouter(orchestrator));
 
   app.use((err, req, res, _next) => {
     const message = err && err.message ? err.message : 'Internal error';
+    if (err?.code === 'SETUP_REQUIRED') {
+      res.status(409).send(message);
+      return;
+    }
     res.status(500).send(message);
   });
 

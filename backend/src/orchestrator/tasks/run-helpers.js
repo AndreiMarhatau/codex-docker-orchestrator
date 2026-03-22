@@ -1,19 +1,12 @@
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
 const { readJson, writeJson } = require('../../storage');
 const { listArtifacts } = require('../artifacts');
 const { parseThreadId, safeJsonParse, isUsageLimitError } = require('../logs');
-const { addMountPaths, addMountMaps, resolveMountPaths, resolveMountMaps } = require('./mounts');
-function ensureCodexHome(env, codexHome) {
-  env.CODEX_HOME = codexHome || env.CODEX_HOME || path.join(env.HOME || os.homedir(), '.codex');
-  try {
-    fs.mkdirSync(env.CODEX_HOME, { recursive: true });
-  } catch (error) {
-    // Best-effort: codex can still run if the directory is created elsewhere.
-  }
-  mergePassthroughEnv(env, ['CODEX_HOME']);
-}
+const {
+  DEFAULT_GIT_CONFIG_CONTAINER_PATH,
+  DEFAULT_INNER_ARTIFACTS_DIR,
+  DEFAULT_INNER_CODEX_HOME
+} = require('../constants');
+
 function mergePassthroughEnv(env, keys) {
   const existing = env.CODEX_PASSTHROUGH_ENV;
   const merged = new Set(
@@ -44,27 +37,29 @@ function applyEnvOverrides(env, envOverrides) {
   mergePassthroughEnv(env, keys);
 }
 function buildRunEnv({
-  codexHome,
+  orchestrator,
+  workspaceDir,
   artifactsDir,
-  mountPaths = [],
-  mountPathsRo = [],
-  mountMaps = [],
-  mountMapsRo = [],
+  volumeMounts = [],
   envOverrides
 }) {
-  const env = { ...process.env };
-  ensureCodexHome(env, codexHome);
-  env.CODEX_ARTIFACTS_DIR = artifactsDir;
-  const rwMounts = resolveMountPaths([codexHome, artifactsDir, ...mountPaths]);
-  addMountPaths(env, 'CODEX_MOUNT_PATHS', rwMounts);
-  const roMounts = resolveMountPaths(mountPathsRo).filter((item) => !rwMounts.includes(item));
-  addMountPaths(env, 'CODEX_MOUNT_PATHS_RO', roMounts);
-  const rwMountMaps = resolveMountMaps(mountMaps);
-  addMountMaps(env, 'CODEX_MOUNT_MAPS', rwMountMaps);
-  const roMountMaps = resolveMountMaps(mountMapsRo).filter((item) =>
-    !rwMountMaps.some((rwItem) => rwItem.source === item.source && rwItem.target === item.target)
-  );
-  addMountMaps(env, 'CODEX_MOUNT_MAPS_RO', roMountMaps);
+  const env = orchestrator.withRuntimeEnv();
+  delete env.CODEX_HOME;
+  delete env.CODEX_MOUNT_PATHS;
+  delete env.CODEX_MOUNT_PATHS_RO;
+  delete env.CODEX_MOUNT_MAPS;
+  delete env.CODEX_MOUNT_MAPS_RO;
+  delete env.CODEX_ARTIFACTS_DIR;
+  const combinedVolumeMounts = [
+    orchestrator.volumeMountFor(orchestrator.codexHome, DEFAULT_INNER_CODEX_HOME),
+    orchestrator.volumeMountFor(artifactsDir, DEFAULT_INNER_ARTIFACTS_DIR),
+    orchestrator.gitConfigVolumeMount(),
+    ...volumeMounts
+  ];
+  env.CODEX_VOLUME_MOUNTS = combinedVolumeMounts.join(',');
+  env.CODEX_WORKSPACE_DIR = workspaceDir;
+  env.GIT_CONFIG_GLOBAL = DEFAULT_GIT_CONFIG_CONTAINER_PATH;
+  mergePassthroughEnv(env, ['GIT_CONFIG_GLOBAL', 'GH_TOKEN']);
   applyEnvOverrides(env, envOverrides);
   return env;
 }

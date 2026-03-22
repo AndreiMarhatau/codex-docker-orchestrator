@@ -23,8 +23,7 @@ describe('run helpers env', () => {
       mountPaths: [sharedPath, '/tmp/missing'],
       mountPathsRo: [sharedPath],
       mountMaps: [{ source: sharedPath, target: '/workspace/shared' }],
-      mountMapsRo: [{ source: sharedPath, target: '/readonly/shared' }],
-      agentsAppendFile: null
+      mountMapsRo: [{ source: sharedPath, target: '/readonly/shared' }]
     });
 
     expect(env.CODEX_MOUNT_PATHS).toContain(codexHome);
@@ -52,8 +51,7 @@ describe('run helpers env', () => {
       mountPaths: [],
       mountPathsRo: [],
       mountMaps: [],
-      mountMapsRo: [],
-      agentsAppendFile: null
+      mountMapsRo: []
     });
 
     expect(env.CODEX_MOUNT_PATHS).toContain(codexHome);
@@ -80,14 +78,13 @@ describe('run helpers env', () => {
       artifactsDir,
       mountPaths: [],
       mountPathsRo: [],
-      agentsAppendFile: null,
       envOverrides: { SAMPLE_FLAG: 'alpha=bravo', PATH: '/custom/bin' }
     });
 
     expect(env.SAMPLE_FLAG).toBe('alpha=bravo');
     expect(env.PATH).toBe('/custom/bin');
     expect(env.CODEX_PASSTHROUGH_ENV.split(',')).toEqual(
-      expect.arrayContaining(['EXISTING_VAR', 'SAMPLE_FLAG', 'PATH'])
+      expect.arrayContaining(['EXISTING_VAR', 'CODEX_HOME', 'SAMPLE_FLAG', 'PATH'])
     );
     delete process.env.CODEX_PASSTHROUGH_ENV;
   });

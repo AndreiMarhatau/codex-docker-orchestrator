@@ -5,26 +5,28 @@ const { readJson, writeJson } = require('../../storage');
 const { listArtifacts } = require('../artifacts');
 const { parseThreadId, safeJsonParse, isUsageLimitError } = require('../logs');
 const { addMountPaths, addMountMaps, resolveMountPaths, resolveMountMaps } = require('./mounts');
-function ensureCodexHome(env, codexHome, homeDirOverride) {
-  const homeDir = homeDirOverride || env.HOME || os.homedir();
-  env.HOME = homeDir;
-  env.CODEX_HOME = codexHome || env.CODEX_HOME || path.join(homeDir, '.codex');
+function ensureCodexHome(env, codexHome) {
+  env.CODEX_HOME = codexHome || env.CODEX_HOME || path.join(env.HOME || os.homedir(), '.codex');
   try {
     fs.mkdirSync(env.CODEX_HOME, { recursive: true });
   } catch (error) {
     // Best-effort: codex can still run if the directory is created elsewhere.
   }
+  mergePassthroughEnv(env, ['CODEX_HOME']);
 }
 function mergePassthroughEnv(env, keys) {
   const existing = env.CODEX_PASSTHROUGH_ENV;
-  if (!existing) {
-    return;
-  }
-  const merged = new Set(existing.split(',').map((entry) => entry.trim()).filter(Boolean));
+  const merged = new Set(
+    (existing || '').split(',').map((entry) => entry.trim()).filter(Boolean)
+  );
   for (const key of keys) {
     if (key) {
       merged.add(key);
     }
+  }
+  if (merged.size === 0) {
+    delete env.CODEX_PASSTHROUGH_ENV;
+    return;
   }
   env.CODEX_PASSTHROUGH_ENV = Array.from(merged).join(',');
 }
@@ -48,15 +50,10 @@ function buildRunEnv({
   mountPathsRo = [],
   mountMaps = [],
   mountMapsRo = [],
-  agentsAppendFile,
-  envOverrides,
-  homeDir
+  envOverrides
 }) {
   const env = { ...process.env };
-  ensureCodexHome(env, codexHome, homeDir);
-  if (agentsAppendFile) {
-    env.CODEX_AGENTS_APPEND_FILE = agentsAppendFile;
-  }
+  ensureCodexHome(env, codexHome);
   env.CODEX_ARTIFACTS_DIR = artifactsDir;
   const rwMounts = resolveMountPaths([codexHome, artifactsDir, ...mountPaths]);
   addMountPaths(env, 'CODEX_MOUNT_PATHS', rwMounts);

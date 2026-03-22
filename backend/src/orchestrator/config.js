@@ -1,5 +1,3 @@
-const path = require('node:path');
-const os = require('node:os');
 const { runCommand } = require('../commands');
 const { spawn } = require('node:child_process');
 const {

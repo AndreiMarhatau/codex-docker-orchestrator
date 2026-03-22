@@ -3,6 +3,7 @@ const { ensureDir, writeJson, removePath } = require('../../storage');
 const { resolveRefInRepo } = require('../git');
 const { buildCodexArgs } = require('../context');
 const { nextRunLabel, normalizeOptionalString, repoNameFromUrl } = require('../utils');
+const { buildTaskRunEnvOverrides, buildTaskRunVolumeMounts } = require('./mounts');
 const { buildRunEntry } = require('./run-entry');
 async function setupWorktree(orch, { env, ref, taskId }) {
   const targetRef = ref || env.defaultBranch;
@@ -153,36 +154,17 @@ function attachTaskCreateMethods(Orchestrator) {
         reasoningEffort: normalizedReasoningEffort,
         developerInstructions
       });
-      const hasAttachments = attachments.length > 0;
       const workspaceDir = `/workspace/${repoNameFromUrl(env.repoUrl)}`;
-      const volumeMounts = [
-        this.volumeMountFor(worktreePath, workspaceDir),
-        this.volumeMountFor(env.mirrorPath, env.mirrorPath)
-      ];
-      for (const repo of exposedPaths.contextRepos || []) {
-        if (!repo?.worktreePath || !repo?.aliasName) {
-          continue;
-        }
-        volumeMounts.push(this.volumeMountFor(repo.worktreePath, `/readonly/${repo.aliasName}`, true));
-        if (repo.envId) {
-          const contextEnv = await this.readEnv(repo.envId);
-          volumeMounts.push(this.volumeMountFor(contextEnv.mirrorPath, contextEnv.mirrorPath, true));
-        }
-      }
-      if (hasAttachments) {
-        volumeMounts.push(this.volumeMountFor(this.taskAttachmentsDir(taskId), '/attachments', true));
-      }
-      const envOverridesWithDocker = shouldUseHostDockerSocket
-        ? {
-            ...env.envVars,
-            DOCKER_HOST: 'unix:///var/run/orch-task-docker/docker.sock'
-          }
-        : env.envVars;
-      if (shouldUseHostDockerSocket) {
-        volumeMounts.push(
-          this.volumeMountFor(this.taskDockerSocketDir(taskId), '/var/run/orch-task-docker')
-        );
-      }
+      const volumeMounts = await buildTaskRunVolumeMounts(this, {
+        worktreePath,
+        workspaceDir,
+        mirrorPath: env.mirrorPath,
+        attachmentsDir: this.taskAttachmentsDir(taskId),
+        hasAttachments: attachments.length > 0,
+        contextRepos: exposedPaths.contextRepos || [],
+        dockerSocketDir: this.taskDockerSocketDir(taskId),
+        useHostDockerSocket: shouldUseHostDockerSocket
+      });
       this.startCodexRunDeferred({
         taskId,
         runLabel,
@@ -192,7 +174,7 @@ function attachTaskCreateMethods(Orchestrator) {
         workspaceDir,
         volumeMounts,
         useHostDockerSocket: shouldUseHostDockerSocket,
-        envOverrides: envOverridesWithDocker,
+        envOverrides: buildTaskRunEnvOverrides(env.envVars, shouldUseHostDockerSocket),
         stopTaskDockerSidecarOnExit: shouldUseHostDockerSocket
       });
       this.notifyTasksChanged(taskId);

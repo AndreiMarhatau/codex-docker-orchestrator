@@ -178,12 +178,6 @@ describe('Orchestrator task context resume', () => {
       contextEnvA.repoUrl,
       contextEnvA.envId
     );
-    const contextPathB = orchestrator.taskContextWorktree(
-      task.taskId,
-      contextEnvB.repoUrl,
-      contextEnvB.envId
-    );
-
     await orchestrator.resumeTask(task.taskId, 'Continue', {
       contextRepos: [{ envId: contextEnvB.envId, ref: 'main' }]
     });

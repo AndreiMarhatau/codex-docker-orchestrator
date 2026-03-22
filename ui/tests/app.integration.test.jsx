@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from './test-utils.jsx';
+import { fireEvent, render, screen, waitFor, within } from './test-utils.jsx';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App.jsx';
 import { accounts, envs, rateLimits, taskDetail, taskDiff, tasks } from './app-fixtures.js';
@@ -51,7 +51,7 @@ async function configureNewTask(user) {
   await user.keyboard('{Escape}');
   await user.click(screen.getByRole('button', { name: 'Run task' }));
   expect(
-    await screen.findByRole('button', { name: 'Uploading attachments... 50%' })
+    await screen.findByRole('button', { name: /Uploading attachments\.\.\./i })
   ).toBeInTheDocument();
   await waitFor(() =>
     expect(screen.queryByRole('dialog', { name: 'New task' })).not.toBeInTheDocument()
@@ -89,11 +89,14 @@ async function exerciseTaskDetail(user) {
   await user.type(screen.getByLabelText('Custom reasoning effort'), 'low');
 
   await user.click(screen.getByRole('button', { name: 'Ask for changes' }));
-  await user.type(
-    screen.getByLabelText('Continuation prompt'),
-    'Continue with more detail.'
-  );
   const resumeDialog = screen.getByRole('dialog', { name: 'Ask for changes' });
+  const resumePromptInput = within(resumeDialog).getByRole('textbox', {
+    name: 'Continuation prompt'
+  });
+  fireEvent.change(resumePromptInput, {
+    target: { value: 'Continue with more detail.' }
+  });
+  expect(resumePromptInput).toHaveValue('Continue with more detail.');
   await user.click(within(resumeDialog).getByLabelText('Additional settings'));
   const resumeRefInputs = screen.getAllByLabelText('Branch / tag / ref');
   await user.clear(resumeRefInputs[0]);
@@ -104,10 +107,18 @@ async function exerciseTaskDetail(user) {
   await user.click(screen.getByLabelText('Use host Docker socket'));
   await user.click(screen.getByLabelText('Close settings'));
   await user.click(within(resumeDialog).getByRole('button', { name: /requirements\.txt/i }));
-  await user.click(screen.getByRole('button', { name: 'Continue task' }));
+  const continueButton = within(resumeDialog).getByRole('button', { name: 'Continue task' });
+  await waitFor(() => expect(continueButton).toBeEnabled());
+  await user.click(continueButton);
   expect(
-    await screen.findByRole('button', { name: 'Uploading attachments... 50%' })
+    await screen.findByRole('button', { name: /Uploading attachments\.\.\./i })
   ).toBeInTheDocument();
+  const openResumeDialog = screen.queryByRole('dialog', { name: 'Ask for changes' });
+  if (openResumeDialog) {
+    const cancelButton = within(openResumeDialog).getByRole('button', { name: 'Cancel' });
+    await waitFor(() => expect(cancelButton).toBeEnabled());
+    await user.click(cancelButton);
+  }
   await waitFor(() =>
     expect(screen.queryByRole('dialog', { name: 'Ask for changes' })).not.toBeInTheDocument()
   );

@@ -3,7 +3,7 @@ import request from 'supertest';
 import { createRequire } from 'node:module';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { createMockExec, createMockSpawn, createTempDir } from './helpers.mjs';
+import { createMockExec, createMockSpawn, createTempDir, prepareOrchestratorSetup } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { createApp } = require('../src/app');
@@ -11,7 +11,7 @@ const { Orchestrator } = require('../src/orchestrator');
 
 async function createTestApp() {
   const orchHome = await createTempDir();
-  const codexHome = await createTempDir();
+  const codexHome = `${orchHome}/codex-home`;
   const exec = createMockExec({ branches: ['main'] });
   const spawn = createMockSpawn();
   const orchestrator = new Orchestrator({
@@ -21,6 +21,7 @@ async function createTestApp() {
     spawn,
     now: () => '2025-12-19T00:00:00.000Z'
   });
+  await prepareOrchestratorSetup(orchestrator);
   return { app: createApp({ orchestrator }), spawn };
 }
 
@@ -52,8 +53,8 @@ describe('API task context and attachments', () => {
     expect(taskRes.body.contextRepos[0].worktreePath).toBeTruthy();
 
     const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
-    expect(runCall.options.env.CODEX_MOUNT_MAPS_RO).toContain(
-      `${taskRes.body.contextRepos[0].worktreePath}=/readonly/context`
+    expect(runCall.options.env.CODEX_VOLUME_MOUNTS).toContain(
+      `/readonly/context:ro`
     );
   });
 

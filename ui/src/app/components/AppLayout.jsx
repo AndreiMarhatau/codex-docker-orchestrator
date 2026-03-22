@@ -11,9 +11,10 @@ import TasksTab from '../tabs/TasksTab.jsx';
 
 function AppLayout({ accountsState, authState, data, envState, tabState, tasksState }) {
   const { activeTab, setActiveTab } = tabState;
-  const { error } = data;
+  const { error, setupState } = data;
   const { handleBackToTasks, selectedTaskId } = tasksState.selection;
   const locked = !authState.isUnlocked;
+  const setupReady = Boolean(setupState?.ready);
 
   return (
     <Box className={`app-shell${locked ? ' app-shell-locked' : ''}`}>
@@ -42,7 +43,7 @@ function AppLayout({ accountsState, authState, data, envState, tabState, tasksSt
             icon={<FolderOpenOutlinedIcon />}
             iconPosition="start"
             label="Environments"
-            disabled={locked}
+            disabled={locked || !setupReady}
           />
           <Tab
             icon={<ListAltOutlinedIcon />}
@@ -53,7 +54,7 @@ function AppLayout({ accountsState, authState, data, envState, tabState, tasksSt
                 handleBackToTasks();
               }
             }}
-            disabled={locked}
+            disabled={locked || !setupReady}
           />
           <Tab
             icon={<AccountCircleOutlinedIcon />}
@@ -71,10 +72,18 @@ function AppLayout({ accountsState, authState, data, envState, tabState, tasksSt
       </Box>
 
       <Box className="app-main">
-        {activeTab === 0 && <EnvironmentsTab data={data} envState={envState} />}
-        {activeTab === 1 && <TasksTab data={data} tasksState={tasksState} />}
+        {activeTab === 0 && (setupReady ? (
+          <EnvironmentsTab data={data} envState={envState} />
+        ) : (
+          <Card><CardContent><Typography>Finish setup in Settings and add a Codex account to enable environments.</Typography></CardContent></Card>
+        ))}
+        {activeTab === 1 && (setupReady ? (
+          <TasksTab data={data} tasksState={tasksState} />
+        ) : (
+          <Card><CardContent><Typography>Finish setup in Settings and add a Codex account to enable tasks.</Typography></CardContent></Card>
+        ))}
         {activeTab === 2 && <AccountsTab accountsState={accountsState} data={data} />}
-        {activeTab === 3 && <SettingsTab authState={authState} />}
+        {activeTab === 3 && <SettingsTab authState={authState} refreshAll={data.refreshAll} setupState={setupState} />}
       </Box>
 
       {error && (

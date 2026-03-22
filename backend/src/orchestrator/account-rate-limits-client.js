@@ -1,6 +1,3 @@
-const fs = require('node:fs');
-const path = require('node:path');
-
 function createRateLimitPayloads() {
   const initRequestId = 1;
   const rateLimitRequestId = 2;
@@ -25,20 +22,6 @@ function sendJsonLine(child, payload, onError) {
   } catch (error) {
     onError(error);
   }
-}
-
-function buildRateLimitEnv(codexHome) {
-  const env = { ...process.env, CODEX_HOME: codexHome };
-  env.HOME = path.dirname(codexHome);
-  const existingMounts = env.CODEX_MOUNT_PATHS || '';
-  const mountParts = existingMounts.split(':').filter(Boolean);
-  if (fs.existsSync(codexHome) && !mountParts.includes(codexHome)) {
-    mountParts.push(codexHome);
-  }
-  if (mountParts.length > 0) {
-    env.CODEX_MOUNT_PATHS = mountParts.join(':');
-  }
-  return env;
 }
 
 function readRateLimits(child, payloads) {
@@ -127,15 +110,14 @@ function readRateLimits(child, payloads) {
   });
 }
 
-async function readAccountRateLimits({ spawn, codexHome }) {
+async function readAccountRateLimits({ spawn, env }) {
   const child = spawn('codex-docker', ['app-server'], {
-    env: buildRateLimitEnv(codexHome),
+    env,
     stdio: ['pipe', 'pipe', 'pipe']
   });
   return readRateLimits(child, createRateLimitPayloads());
 }
 
 module.exports = {
-  buildRateLimitEnv,
   readAccountRateLimits
 };

@@ -7,18 +7,16 @@ services:
     ports:
       - "8080:8080"
     environment:
-      HOME: "${HOST_HOME:-/root}"
-      ORCH_HOME: "${HOST_HOME:-/root}/.codex-orchestrator"
+      ORCH_DATA_DIR: "/var/lib/codex-orchestrator"
+      ORCH_DATA_VOLUME: "${ORCH_DATA_VOLUME:-codex-orchestrator-data}"
+      ORCH_HOME: "/var/lib/codex-orchestrator/.codex-orchestrator"
+      CODEX_HOME: "/var/lib/codex-orchestrator/.codex"
+      GIT_CONFIG_GLOBAL: "/var/lib/codex-orchestrator/git/.gitconfig"
       DOCKER_HOST: "unix:///var/run/docker.sock"
-      GH_TOKEN: "${GH_TOKEN}"
-      GIT_CONFIG_COUNT: "${GIT_CONFIG_COUNT:-2}"
-      GIT_CONFIG_KEY_0: "${GIT_CONFIG_KEY_0:-credential.helper}"
-      GIT_CONFIG_VALUE_0: "${GIT_CONFIG_VALUE_0:-}"
-      GIT_CONFIG_KEY_1: "${GIT_CONFIG_KEY_1:-credential.helper}"
-      GIT_CONFIG_VALUE_1: "${GIT_CONFIG_VALUE_1:-!/usr/bin/gh auth git-credential}"
     volumes:
       - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
-      - ${HOST_HOME:-/root}:${HOST_HOME:-/root}
-    user: "${UID:-0}:${GID:-0}"
-    group_add:
-      - "${DOCKER_GID:-0}"
+      - ${ORCH_DATA_VOLUME:-codex-orchestrator-data}:/var/lib/codex-orchestrator
+
+volumes:
+  codex-orchestrator-data:
+    name: "${ORCH_DATA_VOLUME:-codex-orchestrator-data}"

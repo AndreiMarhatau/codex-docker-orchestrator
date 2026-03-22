@@ -18,6 +18,20 @@ async function resolveResponse(responses, { url, method, options = {}, body = nu
     };
   }
 
+  if (!response && url === '/api/settings/setup') {
+    return {
+      ok: true,
+      status: 200,
+      body: {
+        ready: true,
+        gitTokenConfigured: true,
+        accountConfigured: true,
+        gitUserName: 'Codex Agent',
+        gitUserEmail: 'codex@openai.com'
+      }
+    };
+  }
+
   if (!response) {
     throw new Error(`Unhandled request: ${url}`);
   }

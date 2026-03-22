@@ -23,9 +23,32 @@ function createChild() {
   return child;
 }
 
+function resolveMountedPath(options, targetPath) {
+  const mounts = String(options?.env?.CODEX_VOLUME_MOUNTS || '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  const match = mounts.find((entry) => entry.includes(`=${targetPath}`) || entry.includes(`=${targetPath}:ro`));
+  if (!match) {
+    return null;
+  }
+  const [source] = match.split('=');
+  const slashIndex = source.indexOf('/');
+  if (slashIndex === -1) {
+    return null;
+  }
+  const subpath = source.slice(slashIndex + 1);
+  const root = options?.env?.ORCH_DATA_DIR;
+  if (!root) {
+    return null;
+  }
+  return path.join(root, subpath);
+}
+
 function getRateLimitsForOptions(options, rateLimitsByToken) {
   try {
-    const authPath = path.join(options.env.CODEX_HOME, 'auth.json');
+    const codexHome = resolveMountedPath(options, '/root/.codex');
+    const authPath = path.join(codexHome, 'auth.json');
     const auth = JSON.parse(fsSync.readFileSync(authPath, 'utf8'));
     return rateLimitsByToken[auth.token] || defaultRateLimits;
   } catch (error) {
@@ -58,9 +81,10 @@ function attachAppServerResponder(child, options, config) {
         }
         if (message?.method === 'account/rateLimits/read' && message.id !== undefined) {
           const rateLimits = getRateLimitsForOptions(options, rateLimitsByToken);
-          if ((refreshedAuthByToken || refreshedAuthRawByToken) && options?.env?.CODEX_HOME) {
+          const codexHome = resolveMountedPath(options, '/root/.codex');
+          if ((refreshedAuthByToken || refreshedAuthRawByToken) && codexHome) {
             try {
-              const authPath = path.join(options.env.CODEX_HOME, 'auth.json');
+              const authPath = path.join(codexHome, 'auth.json');
               const auth = JSON.parse(fsSync.readFileSync(authPath, 'utf8'));
               const updatedAuthRaw = refreshedAuthRawByToken?.[auth.token];
               if (typeof updatedAuthRaw === 'string') {

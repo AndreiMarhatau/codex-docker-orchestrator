@@ -160,6 +160,7 @@ describe('orchestrator push', () => {
 
     const originalToken = process.env.ORCH_GITHUB_TOKEN;
     const originalRepo = process.env.ORCH_GITHUB_REPO;
+    await orchestrator.setGitToken('token');
     process.env.ORCH_GITHUB_TOKEN = 'token';
     process.env.ORCH_GITHUB_REPO = 'org/repo';
     try {

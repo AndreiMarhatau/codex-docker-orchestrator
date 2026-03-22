@@ -29,6 +29,10 @@ async function setupOrchestrator({ rateLimitsByToken, accounts, refreshedAuthByT
     spawn,
     now: () => '2025-12-19T00:00:00.000Z'
   });
+  await orchestrator.addAccount({
+    label: 'Primary',
+    authJson: JSON.stringify({ token: 'primary' })
+  });
 
   for (const account of accounts) {
     await orchestrator.addAccount({

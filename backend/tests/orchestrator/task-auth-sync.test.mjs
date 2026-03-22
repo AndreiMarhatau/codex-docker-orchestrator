@@ -10,6 +10,28 @@ import { waitForTaskStatus } from '../helpers/wait.mjs';
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
 
+function resolveMountedPath(options, targetPath) {
+  const mounts = String(options?.env?.CODEX_VOLUME_MOUNTS || '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  const match = mounts.find((entry) => entry.includes(`=${targetPath}`) || entry.includes(`=${targetPath}:ro`));
+  if (!match) {
+    return null;
+  }
+  const [source] = match.split('=');
+  const slashIndex = source.indexOf('/');
+  if (slashIndex === -1) {
+    return null;
+  }
+  const subpath = source.slice(slashIndex + 1);
+  const root = options?.env?.ORCH_DATA_DIR;
+  if (!root) {
+    return null;
+  }
+  return path.join(root, subpath);
+}
+
 function createRunSpawn({ threadId, authFactory, closeDelayMs = 0, onClosed } = {}) {
   return (command, args, options = {}) => {
     const child = new EventEmitter();
@@ -25,9 +47,10 @@ function createRunSpawn({ threadId, authFactory, closeDelayMs = 0, onClosed } = 
     setImmediate(async () => {
       child.stdout.write(JSON.stringify({ type: 'thread.started', thread_id: threadId }) + '\n');
       setTimeout(async () => {
-        const authContent = authFactory(options.env.CODEX_HOME);
+        const codexHome = resolveMountedPath(options, '/root/.codex');
+        const authContent = authFactory(codexHome);
         await fs.writeFile(
-          path.join(options.env.CODEX_HOME, 'auth.json'),
+          path.join(codexHome, 'auth.json'),
           JSON.stringify(authContent, null, 2)
         );
         child.stdout.end();
@@ -43,20 +66,6 @@ function createRunSpawn({ threadId, authFactory, closeDelayMs = 0, onClosed } = 
 async function createOrchestratorWithPrimary(orchHome) {
   const codexHome = path.join(orchHome, 'codex-home');
   await fs.mkdir(codexHome, { recursive: true });
-  await fs.writeFile(
-    path.join(codexHome, 'auth.json'),
-    JSON.stringify(
-      {
-        tokens: {
-          access_token: 'old',
-          refresh_token: 'old-refresh'
-        }
-      },
-      null,
-      2
-    )
-  );
-
   return {
     codexHome,
     exec: createMockExec({ branches: ['main'] })
@@ -83,6 +92,15 @@ describe('Orchestrator task auth synchronization', () => {
       exec,
       spawn,
       now: () => '2025-12-19T00:00:00.000Z'
+    });
+    await orchestrator.addAccount({
+      label: 'Primary',
+      authJson: JSON.stringify({
+        tokens: {
+          access_token: 'old',
+          refresh_token: 'old-refresh'
+        }
+      })
     });
 
     const env = await orchestrator.createEnv({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' });
@@ -124,6 +142,15 @@ describe('Orchestrator run-account sync targeting', () => {
       exec,
       spawn,
       now: () => '2025-12-19T00:00:00.000Z'
+    });
+    await orchestrator.addAccount({
+      label: 'Primary',
+      authJson: JSON.stringify({
+        tokens: {
+          access_token: 'old',
+          refresh_token: 'old-refresh'
+        }
+      })
     });
 
     await orchestrator.addAccount({

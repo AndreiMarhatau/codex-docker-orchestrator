@@ -67,14 +67,10 @@ describe('Orchestrator task context', () => {
 
     const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
     expect(runCall).toBeTruthy();
-    const mountRw = runCall.options?.env?.CODEX_MOUNT_PATHS || '';
-    const mountRo = runCall.options?.env?.CODEX_MOUNT_PATHS_RO || '';
-    const mountMapsRo = runCall.options?.env?.CODEX_MOUNT_MAPS_RO || '';
-    const contextPath = orchestrator.taskContextWorktree(task.taskId, contextEnv.repoUrl, contextEnv.envId);
-    expect(mountRw.split(':')).toContain(path.join(orchHome, 'codex-home'));
-    expect(mountRo).toBe('');
-    expect(mountMapsRo.split(':')).toContain(`${contextPath}=/readonly/context`);
-    expect(runCall.options?.env?.CODEX_PASSTHROUGH_ENV || '').toContain('CODEX_HOME');
+    const volumeMounts = (runCall.options?.env?.CODEX_VOLUME_MOUNTS || '').split(',');
+    expect(volumeMounts.some((entry) => entry.endsWith('=/root/.codex'))).toBe(true);
+    expect(volumeMounts.some((entry) => entry.endsWith('=/readonly/context:ro'))).toBe(true);
+    expect(runCall.options?.env?.CODEX_PASSTHROUGH_ENV || '').not.toContain('CODEX_HOME');
     expect(runCall.options?.env?.CODEX_AGENTS_APPEND_FILE).toBeUndefined();
 
     const developerInstructions = extractDeveloperInstructions(runCall.args);
@@ -94,6 +90,7 @@ describe('Orchestrator task context', () => {
     const spawn = createMockSpawn();
     const orchestrator = new Orchestrator({
       orchHome,
+      codexHome: path.join(orchHome, 'codex-home'),
       exec,
       spawn
     });
@@ -108,9 +105,9 @@ describe('Orchestrator task context', () => {
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
 
     const createCall = spawn.calls.find((call) => call.command === 'codex-docker');
-    const createMountMaps = createCall.options?.env?.CODEX_MOUNT_MAPS || '';
-    const expectedSocketPath = orchestrator.taskDockerSocketPath(task.taskId);
-    expect(createMountMaps.split(':')).toContain(`${expectedSocketPath}=/var/run/docker.sock`);
+    const createVolumeMounts = (createCall.options?.env?.CODEX_VOLUME_MOUNTS || '').split(',');
+    expect(createVolumeMounts.some((entry) => entry.endsWith('=/var/run/orch-task-docker'))).toBe(true);
+    expect(createCall.options?.env?.DOCKER_HOST).toBe('unix:///var/run/orch-task-docker/docker.sock');
     const createDeveloperInstructions = extractDeveloperInstructions(createCall.args);
     expect(createDeveloperInstructions).toContain('Host Docker Socket');
     expect(createDeveloperInstructions).not.toContain('Environment variables');
@@ -133,7 +130,7 @@ describe('Orchestrator task context', () => {
 
     const resumeCalls = spawn.calls.filter((call) => call.command === 'codex-docker');
     const resumeCall = resumeCalls[1];
-    expect(resumeCall.options?.env?.CODEX_MOUNT_MAPS || '').toBe('');
+    expect(resumeCall.options?.env?.CODEX_VOLUME_MOUNTS || '').not.toContain('/var/run/orch-task-docker');
     const resumeDeveloperInstructions = extractDeveloperInstructions(resumeCall.args);
     expect(resumeDeveloperInstructions).not.toContain('Host Docker Socket');
 
@@ -193,9 +190,9 @@ describe('Orchestrator task context resume', () => {
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
 
     const resumeCall = spawn.calls.filter((call) => call.command === 'codex-docker')[1];
-    const mountMapsRo = resumeCall.options?.env?.CODEX_MOUNT_MAPS_RO || '';
-    expect(mountMapsRo.split(':')).toContain(`${contextPathB}=/readonly/context-b`);
-    expect(mountMapsRo).not.toContain(contextPathA);
+    const volumeMounts = resumeCall.options?.env?.CODEX_VOLUME_MOUNTS || '';
+    expect(volumeMounts).toContain('=/readonly/context-b:ro');
+    expect(volumeMounts).not.toContain(contextPathA);
     await expect(fs.stat(contextPathA)).rejects.toThrow();
 
     const metaPath = path.join(orchHome, 'tasks', task.taskId, 'meta.json');

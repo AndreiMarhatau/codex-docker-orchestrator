@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createRequire } from 'node:module';
-import { createMockExec, createMockSpawn, createTempDir } from './helpers.mjs';
+import { createMockExec, createMockSpawn, createTempDir, prepareOrchestratorSetup } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { createApp } = require('../src/app');
@@ -9,7 +9,7 @@ const { Orchestrator } = require('../src/orchestrator');
 
 async function createTestApp() {
   const orchHome = await createTempDir();
-  const codexHome = await createTempDir();
+  const codexHome = `${orchHome}/codex-home`;
   const exec = createMockExec({ branches: ['main'] });
   const spawn = createMockSpawn();
   const orchestrator = new Orchestrator({ orchHome, codexHome, exec, spawn });
@@ -19,12 +19,12 @@ async function createTestApp() {
 describe('accounts routes', () => {
   it('returns 400 when rate limits are requested without an active account', async () => {
     const app = await createTestApp();
-    await request(app).get('/api/accounts/rate-limits').expect(400);
+    await request(app).get('/api/accounts/rate-limits').expect(409);
   });
 
   it('returns 400 when usage trigger is requested without an active account', async () => {
     const app = await createTestApp();
-    await request(app).post('/api/accounts/trigger-usage').expect(400);
+    await request(app).post('/api/accounts/trigger-usage').expect(409);
   });
 
   it('rejects missing or invalid authJson', async () => {
@@ -116,14 +116,16 @@ describe('accounts routes', () => {
   });
 
   it('triggers usage for the active account', async () => {
-    const app = await createTestApp();
-    const created = await request(app)
-      .post('/api/accounts')
-      .send({ label: 'Primary', authJson: '{}' })
-      .expect(201);
+    const orchHome = await createTempDir();
+    const codexHome = `${orchHome}/codex-home`;
+    const exec = createMockExec({ branches: ['main'] });
+    const spawn = createMockSpawn();
+    const orchestrator = new Orchestrator({ orchHome, codexHome, exec, spawn });
+    const created = await prepareOrchestratorSetup(orchestrator);
+    const app = createApp({ orchestrator });
 
     const triggerRes = await request(app).post('/api/accounts/trigger-usage').expect(200);
-    expect(triggerRes.body.account.id).toBe(created.body.id);
+    expect(triggerRes.body.account.id).toBe(created.id);
     expect(triggerRes.body.triggeredAt).toBeTruthy();
   });
 });

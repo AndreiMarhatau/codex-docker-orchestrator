@@ -121,10 +121,54 @@ it(
   'renders the orchestrator sections and task details',
   async () => {
     let envsState = envs.map((env) => ({ ...env }));
+    let accountState = {
+      activeAccountId: accounts.activeAccountId,
+      accounts: accounts.accounts.map((account) => ({ ...account }))
+    };
+    const activateAccount = (accountId) => {
+      accountState = {
+        activeAccountId: accountId,
+        accounts: accountState.accounts.map((account, index) => ({
+          ...account,
+          isActive: account.id === accountId,
+          position: account.id === accountId ? 1 : index + 1
+        }))
+      };
+      return accountState;
+    };
+    const removeAccount = (accountId) => {
+      const remaining = accountState.accounts.filter((account) => account.id !== accountId);
+      accountState = {
+        activeAccountId: remaining[0]?.id || null,
+        accounts: remaining.map((account, index) => ({
+          ...account,
+          isActive: index === 0,
+          position: index + 1
+        }))
+      };
+      return accountState;
+    };
+    const renameAccount = (accountId, label) => {
+      accountState = {
+        ...accountState,
+        accounts: accountState.accounts.map((account) => ({
+          ...account,
+          label: account.id === accountId ? label : account.label
+        }))
+      };
+      return accountState;
+    };
     mockApi({
+      '/api/settings/setup': {
+        ready: true,
+        gitTokenConfigured: true,
+        accountConfigured: true,
+        gitUserName: 'Codex Agent',
+        gitUserEmail: 'codex@openai.com'
+      },
       '/api/envs': () => envsState,
       '/api/tasks': tasks,
-      '/api/accounts': accounts,
+      '/api/accounts': () => accountState,
       'POST /api/uploads/files': {
         delay: 300,
         uploads: [
@@ -160,27 +204,58 @@ it(
         );
         return envsState.find((env) => env.envId === 'env-1');
       },
-      'POST /api/accounts': accounts,
-      'POST /api/accounts/rotate': accounts,
-      'POST /api/accounts/acct-2/activate': accounts,
-      'DELETE /api/accounts/acct-2': accounts,
-      'PATCH /api/accounts/acct-1/auth-json': {
-        ...accounts,
-        accounts: accounts.accounts.map((account) => ({
-          ...account,
-          authJson:
-            account.id === 'acct-1'
-              ? '{\n  "token": "primary-updated"\n}'
-              : account.authJson
-        }))
+      'POST /api/accounts': ({ body }) => {
+        accountState = {
+          ...accountState,
+          accounts: [
+            ...accountState.accounts,
+            {
+              id: `acct-${accountState.accounts.length + 1}`,
+              label: body.label,
+              authJson: body.authJson,
+              position: accountState.accounts.length + 1,
+              isActive: false,
+              createdAt: '2024-01-01T12:00:00Z'
+            }
+          ]
+        };
+        return accountState;
       },
-      'PATCH /api/accounts/acct-2': {
-        ...accounts,
-        accounts: accounts.accounts.map((account) => ({
+      'POST /api/accounts/rotate': () => {
+        const [current, ...rest] = accountState.accounts;
+        const rotated = [...rest, current].map((account, index) => ({
           ...account,
-          label: account.id === 'acct-2' ? 'Ops Renamed' : account.label
-        }))
+          isActive: index === 0,
+          position: index + 1
+        }));
+        accountState = {
+          activeAccountId: rotated[0]?.id || null,
+          accounts: rotated
+        };
+        return accountState;
       },
+      'POST /api/accounts/acct-1/activate': () => activateAccount('acct-1'),
+      'POST /api/accounts/acct-2/activate': () => activateAccount('acct-2'),
+      'POST /api/accounts/acct-3/activate': () => activateAccount('acct-3'),
+      'DELETE /api/accounts/acct-1': () => removeAccount('acct-1'),
+      'DELETE /api/accounts/acct-2': () => removeAccount('acct-2'),
+      'DELETE /api/accounts/acct-3': () => removeAccount('acct-3'),
+      'PATCH /api/accounts/acct-1/auth-json': () => {
+        accountState = {
+          ...accountState,
+          accounts: accountState.accounts.map((account) => ({
+            ...account,
+            authJson:
+              account.id === 'acct-1'
+                ? '{\n  "token": "primary-updated"\n}'
+                : account.authJson
+          }))
+        };
+        return accountState;
+      },
+      'PATCH /api/accounts/acct-1': () => renameAccount('acct-1', 'Ops Renamed'),
+      'PATCH /api/accounts/acct-2': () => renameAccount('acct-2', 'Ops Renamed'),
+      'PATCH /api/accounts/acct-3': () => renameAccount('acct-3', 'Ops Renamed'),
       'POST /api/accounts/trigger-usage': {
         triggeredAt: '2024-01-01T00:01:00Z'
       },

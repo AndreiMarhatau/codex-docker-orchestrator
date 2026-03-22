@@ -2,7 +2,7 @@ const crypto = require('node:crypto');
 const { ensureDir, writeJson, removePath } = require('../../storage');
 const { resolveRefInRepo } = require('../git');
 const { buildCodexArgs } = require('../context');
-const { nextRunLabel, normalizeOptionalString } = require('../utils');
+const { nextRunLabel, normalizeOptionalString, repoNameFromUrl } = require('../utils');
 const { buildRunEntry } = require('./run-entry');
 async function setupWorktree(orch, { env, ref, taskId }) {
   const targetRef = ref || env.defaultBranch;
@@ -153,26 +153,46 @@ function attachTaskCreateMethods(Orchestrator) {
         reasoningEffort: normalizedReasoningEffort,
         developerInstructions
       });
-      const attachmentsDir = this.taskAttachmentsDir(taskId);
       const hasAttachments = attachments.length > 0;
-      const readonlyRepoMountMaps = (exposedPaths.contextRepos || [])
-        .filter((repo) => repo?.worktreePath && repo?.aliasName)
-        .map((repo) => ({ source: repo.worktreePath, target: `/readonly/${repo.aliasName}` }));
-      const readonlyAttachmentsMountMaps = hasAttachments
-        ? [{ source: attachmentsDir, target: exposedPaths.readonlyAttachmentsPath || '/attachments' }]
-        : [];
+      const workspaceDir = `/workspace/${repoNameFromUrl(env.repoUrl)}`;
+      const volumeMounts = [
+        this.volumeMountFor(worktreePath, workspaceDir),
+        this.volumeMountFor(env.mirrorPath, env.mirrorPath)
+      ];
+      for (const repo of exposedPaths.contextRepos || []) {
+        if (!repo?.worktreePath || !repo?.aliasName) {
+          continue;
+        }
+        volumeMounts.push(this.volumeMountFor(repo.worktreePath, `/readonly/${repo.aliasName}`, true));
+        if (repo.envId) {
+          const contextEnv = await this.readEnv(repo.envId);
+          volumeMounts.push(this.volumeMountFor(contextEnv.mirrorPath, contextEnv.mirrorPath, true));
+        }
+      }
+      if (hasAttachments) {
+        volumeMounts.push(this.volumeMountFor(this.taskAttachmentsDir(taskId), '/attachments', true));
+      }
+      const envOverridesWithDocker = shouldUseHostDockerSocket
+        ? {
+            ...env.envVars,
+            DOCKER_HOST: 'unix:///var/run/orch-task-docker/docker.sock'
+          }
+        : env.envVars;
+      if (shouldUseHostDockerSocket) {
+        volumeMounts.push(
+          this.volumeMountFor(this.taskDockerSocketDir(taskId), '/var/run/orch-task-docker')
+        );
+      }
       this.startCodexRunDeferred({
         taskId,
         runLabel,
         prompt,
         cwd: worktreePath,
         args,
-        mountPaths: [env.mirrorPath],
-        mountPathsRo: [],
-        mountMaps: shouldUseHostDockerSocket ? [this.taskDockerSocketMount(taskId)] : [],
-        mountMapsRo: [...readonlyRepoMountMaps, ...readonlyAttachmentsMountMaps],
+        workspaceDir,
+        volumeMounts,
         useHostDockerSocket: shouldUseHostDockerSocket,
-        envOverrides: env.envVars,
+        envOverrides: envOverridesWithDocker,
         stopTaskDockerSidecarOnExit: shouldUseHostDockerSocket
       });
       this.notifyTasksChanged(taskId);

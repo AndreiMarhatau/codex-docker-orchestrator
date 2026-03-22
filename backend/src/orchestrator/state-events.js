@@ -23,6 +23,10 @@ function attachStateEventMethods(Orchestrator) {
   Orchestrator.prototype.notifyEnvsChanged = function notifyEnvsChanged(envId = null) {
     this.emitStateEventSafe(STATE_EVENT_TYPES.envsChanged, envId ? { envId } : {});
   };
+
+  Orchestrator.prototype.notifySetupChanged = function notifySetupChanged() {
+    this.emitStateEventSafe(STATE_EVENT_TYPES.setupChanged, {});
+  };
 }
 
 module.exports = {

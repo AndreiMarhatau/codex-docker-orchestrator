@@ -30,6 +30,7 @@ function useAppState() {
   });
   const accountsState = useAccountsState({
     accountState: data.accountState,
+    refreshAll: data.refreshAll,
     setAccountState: data.setAccountState,
     setError: data.setError,
     setLoading: data.setLoading

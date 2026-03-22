@@ -58,7 +58,9 @@ async function exerciseAccountsTab(user) {
   await user.click(screen.getByRole('button', { name: 'Add account' }));
   const activateButtons = screen.getAllByRole('button', { name: 'Make active' });
   await user.click(activateButtons[activateButtons.length - 1]);
-  const removeAccountButtons = screen.getAllByRole('button', { name: 'Remove' });
+  const removeAccountButtons = screen
+    .getAllByRole('button', { name: 'Remove' })
+    .filter((button) => !button.disabled);
   await user.click(removeAccountButtons[removeAccountButtons.length - 1]);
 }
 

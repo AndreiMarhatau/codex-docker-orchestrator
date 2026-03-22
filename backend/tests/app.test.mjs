@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { createRequire } from 'node:module';
-import { createMockExec, createMockSpawn, createTempDir } from './helpers.mjs';
+import { createMockExec, createMockSpawn, createTempDir, prepareOrchestratorSetup } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { createApp } = require('../src/app');
@@ -21,7 +21,7 @@ async function waitForTaskCompletion(app, taskId) {
 
 async function createTestApp({ branches } = {}) {
   const orchHome = await createTempDir();
-  const codexHome = await createTempDir();
+  const codexHome = `${orchHome}/codex-home`;
   const exec = createMockExec({ branches: branches || ['main'] });
   const spawn = createMockSpawn();
   const orchestrator = new Orchestrator({
@@ -31,6 +31,7 @@ async function createTestApp({ branches } = {}) {
     spawn,
     now: () => '2025-12-19T00:00:00.000Z'
   });
+  await prepareOrchestratorSetup(orchestrator);
   return { app: createApp({ orchestrator }), exec, orchHome, orchestrator, spawn };
 }
 
@@ -135,14 +136,8 @@ describe('API', () => {
 
   it('returns account rate limits for the active account', async () => {
     const { app } = await createTestApp();
-
-    const accountRes = await request(app)
-      .post('/api/accounts')
-      .send({ label: 'Primary', authJson: '{}' })
-      .expect(201);
-
     const rateRes = await request(app).get('/api/accounts/rate-limits').expect(200);
-    expect(rateRes.body.account.id).toBe(accountRes.body.id);
+    expect(rateRes.body.account.label).toBe('Primary');
     expect(rateRes.body.rateLimits.primary.usedPercent).toBe(25);
     expect(rateRes.body.rateLimits.primary.windowDurationMins).toBe(15);
     expect(rateRes.body.rateLimits.primary.resetsAt).toBe(1730947200);

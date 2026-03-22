@@ -6,6 +6,13 @@ function useAppData({ enabled = true } = {}) {
   const [envs, setEnvs] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [accountState, setAccountState] = useState({ accounts: [], activeAccountId: null });
+  const [setupState, setSetupState] = useState({
+    ready: false,
+    gitTokenConfigured: false,
+    accountConfigured: false,
+    gitUserName: '',
+    gitUserEmail: ''
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -13,14 +20,29 @@ function useAppData({ enabled = true } = {}) {
     if (!enabled) {
       return;
     }
-    const [envData, taskData, accountData] = await Promise.all([
-      apiRequest('/api/envs'),
-      apiRequest('/api/tasks'),
+    const [setupData, accountData] = await Promise.all([
+      apiRequest('/api/settings/setup'),
       apiRequest('/api/accounts')
+    ]);
+    setSetupState({
+      ready: Boolean(setupData?.ready),
+      gitTokenConfigured: Boolean(setupData?.gitTokenConfigured),
+      accountConfigured: Boolean(setupData?.accountConfigured),
+      gitUserName: setupData?.gitUserName || '',
+      gitUserEmail: setupData?.gitUserEmail || ''
+    });
+    setAccountState(normalizeAccountState(accountData));
+    if (!setupData?.ready) {
+      setEnvs([]);
+      setTasks([]);
+      return;
+    }
+    const [envData, taskData] = await Promise.all([
+      apiRequest('/api/envs'),
+      apiRequest('/api/tasks')
     ]);
     setEnvs(envData);
     setTasks(taskData);
-    setAccountState(normalizeAccountState(accountData));
   }, [enabled]);
 
   useEffect(() => {
@@ -36,9 +58,11 @@ function useAppData({ enabled = true } = {}) {
     error,
     loading,
     refreshAll,
+    setupState,
     setAccountState,
     setEnvs,
     setError,
+    setSetupState,
     setLoading,
     setTasks,
     tasks

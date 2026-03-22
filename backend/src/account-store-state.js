@@ -1,7 +1,5 @@
-const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
-const { ensureDir, readJson, writeJson, pathExists } = require('./storage');
-const { DEFAULT_LABEL_PREFIX } = require('./accounts-helpers');
+const { readJson, pathExists, writeJson } = require('./storage');
 
 function ensureStateShape(state) {
   if (!Array.isArray(state.accounts)) {
@@ -25,39 +23,6 @@ function attachAccountStoreState(AccountStore) {
       state = { accounts: [], queue: [] };
     }
     ensureStateShape(state);
-    await this.bootstrapFromHostAuth(state);
-    return state;
-  };
-
-  AccountStore.prototype.bootstrapFromHostAuth = async function bootstrapFromHostAuth(state) {
-    if (state.queue.length > 0) {
-      return state;
-    }
-    if (!(await pathExists(this.hostAuthPath()))) {
-      state.activeAccountId = null;
-      return state;
-    }
-    const content = await fs.readFile(this.hostAuthPath(), 'utf8');
-    if (!content.trim()) {
-      state.activeAccountId = null;
-      return state;
-    }
-    let parsed = null;
-    try {
-      parsed = JSON.parse(content);
-    } catch (error) {
-      state.activeAccountId = null;
-      return state;
-    }
-    const accountId = crypto.randomUUID();
-    const createdAt = this.now();
-    const label = `${DEFAULT_LABEL_PREFIX} 1 (host)`;
-    state.accounts.push({ id: accountId, label, createdAt });
-    state.queue.push(accountId);
-    state.activeAccountId = accountId;
-    await ensureDir(this.accountDir(accountId));
-    await fs.writeFile(this.accountAuthPath(accountId), JSON.stringify(parsed, null, 2));
-    await writeJson(this.statePath(), state);
     return state;
   };
 

@@ -91,8 +91,12 @@ function attachPathMethods(Orchestrator) {
   };
 
   Orchestrator.prototype.init = async function init() {
+    await ensureDir(this.dataRoot);
     await ensureDir(this.envsDir());
     await ensureDir(this.tasksDir());
+    if (typeof this.ensurePersistentConfig === 'function') {
+      await this.ensurePersistentConfig();
+    }
   };
 }
 

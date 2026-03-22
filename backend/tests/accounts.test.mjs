@@ -8,32 +8,11 @@ const require = createRequire(import.meta.url);
 const { AccountStore } = require('../src/accounts');
 
 describe('AccountStore bootstrap', () => {
-  it('bootstraps from host auth.json when no accounts exist', async () => {
+  it('starts empty without bootstrapping from host auth.json', async () => {
     const orchHome = await createTempDir();
     const codexHome = path.join(orchHome, 'codex-home');
     await fs.mkdir(codexHome, { recursive: true });
-    const hostAuth = { token: 'host-token' };
-    await fs.writeFile(path.join(codexHome, 'auth.json'), JSON.stringify(hostAuth, null, 2));
-
-    const store = new AccountStore({
-      orchHome,
-      codexHome,
-      now: () => '2025-12-19T00:00:00.000Z'
-    });
-
-    const list = await store.listAccounts();
-    expect(list.accounts).toHaveLength(1);
-    expect(list.accounts[0].isActive).toBe(true);
-    const storedAuth = JSON.parse(
-      await fs.readFile(path.join(orchHome, 'accounts', list.accounts[0].id, 'auth.json'), 'utf8')
-    );
-    expect(storedAuth).toEqual(hostAuth);
-  });
-
-  it('returns empty accounts when host auth is missing', async () => {
-    const orchHome = await createTempDir();
-    const codexHome = path.join(orchHome, 'codex-home');
-    await fs.mkdir(codexHome, { recursive: true });
+    await fs.writeFile(path.join(codexHome, 'auth.json'), JSON.stringify({ token: 'host-token' }, null, 2));
 
     const store = new AccountStore({ orchHome, codexHome });
     const list = await store.listAccounts();
@@ -87,14 +66,13 @@ describe('AccountStore rotation and removal', () => {
     const orchHome = await createTempDir();
     const codexHome = path.join(orchHome, 'codex-home');
     await fs.mkdir(codexHome, { recursive: true });
-    await fs.writeFile(path.join(codexHome, 'auth.json'), JSON.stringify({ token: 'a' }, null, 2));
-
     const store = new AccountStore({
       orchHome,
       codexHome,
       now: () => '2025-12-19T00:00:00.000Z'
     });
 
+    await store.addAccount({ label: 'First', authJson: JSON.stringify({ token: 'a' }) });
     await store.addAccount({ label: 'Second', authJson: JSON.stringify({ token: 'b' }) });
     const before = await store.listAccounts();
     expect(before.accounts).toHaveLength(2);
@@ -125,14 +103,13 @@ describe('AccountStore rotation and removal', () => {
     const orchHome = await createTempDir();
     const codexHome = path.join(orchHome, 'codex-home');
     await fs.mkdir(codexHome, { recursive: true });
-    await fs.writeFile(path.join(codexHome, 'auth.json'), JSON.stringify({ token: 'a' }, null, 2));
-
     const store = new AccountStore({
       orchHome,
       codexHome,
       now: () => '2025-12-19T00:00:00.000Z'
     });
 
+    await store.addAccount({ label: 'Primary', authJson: JSON.stringify({ token: 'a' }) });
     const list = await store.listAccounts();
     await expect(store.removeAccount(list.activeAccountId)).rejects.toThrow(
       'Cannot remove the active account'

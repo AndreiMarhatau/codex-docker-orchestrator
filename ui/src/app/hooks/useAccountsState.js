@@ -29,13 +29,14 @@ async function fetchRateLimits({
   }
 }
 
-function createAccountRequestHandler({ request, setAccountState, setError, setLoading }) {
+function createAccountRequestHandler({ request, setAccountState, setError, setLoading, refreshAll }) {
   return async (...args) => {
     setError('');
     setLoading(true);
     try {
       const payload = await request(...args);
       setAccountState(normalizeAccountState(payload));
+      await refreshAll();
       return payload;
     } catch (err) {
       setError(err.message);
@@ -48,7 +49,7 @@ function createAccountRequestHandler({ request, setAccountState, setError, setLo
 
 function createAddAccountHandler({
   accountForm,
-  refreshAccounts,
+  refreshAll,
   setAccountForm,
   setAccountState,
   setError,
@@ -69,8 +70,9 @@ function createAddAccountHandler({
       if (payload?.accounts) {
         setAccountState(normalizeAccountState(payload));
       } else {
-        await refreshAccounts();
+        await refreshAll();
       }
+      await refreshAll();
       setAccountForm(emptyAccountForm);
       setShowAccountForm(false);
     } catch (err) {
@@ -81,7 +83,7 @@ function createAddAccountHandler({
   };
 }
 
-function useAccountsState({ accountState, setAccountState, setError, setLoading }) {
+function useAccountsState({ accountState, refreshAll, setAccountState, setError, setLoading }) {
   const [accountForm, setAccountForm] = useState(emptyAccountForm);
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [rateLimits, setRateLimits] = useState(null);
@@ -127,7 +129,7 @@ function useAccountsState({ accountState, setAccountState, setError, setLoading 
   };
   const handleAddAccount = createAddAccountHandler({
     accountForm,
-    refreshAccounts,
+    refreshAll,
     setAccountForm,
     setAccountState,
     setError,
@@ -139,19 +141,22 @@ function useAccountsState({ accountState, setAccountState, setError, setLoading 
       apiRequest(`/api/accounts/${accountId}/activate`, { method: 'POST' }),
     setAccountState,
     setError,
-    setLoading
+    setLoading,
+    refreshAll
   });
   const handleRotateAccount = createAccountRequestHandler({
     request: () => apiRequest('/api/accounts/rotate', { method: 'POST' }),
     setAccountState,
     setError,
-    setLoading
+    setLoading,
+    refreshAll
   });
   const handleDeleteAccount = createAccountRequestHandler({
     request: (accountId) => apiRequest(`/api/accounts/${accountId}`, { method: 'DELETE' }),
     setAccountState,
     setError,
-    setLoading
+    setLoading,
+    refreshAll
   });
   const handleRenameAccount = createAccountRequestHandler({
     request: (accountId, label) =>
@@ -161,7 +166,8 @@ function useAccountsState({ accountState, setAccountState, setError, setLoading 
       }),
     setAccountState,
     setError,
-    setLoading
+    setLoading,
+    refreshAll
   });
   const handleUpdateAuthJson = createAccountRequestHandler({
     request: (accountId, authJson) =>
@@ -171,7 +177,8 @@ function useAccountsState({ accountState, setAccountState, setError, setLoading 
       }),
     setAccountState,
     setError,
-    setLoading
+    setLoading,
+    refreshAll
   });
 
   return {

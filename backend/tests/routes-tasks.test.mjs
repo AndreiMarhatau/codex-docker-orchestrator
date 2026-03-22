@@ -1,7 +1,7 @@
 import { describe, it } from 'vitest';
 import request from 'supertest';
 import { createRequire } from 'node:module';
-import { createMockExec, createMockSpawn, createTempDir } from './helpers.mjs';
+import { createMockExec, createMockSpawn, createTempDir, prepareOrchestratorSetup } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { createApp } = require('../src/app');
@@ -9,10 +9,11 @@ const { Orchestrator } = require('../src/orchestrator');
 
 async function createTestApp() {
   const orchHome = await createTempDir();
-  const codexHome = await createTempDir();
+  const codexHome = `${orchHome}/codex-home`;
   const exec = createMockExec({ branches: ['main'] });
   const spawn = createMockSpawn();
   const orchestrator = new Orchestrator({ orchHome, codexHome, exec, spawn });
+  await prepareOrchestratorSetup(orchestrator);
   return createApp({ orchestrator });
 }
 

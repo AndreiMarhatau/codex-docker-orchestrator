@@ -25,6 +25,8 @@ You are running inside an ephemeral Docker container with unrestricted access to
 
 ## Committing changes
 - If you made any changes, always create a git commit after all your work and verifications, just before replying.
+- Before creating that commit, if you have not already done so, create and switch to a readable branch name that describes the changes so the final work does not remain on the initial `codex/<uuid>` branch.
+- Do this branch creation and switch only once.
 - Stage all changes with `git add -A` and use a concise commit message.
 - If there are no changes, do not create a commit.
 - Configure git email to `codex@openai.com` and username to `Codex Agent`.

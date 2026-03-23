@@ -79,6 +79,8 @@ describe('Orchestrator task context', () => {
     expect(developerInstructions).toContain('ephemeral Docker container');
     expect(developerInstructions).toContain('Read-only reference repositories');
     expect(developerInstructions).toContain('/readonly/context');
+    expect(developerInstructions).toContain('Docker is disabled for this task.');
+    expect(developerInstructions).toContain('/root/.artifacts');
     expect(developerInstructions).toContain('Environment variables');
     expect(developerInstructions).toContain('API_TOKEN');
     expect(developerInstructions).toContain('FEATURE_FLAG');
@@ -109,7 +111,8 @@ describe('Orchestrator task context', () => {
     expect(createVolumeMounts.some((entry) => entry.endsWith('=/var/run/orch-task-docker'))).toBe(true);
     expect(createCall.options?.env?.DOCKER_HOST).toBe('unix:///var/run/orch-task-docker/docker.sock');
     const createDeveloperInstructions = extractDeveloperInstructions(createCall.args);
-    expect(createDeveloperInstructions).toContain('Host Docker Socket');
+    expect(createDeveloperInstructions).toContain('Docker is enabled for this task via an isolated per-task Docker sidecar daemon.');
+    expect(createDeveloperInstructions).toContain('/root/.artifacts');
     expect(createDeveloperInstructions).not.toContain('Environment variables');
     const dockerRunCalls = await waitForExecCalls(
       exec.calls,
@@ -132,7 +135,7 @@ describe('Orchestrator task context', () => {
     const resumeCall = resumeCalls[1];
     expect(resumeCall.options?.env?.CODEX_VOLUME_MOUNTS || '').not.toContain('/var/run/orch-task-docker');
     const resumeDeveloperInstructions = extractDeveloperInstructions(resumeCall.args);
-    expect(resumeDeveloperInstructions).not.toContain('Host Docker Socket');
+    expect(resumeDeveloperInstructions).toContain('Docker is disabled for this task.');
 
     const metaPath = path.join(orchHome, 'tasks', task.taskId, 'meta.json');
     const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));

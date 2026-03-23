@@ -3,7 +3,8 @@ const path = require('node:path');
 const {
   DEFAULT_DEVELOPER_INSTRUCTIONS_FILE,
   DEFAULT_CONTEXT_REPOS_TEMPLATE_FILE,
-  DEFAULT_ATTACHMENTS_TEMPLATE_FILE
+  DEFAULT_ATTACHMENTS_TEMPLATE_FILE,
+  DEFAULT_INNER_ARTIFACTS_DIR
 } = require('../constants');
 const { buildAttachmentsSection, buildContextReposSection } = require('../context');
 
@@ -72,16 +73,27 @@ function buildEnvVarsSection(envVars) {
 }
 
 function buildDockerSection(useHostDockerSocket) {
-  if (!useHostDockerSocket) {
-    return '';
+  if (useHostDockerSocket) {
+    return [
+      '## Docker availability',
+      '- Docker is enabled for this task via an isolated per-task Docker sidecar daemon.',
+      '- Docker commands can manage only resources created inside this task\'s sidecar daemon.',
+      '- Host Docker resources and other tasks\' Docker resources are not reachable from this task.',
+      '- You may use Docker commands as needed to complete the task.',
+      '- Clean up resources created in this task\'s sidecar environment before finishing.'
+    ].join('\n');
   }
   return [
-    '## Host Docker Socket',
-    '- Docker is enabled for this task via an isolated per-task Docker sidecar daemon.',
-    '- Docker commands can manage only resources created inside this task\'s sidecar daemon.',
-    '- Host Docker resources and other tasks\' Docker resources are not reachable from this task.',
-    '- You may use Docker commands as needed to complete the task.',
-    '- Clean up resources created in this task\'s sidecar environment before finishing.'
+    '## Docker availability',
+    '- Docker is disabled for this task.',
+    '- Do not assume Docker commands or a Docker daemon are available.'
+  ].join('\n');
+}
+
+function buildArtifactsSection() {
+  return [
+    '## User-visible artifacts',
+    `- If you need to save files for the user outside the repository, put them in \`${DEFAULT_INNER_ARTIFACTS_DIR}\`.`
   ].join('\n');
 }
 
@@ -112,8 +124,15 @@ function buildDeveloperInstructions({
     templatePath: DEFAULT_ATTACHMENTS_TEMPLATE_FILE
   });
   const dockerSection = buildDockerSection(useHostDockerSocket);
+  const artifactsSection = buildArtifactsSection();
   const envVarsSection = buildEnvVarsSection(envVars);
-  for (const section of [dockerSection, contextSection, attachmentsSection, envVarsSection]) {
+  for (const section of [
+    dockerSection,
+    contextSection,
+    attachmentsSection,
+    artifactsSection,
+    envVarsSection
+  ]) {
     if (section) {
       sections.push(section.trimEnd());
     }

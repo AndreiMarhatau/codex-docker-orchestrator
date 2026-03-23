@@ -50,6 +50,7 @@ class Orchestrator {
       config.taskDockerCommandTimeoutMs,
       600_000
     );
+    this.managedAgents = config.managedAgents;
     this.running = new Map();
     this.accountStore =
       config.accountStore ||

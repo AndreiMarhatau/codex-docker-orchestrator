@@ -12,6 +12,7 @@ const {
   DEFAULT_TASK_DOCKER_READY_INTERVAL_MS,
   DEFAULT_TASK_DOCKER_COMMAND_TIMEOUT_MS
 } = require('./constants');
+const { DEFAULT_MANAGED_AGENTS } = require('./managed-agents');
 
 function isPresent(value) {
   return value !== undefined && value !== null && value !== '';
@@ -55,6 +56,7 @@ function resolveConfig(options) {
     getUid: options.getUid || (() => (typeof process.getuid === 'function' ? process.getuid() : null)),
     getGid: options.getGid || (() => (typeof process.getgid === 'function' ? process.getgid() : null)),
     accountStore: options.accountStore,
+    managedAgents: options.managedAgents || DEFAULT_MANAGED_AGENTS,
     maxAccountRotations: options.maxAccountRotations,
     taskDockerSidecarImage: resolveOptional(
       options,

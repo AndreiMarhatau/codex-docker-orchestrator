@@ -55,6 +55,7 @@ function attachSetupMethods(Orchestrator) {
       now: this.now,
       managedAgents: this.managedAgents
     });
+    await this.accountStore.applyActiveAccount();
   };
 
   Orchestrator.prototype.gitConfigContainerDir = function gitConfigContainerDir() {

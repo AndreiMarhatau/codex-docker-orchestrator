@@ -106,11 +106,7 @@ async function ensureOwnership(targetPath) {
 }
 
 async function ensureActiveAuth() {
-  try {
-    await this.accountStore.applyActiveAccount();
-  } catch {
-    return;
-  }
+  return this.accountStore.applyActiveAccount();
 }
 
 function attachCoreMethods(Orchestrator) {

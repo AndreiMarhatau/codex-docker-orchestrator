@@ -7,6 +7,7 @@ const {
   DEFAULT_INNER_CODEX_HOME
 } = require('./constants');
 const { setupRequiredError } = require('./errors');
+const { reconcileManagedAgents } = require('./managed-agents');
 
 const DEFAULT_GIT_USER_NAME = 'Codex Agent';
 const DEFAULT_GIT_USER_EMAIL = 'codex@openai.com';
@@ -44,6 +45,11 @@ function attachSetupMethods(Orchestrator) {
       await writeText(this.gitConfigGlobalPath, buildGitConfig());
     }
     await ensureDir(this.codexHome);
+    await reconcileManagedAgents({
+      codexHome: this.codexHome,
+      now: this.now,
+      managedAgents: this.managedAgents
+    });
   };
 
   Orchestrator.prototype.gitConfigContainerDir = function gitConfigContainerDir() {

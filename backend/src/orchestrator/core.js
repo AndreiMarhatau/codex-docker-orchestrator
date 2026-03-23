@@ -8,14 +8,11 @@ const { attachCoreMethods } = require('./core-methods');
 class Orchestrator {
   constructor(options = {}) {
     const config = resolveConfig(options);
-    this.dataRoot = options.dataRoot || process.env.ORCH_DATA_DIR || options.orchHome || config.dataRoot;
+    this.dataRoot = config.dataRoot;
     this.dataVolumeName = config.dataVolumeName;
     this.orchHome = config.orchHome;
     this.codexHome = config.codexHome;
-    this.gitConfigGlobalPath =
-      options.gitConfigGlobalPath ||
-      process.env.GIT_CONFIG_GLOBAL ||
-      path.join(this.dataRoot, 'git', '.gitconfig');
+    this.gitConfigGlobalPath = config.gitConfigGlobalPath || path.join(this.dataRoot, 'git', '.gitconfig');
     const baseExec = config.exec;
     const baseSpawn = config.spawn;
     this.exec = (command, args, execOptions = {}) => {
@@ -50,6 +47,7 @@ class Orchestrator {
       config.taskDockerCommandTimeoutMs,
       600_000
     );
+    this.managedAgents = config.managedAgents;
     this.running = new Map();
     this.accountStore =
       config.accountStore ||
@@ -62,11 +60,14 @@ class Orchestrator {
   }
 
   withRuntimeEnv(baseEnv = null) {
-    const env = { ...(baseEnv || process.env) };
+    const env = { ...process.env, ...(baseEnv || {}) };
     if (!env.ORCH_DATA_DIR) {
       env.ORCH_DATA_DIR = this.dataRoot;
     }
-    if (!env.GIT_CONFIG_GLOBAL) {
+    const hasExplicitGitConfigGlobal = Boolean(
+      baseEnv && Object.prototype.hasOwnProperty.call(baseEnv, 'GIT_CONFIG_GLOBAL')
+    );
+    if (!hasExplicitGitConfigGlobal) {
       env.GIT_CONFIG_GLOBAL = this.gitConfigGlobalPath;
     }
     const gitToken = this.readGitToken();

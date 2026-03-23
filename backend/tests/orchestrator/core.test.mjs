@@ -68,4 +68,33 @@ describe('orchestrator core', () => {
     const orchestrator = new Orchestrator({ taskDockerCommandTimeoutMs: 0 });
     expect(orchestrator.taskDockerCommandTimeoutMs).toBe(0);
   });
+
+  it('overrides inherited GIT_CONFIG_GLOBAL with the orchestrator-managed path', () => {
+    const originalGitConfigGlobal = process.env.GIT_CONFIG_GLOBAL;
+    process.env.GIT_CONFIG_GLOBAL = '/external/gitconfig';
+    const orchestrator = new Orchestrator({
+      dataRoot: '/managed-root',
+      orchHome: '/managed-root/.codex-orchestrator',
+      codexHome: '/managed-root/.codex'
+    });
+
+    expect(orchestrator.withRuntimeEnv().GIT_CONFIG_GLOBAL).toBe('/managed-root/git/.gitconfig');
+
+    if (originalGitConfigGlobal === undefined) {
+      delete process.env.GIT_CONFIG_GLOBAL;
+    } else {
+      process.env.GIT_CONFIG_GLOBAL = originalGitConfigGlobal;
+    }
+  });
+
+  it('preserves an explicit baseEnv GIT_CONFIG_GLOBAL override', () => {
+    const orchestrator = new Orchestrator({
+      dataRoot: '/managed-root',
+      orchHome: '/managed-root/.codex-orchestrator',
+      codexHome: '/managed-root/.codex'
+    });
+
+    const env = orchestrator.withRuntimeEnv({ GIT_CONFIG_GLOBAL: '/caller/gitconfig' });
+    expect(env.GIT_CONFIG_GLOBAL).toBe('/caller/gitconfig');
+  });
 });

@@ -22,7 +22,7 @@ async function createTestApp() {
     now: () => '2025-12-19T00:00:00.000Z'
   });
   await prepareOrchestratorSetup(orchestrator);
-  return { app: createApp({ orchestrator }), spawn };
+  return { app: await createApp({ orchestrator }), spawn };
 }
 
 describe('API task context and attachments', () => {

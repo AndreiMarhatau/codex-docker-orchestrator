@@ -45,6 +45,11 @@ function attachSetupMethods(Orchestrator) {
       await writeText(this.gitConfigGlobalPath, buildGitConfig());
     }
     await ensureDir(this.codexHome);
+  };
+
+  Orchestrator.prototype.initializeAppStartup = async function initializeAppStartup() {
+    await this.init();
+    await this.ensurePersistentConfig();
     await reconcileManagedAgents({
       codexHome: this.codexHome,
       now: this.now,

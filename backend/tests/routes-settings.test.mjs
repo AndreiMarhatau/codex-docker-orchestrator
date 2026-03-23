@@ -12,7 +12,7 @@ async function createTestApp() {
   const orchHome = await createTempDir();
   const codexHome = await createTempDir();
   const orchestrator = new Orchestrator({ orchHome, codexHome });
-  return { app: createApp({ orchestrator }) };
+  return { app: await createApp({ orchestrator }) };
 }
 
 describe('settings routes', () => {
@@ -70,7 +70,7 @@ describe('settings routes', () => {
     const orchHome = await createTempDir();
     const codexHome = await createTempDir();
     const orchestrator = new Orchestrator({ orchHome, codexHome });
-    const app = createApp({ orchestrator });
+    const app = await createApp({ orchestrator });
     const configPath = `${codexHome}/config.toml`;
 
     await fs.writeFile(configPath, 'model = "gpt-5.3-codex-spark"');

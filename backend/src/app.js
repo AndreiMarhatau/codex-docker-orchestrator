@@ -12,7 +12,8 @@ const { createSettingsRouter } = require('./app/routes/settings');
 const { createEventsRouter } = require('./app/routes/events');
 const { createSetupMiddleware } = require('./app/middleware/setup');
 
-function createApp({ orchestrator = new Orchestrator() } = {}) {
+async function createApp({ orchestrator = new Orchestrator() } = {}) {
+  await orchestrator.initializeAppStartup();
   const app = express();
   const stateEventBus = createStateEventBus();
   orchestrator.emitStateEvent = stateEventBus.emit;

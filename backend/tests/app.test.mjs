@@ -32,7 +32,7 @@ async function createTestApp({ branches } = {}) {
     now: () => '2025-12-19T00:00:00.000Z'
   });
   await prepareOrchestratorSetup(orchestrator);
-  return { app: createApp({ orchestrator }), exec, orchHome, orchestrator, spawn };
+  return { app: await createApp({ orchestrator }), exec, orchHome, orchestrator, spawn };
 }
 
 describe('API', () => {

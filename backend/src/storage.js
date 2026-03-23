@@ -1,4 +1,5 @@
 const fs = require('node:fs/promises');
+const crypto = require('node:crypto');
 const path = require('node:path');
 
 async function ensureDir(dirPath) {
@@ -7,7 +8,7 @@ async function ensureDir(dirPath) {
 
 async function writeJson(filePath, data) {
   await ensureDir(path.dirname(filePath));
-  const tempPath = `${filePath}.tmp-${process.pid}-${Date.now()}`;
+  const tempPath = `${filePath}.tmp-${process.pid}-${Date.now()}-${crypto.randomUUID()}`;
   await fs.writeFile(tempPath, JSON.stringify(data, null, 2));
   await fs.rename(tempPath, filePath);
 }

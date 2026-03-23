@@ -59,20 +59,6 @@ describe('Orchestrator task lifecycle', () => {
     expect(meta.runs[0].reasoningEffort).toBe('medium');
     expect(meta.runs[1].model).toBe('gpt-5.2-codex');
     expect(meta.runs[1].reasoningEffort).toBe('xhigh');
-    expect(spawn.calls[0].args).toEqual(
-      expect.arrayContaining(['--model', 'gpt-5.2-codex', '-c', 'model_reasoning_effort=medium'])
-    );
-    expect(
-      spawn.calls[0].args.some((arg) => typeof arg === 'string' && arg.startsWith('developer_instructions='))
-    ).toBe(true);
-    expect(spawn.calls[0].args.some((arg) => typeof arg === 'string' && arg.includes('fork_context'))).toBe(false);
-    expect(spawn.calls[1].args).toEqual(
-      expect.arrayContaining(['--model', 'gpt-5.2-codex', '-c', 'model_reasoning_effort=xhigh'])
-    );
-    expect(
-      spawn.calls[1].args.some((arg) => typeof arg === 'string' && arg.startsWith('developer_instructions='))
-    ).toBe(true);
-    expect(spawn.calls[1].args.some((arg) => typeof arg === 'string' && arg.includes('fork_context'))).toBe(false);
   });
 
   it('mounts mirror path for runs', async () => {

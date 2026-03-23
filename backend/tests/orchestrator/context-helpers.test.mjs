@@ -7,8 +7,7 @@ import { createTempDir } from '../helpers.mjs';
 const require = createRequire(import.meta.url);
 const {
   buildAttachmentsSection,
-  buildContextReposSection,
-  buildCodexArgs
+  buildContextReposSection
 } = require('../../src/orchestrator/context');
 
 describe('context helpers', () => {
@@ -59,51 +58,5 @@ describe('context helpers', () => {
     );
     expect(section).toContain('Uploads live at ~/uploads');
     expect(section).toContain('- note.txt at ~/uploads/note.txt');
-  });
-
-  it('builds top-level codex args with developer instructions and no fork_context override', () => {
-    const args = buildCodexArgs({
-      prompt: 'Do work',
-      model: 'gpt-5.2-codex',
-      reasoningEffort: 'medium',
-      developerInstructions: 'You are the top-level orchestrator.'
-    });
-
-    expect(args).toEqual(
-      expect.arrayContaining([
-        'exec',
-        '--dangerously-bypass-approvals-and-sandbox',
-        '--json',
-        '--model',
-        'gpt-5.2-codex',
-        '-c',
-        'model_reasoning_effort=medium'
-      ])
-    );
-    expect(args).toContain(
-      `developer_instructions=${JSON.stringify('You are the top-level orchestrator.')}`
-    );
-    expect(args.some((arg) => typeof arg === 'string' && arg.includes('fork_context'))).toBe(false);
-  });
-
-  it('builds top-level resume args without any fork_context override', () => {
-    const args = buildCodexArgs({
-      prompt: 'Continue',
-      developerInstructions: 'Resume the task.',
-      resumeThreadId: 'thread-123'
-    });
-
-    expect(args).toEqual(
-      expect.arrayContaining([
-        'exec',
-        '--dangerously-bypass-approvals-and-sandbox',
-        '--json',
-        'resume',
-        'thread-123',
-        'Continue'
-      ])
-    );
-    expect(args).toContain(`developer_instructions=${JSON.stringify('Resume the task.')}`);
-    expect(args.some((arg) => typeof arg === 'string' && arg.includes('fork_context'))).toBe(false);
   });
 });

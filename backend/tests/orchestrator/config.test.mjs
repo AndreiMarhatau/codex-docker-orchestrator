@@ -1,4 +1,3 @@
-import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 
@@ -25,13 +24,13 @@ describe('orchestrator config resolution', () => {
     }
   });
 
-  it('infers the shared data root from explicit orchHome and codexHome', () => {
+  it('prefers ORCH_DATA_DIR even when explicit homes share a different root', () => {
     process.env.ORCH_DATA_DIR = '/env-root';
     const config = resolveConfig({
       orchHome: '/explicit-root/.codex-orchestrator',
       codexHome: '/explicit-root/.codex'
     });
-    expect(config.dataRoot).toBe('/explicit-root');
+    expect(config.dataRoot).toBe('/env-root');
   });
 
   it('preserves ORCH_DATA_DIR when explicit homes are inside it', () => {
@@ -43,24 +42,24 @@ describe('orchestrator config resolution', () => {
     expect(config.dataRoot).toBe('/env-root');
   });
 
-  it('uses explicit orchHome as data root when no codexHome is provided', () => {
+  it('prefers ORCH_DATA_DIR over explicit orchHome when no codexHome is provided', () => {
     process.env.ORCH_DATA_DIR = '/env-root';
     const config = resolveConfig({ orchHome: '/explicit-orch-home' });
-    expect(config.dataRoot).toBe('/explicit-orch-home');
+    expect(config.dataRoot).toBe('/env-root');
   });
 
-  it('ignores inherited GIT_CONFIG_GLOBAL from the environment', () => {
+  it('preserves inherited GIT_CONFIG_GLOBAL from the environment', () => {
     process.env.ORCH_DATA_DIR = '/env-root';
     process.env.GIT_CONFIG_GLOBAL = '/env-root/git/custom.gitconfig';
     const config = resolveConfig({});
-    expect(config.gitConfigGlobalPath).toBe(path.join('/env-root', 'git', '.gitconfig'));
+    expect(config.gitConfigGlobalPath).toBe('/env-root/git/custom.gitconfig');
   });
 
-  it('falls back to the default git config path when env path is outside data root', () => {
+  it('accepts env git config path even when it is outside the data root', () => {
     process.env.ORCH_DATA_DIR = '/env-root';
     process.env.GIT_CONFIG_GLOBAL = '/outside/gitconfig';
     const config = resolveConfig({});
-    expect(config.gitConfigGlobalPath).toBe(path.join('/env-root', 'git', '.gitconfig'));
+    expect(config.gitConfigGlobalPath).toBe('/outside/gitconfig');
   });
 
   it('allows an explicit git config override outside the data root', () => {

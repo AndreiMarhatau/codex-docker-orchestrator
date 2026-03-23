@@ -36,14 +36,66 @@ function isPathInside(parentPath, targetPath) {
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
 }
 
+function commonAncestorPath(pathA, pathB) {
+  if (!isPresent(pathA) || !isPresent(pathB)) {
+    return null;
+  }
+  const resolvedA = path.resolve(pathA);
+  const resolvedB = path.resolve(pathB);
+  const parsedA = path.parse(resolvedA);
+  const parsedB = path.parse(resolvedB);
+  if (parsedA.root !== parsedB.root) {
+    return null;
+  }
+
+  const partsA = resolvedA.slice(parsedA.root.length).split(path.sep).filter(Boolean);
+  const partsB = resolvedB.slice(parsedB.root.length).split(path.sep).filter(Boolean);
+  const sharedParts = [];
+  const maxLength = Math.min(partsA.length, partsB.length);
+
+  for (let index = 0; index < maxLength; index += 1) {
+    if (partsA[index] !== partsB[index]) {
+      break;
+    }
+    sharedParts.push(partsA[index]);
+  }
+
+  return sharedParts.length === 0 ? parsedA.root : path.join(parsedA.root, ...sharedParts);
+}
+
+function resolveEnvDataRoot(options) {
+  if (!Object.prototype.hasOwnProperty.call(process.env, 'ORCH_DATA_DIR')) {
+    return null;
+  }
+  const envDataRoot = process.env.ORCH_DATA_DIR;
+  if (!isPresent(envDataRoot)) {
+    return null;
+  }
+  const candidateHomes = [options.orchHome, options.codexHome].filter(isPresent);
+  if (candidateHomes.length === 0) {
+    return envDataRoot;
+  }
+  return candidateHomes.every((candidatePath) => isPathInside(envDataRoot, candidatePath))
+    ? envDataRoot
+    : null;
+}
+
 function resolveDataRoot(options) {
   if (Object.prototype.hasOwnProperty.call(options, 'dataRoot') && isPresent(options.dataRoot)) {
     return options.dataRoot;
   }
+  const envDataRoot = resolveEnvDataRoot(options);
+  if (envDataRoot) {
+    return envDataRoot;
+  }
+  const inferredRoot = commonAncestorPath(options.orchHome, options.codexHome);
+  if (inferredRoot) {
+    return inferredRoot;
+  }
   if (Object.prototype.hasOwnProperty.call(options, 'orchHome') && isPresent(options.orchHome)) {
     return options.orchHome;
   }
-  return resolveOptional({}, 'dataRoot', 'ORCH_DATA_DIR', DEFAULT_DATA_ROOT);
+  return DEFAULT_DATA_ROOT;
 }
 
 function resolveConfig(options) {
@@ -52,15 +104,8 @@ function resolveConfig(options) {
     Object.prototype.hasOwnProperty.call(options, 'gitConfigGlobalPath') && isPresent(options.gitConfigGlobalPath)
       ? options.gitConfigGlobalPath
       : null;
-  const envGitConfigGlobalPath =
-    Object.prototype.hasOwnProperty.call(process.env, 'GIT_CONFIG_GLOBAL') && isPresent(process.env.GIT_CONFIG_GLOBAL)
-      ? process.env.GIT_CONFIG_GLOBAL
-      : null;
   const defaultGitConfigGlobalPath = path.join(dataRoot, 'git', '.gitconfig');
-  const gitConfigGlobalPath = explicitGitConfigGlobalPath
-    || (envGitConfigGlobalPath && isPathInside(dataRoot, envGitConfigGlobalPath)
-      ? envGitConfigGlobalPath
-      : defaultGitConfigGlobalPath);
+  const gitConfigGlobalPath = explicitGitConfigGlobalPath || defaultGitConfigGlobalPath;
   return {
     dataRoot,
     dataVolumeName: resolveOptional(

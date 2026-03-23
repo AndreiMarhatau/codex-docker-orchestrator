@@ -60,11 +60,14 @@ class Orchestrator {
   }
 
   withRuntimeEnv(baseEnv = null) {
-    const env = { ...(baseEnv || process.env) };
+    const env = { ...process.env, ...(baseEnv || {}) };
     if (!env.ORCH_DATA_DIR) {
       env.ORCH_DATA_DIR = this.dataRoot;
     }
-    if (!env.GIT_CONFIG_GLOBAL) {
+    const hasExplicitGitConfigGlobal = Boolean(
+      baseEnv && Object.prototype.hasOwnProperty.call(baseEnv, 'GIT_CONFIG_GLOBAL')
+    );
+    if (!hasExplicitGitConfigGlobal) {
       env.GIT_CONFIG_GLOBAL = this.gitConfigGlobalPath;
     }
     const gitToken = this.readGitToken();

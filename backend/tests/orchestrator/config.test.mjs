@@ -25,17 +25,35 @@ describe('orchestrator config resolution', () => {
     }
   });
 
-  it('prefers explicit orchHome over ORCH_DATA_DIR for data root', () => {
+  it('infers the shared data root from explicit orchHome and codexHome', () => {
+    process.env.ORCH_DATA_DIR = '/env-root';
+    const config = resolveConfig({
+      orchHome: '/explicit-root/.codex-orchestrator',
+      codexHome: '/explicit-root/.codex'
+    });
+    expect(config.dataRoot).toBe('/explicit-root');
+  });
+
+  it('preserves ORCH_DATA_DIR when explicit homes are inside it', () => {
+    process.env.ORCH_DATA_DIR = '/env-root';
+    const config = resolveConfig({
+      orchHome: '/env-root/.codex-orchestrator',
+      codexHome: '/env-root/.codex'
+    });
+    expect(config.dataRoot).toBe('/env-root');
+  });
+
+  it('uses explicit orchHome as data root when no codexHome is provided', () => {
     process.env.ORCH_DATA_DIR = '/env-root';
     const config = resolveConfig({ orchHome: '/explicit-orch-home' });
     expect(config.dataRoot).toBe('/explicit-orch-home');
   });
 
-  it('uses env git config path only when it stays inside the resolved data root', () => {
+  it('ignores inherited GIT_CONFIG_GLOBAL from the environment', () => {
     process.env.ORCH_DATA_DIR = '/env-root';
     process.env.GIT_CONFIG_GLOBAL = '/env-root/git/custom.gitconfig';
     const config = resolveConfig({});
-    expect(config.gitConfigGlobalPath).toBe('/env-root/git/custom.gitconfig');
+    expect(config.gitConfigGlobalPath).toBe(path.join('/env-root', 'git', '.gitconfig'));
   });
 
   it('falls back to the default git config path when env path is outside data root', () => {

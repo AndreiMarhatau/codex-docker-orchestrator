@@ -1,10 +1,10 @@
+const path = require('node:path');
 const { runCommand } = require('../commands');
 const { spawn } = require('node:child_process');
 const {
   DEFAULT_DATA_ROOT,
   DEFAULT_ORCH_HOME,
   DEFAULT_CODEX_HOME,
-  DEFAULT_GIT_CONFIG_GLOBAL,
   DEFAULT_IMAGE_NAME,
   DEFAULT_TASK_DOCKER_SIDECAR_IMAGE,
   DEFAULT_TASK_DOCKER_SIDECAR_NAME_PREFIX,
@@ -31,9 +31,38 @@ function resolveOptional(options, key, envKey, defaultValue) {
   return defaultValue;
 }
 
+function isPathInside(parentPath, targetPath) {
+  const relative = path.relative(path.resolve(parentPath), path.resolve(targetPath));
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+function resolveDataRoot(options) {
+  if (Object.prototype.hasOwnProperty.call(options, 'dataRoot') && isPresent(options.dataRoot)) {
+    return options.dataRoot;
+  }
+  if (Object.prototype.hasOwnProperty.call(options, 'orchHome') && isPresent(options.orchHome)) {
+    return options.orchHome;
+  }
+  return resolveOptional({}, 'dataRoot', 'ORCH_DATA_DIR', DEFAULT_DATA_ROOT);
+}
+
 function resolveConfig(options) {
+  const dataRoot = resolveDataRoot(options);
+  const explicitGitConfigGlobalPath =
+    Object.prototype.hasOwnProperty.call(options, 'gitConfigGlobalPath') && isPresent(options.gitConfigGlobalPath)
+      ? options.gitConfigGlobalPath
+      : null;
+  const envGitConfigGlobalPath =
+    Object.prototype.hasOwnProperty.call(process.env, 'GIT_CONFIG_GLOBAL') && isPresent(process.env.GIT_CONFIG_GLOBAL)
+      ? process.env.GIT_CONFIG_GLOBAL
+      : null;
+  const defaultGitConfigGlobalPath = path.join(dataRoot, 'git', '.gitconfig');
+  const gitConfigGlobalPath = explicitGitConfigGlobalPath
+    || (envGitConfigGlobalPath && isPathInside(dataRoot, envGitConfigGlobalPath)
+      ? envGitConfigGlobalPath
+      : defaultGitConfigGlobalPath);
   return {
-    dataRoot: resolveOptional(options, 'dataRoot', 'ORCH_DATA_DIR', DEFAULT_DATA_ROOT),
+    dataRoot,
     dataVolumeName: resolveOptional(
       options,
       'dataVolumeName',
@@ -42,12 +71,7 @@ function resolveConfig(options) {
     ),
     orchHome: resolveOptional(options, 'orchHome', 'ORCH_HOME', DEFAULT_ORCH_HOME),
     codexHome: resolveOptional(options, 'codexHome', 'CODEX_HOME', DEFAULT_CODEX_HOME),
-    gitConfigGlobalPath: resolveOptional(
-      options,
-      'gitConfigGlobalPath',
-      'GIT_CONFIG_GLOBAL',
-      DEFAULT_GIT_CONFIG_GLOBAL
-    ),
+    gitConfigGlobalPath,
     exec: options.exec || runCommand,
     spawn: options.spawn || spawn,
     now: options.now || (() => new Date().toISOString()),

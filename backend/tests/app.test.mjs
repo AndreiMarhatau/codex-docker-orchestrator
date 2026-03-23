@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { createRequire } from 'node:module';
+import fs from 'node:fs/promises';
 import { createMockExec, createMockSpawn, createTempDir, prepareOrchestratorSetup } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
@@ -142,6 +143,28 @@ describe('API', () => {
     expect(rateRes.body.rateLimits.primary.windowDurationMins).toBe(15);
     expect(rateRes.body.rateLimits.primary.resetsAt).toBe(1730947200);
     expect(rateRes.body.fetchedAt).toBeTruthy();
+  });
+
+  it('restores the persisted active account auth at app startup', async () => {
+    const orchHome = await createTempDir();
+    const codexHome = `${orchHome}/codex-home`;
+    const exec = createMockExec({ branches: ['main'] });
+    const spawn = createMockSpawn();
+    const orchestrator = new Orchestrator({
+      orchHome,
+      codexHome,
+      exec,
+      spawn,
+      now: () => '2025-12-19T00:00:00.000Z'
+    });
+
+    await prepareOrchestratorSetup(orchestrator, { authJson: '{"token":"persisted"}' });
+    await fs.rm(`${codexHome}/auth.json`, { force: true });
+
+    await createApp({ orchestrator });
+
+    const restored = await fs.readFile(`${codexHome}/auth.json`, 'utf8');
+    expect(restored).toContain('"token": "persisted"');
   });
 
   it('isolates state-event listener failures from mutations', async () => {

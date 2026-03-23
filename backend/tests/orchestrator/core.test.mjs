@@ -69,7 +69,7 @@ describe('orchestrator core', () => {
     expect(orchestrator.taskDockerCommandTimeoutMs).toBe(0);
   });
 
-  it('overrides inherited GIT_CONFIG_GLOBAL with the orchestrator-managed path', () => {
+  it('preserves inherited GIT_CONFIG_GLOBAL when no baseEnv override is provided', () => {
     const originalGitConfigGlobal = process.env.GIT_CONFIG_GLOBAL;
     process.env.GIT_CONFIG_GLOBAL = '/external/gitconfig';
     const orchestrator = new Orchestrator({
@@ -78,7 +78,7 @@ describe('orchestrator core', () => {
       codexHome: '/managed-root/.codex'
     });
 
-    expect(orchestrator.withRuntimeEnv().GIT_CONFIG_GLOBAL).toBe('/managed-root/git/.gitconfig');
+    expect(orchestrator.withRuntimeEnv().GIT_CONFIG_GLOBAL).toBe('/external/gitconfig');
 
     if (originalGitConfigGlobal === undefined) {
       delete process.env.GIT_CONFIG_GLOBAL;

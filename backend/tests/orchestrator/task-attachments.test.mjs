@@ -67,6 +67,8 @@ describe('Orchestrator task attachments', () => {
     const developerInstructions = extractDeveloperInstructions(runCall.args);
     expect(developerInstructions).toContain('User-uploaded files');
     expect(developerInstructions).toContain('/attachments/notes.txt');
+    expect(developerInstructions).toContain('/root/.artifacts');
+    expect(developerInstructions).toContain('Docker is disabled for this task.');
   });
 
   it('dedupes attachment filenames and validates limits', async () => {

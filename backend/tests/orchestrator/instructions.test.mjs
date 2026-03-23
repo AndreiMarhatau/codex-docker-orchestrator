@@ -28,7 +28,10 @@ describe('developer instructions builder', () => {
     expect(instructions).toContain('ephemeral Docker container');
     expect(instructions).toContain('delegate with `spawn_agent`');
     expect(instructions).toContain('use `fork_context = false` unless you strictly need');
-    expect(instructions).not.toContain('Host Docker Socket');
+    expect(instructions).toContain('do not pass general Codex runtime or container details');
+    expect(instructions).toContain('whether Docker is enabled or disabled for the task');
+    expect(instructions).toContain('Docker is disabled for this task.');
+    expect(instructions).toContain('/root/.artifacts');
     expect(instructions).not.toContain('Environment variables');
   });
 
@@ -57,10 +60,12 @@ describe('developer instructions builder', () => {
 
     expect(instructions).toContain('Follow the local handbook.');
     expect(instructions).toContain('orchestrator-developer-instructions');
+    expect(instructions).toContain('Docker is disabled for this task.');
+    expect(instructions).toContain('/root/.artifacts');
     expect(instructions).not.toContain('Environment variables');
   });
 
-  it('ignores malformed basic-string user instructions', async () => {
+  it('ignores malformed basic-string user instructions and keeps top-level env vars', async () => {
     const codexHome = await createTempDir();
     await fs.writeFile(
       path.join(codexHome, 'config.toml'),
@@ -83,8 +88,10 @@ describe('developer instructions builder', () => {
       }
     );
 
-    expect(instructions).toContain('Host Docker Socket');
+    expect(instructions).toContain('Docker is enabled for this task via an isolated per-task Docker sidecar daemon.');
+    expect(instructions).toContain('/root/.artifacts');
     expect(instructions).toContain('Environment variables');
+    expect(instructions).toContain('SAMPLE_FLAG');
     expect(instructions).not.toContain('orchestrator-developer-instructions');
   });
 });

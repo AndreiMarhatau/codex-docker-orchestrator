@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const express = require('express');
 const { createApp } = require('./app');
 
-function startServer({
+async function startServer({
   app = null,
   port = null,
   uiDistPath = null,
@@ -12,7 +12,7 @@ function startServer({
   createAppFn = createApp
 } = {}) {
   const resolvedPort = port ?? (process.env.ORCH_PORT ? Number(process.env.ORCH_PORT) : 8080);
-  const serverApp = app || createAppFn();
+  const serverApp = app || await createAppFn();
   const uiDist = uiDistPath || path.resolve(__dirname, '../../ui/dist');
 
   if (expressLib.static && fsLib.existsSync(uiDist)) {
@@ -28,7 +28,10 @@ function startServer({
 }
 
 if (require.main === module) {
-  startServer();
+  startServer().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
 }
 
 module.exports = {

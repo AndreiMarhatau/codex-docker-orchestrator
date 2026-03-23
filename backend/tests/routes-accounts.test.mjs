@@ -122,7 +122,7 @@ describe('accounts routes', () => {
     const spawn = createMockSpawn();
     const orchestrator = new Orchestrator({ orchHome, codexHome, exec, spawn });
     const created = await prepareOrchestratorSetup(orchestrator);
-    const app = createApp({ orchestrator });
+    const app = await createApp({ orchestrator });
 
     const triggerRes = await request(app).post('/api/accounts/trigger-usage').expect(200);
     expect(triggerRes.body.account.id).toBe(created.id);

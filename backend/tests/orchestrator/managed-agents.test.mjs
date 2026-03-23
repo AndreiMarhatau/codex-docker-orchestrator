@@ -96,4 +96,35 @@ describe('managed agent reconciliation', () => {
     await expect(fs.stat(path.join(codexHome, 'agents', 'developer.toml'))).resolves.toBeTruthy();
     await expect(fs.stat(path.join(codexHome, 'agents', 'reviewer.toml'))).resolves.toBeTruthy();
   });
+
+  it('handles concurrent manifest rewrites without temp-file collisions', async () => {
+    const codexHome = await createTempDir();
+    const originalNow = Date.now;
+    Date.now = () => 1774284786868;
+
+    try {
+      const [first, second] = await Promise.all([
+        reconcileManagedAgents({
+          codexHome,
+          now: () => '2026-03-23T00:00:00.000Z'
+        }),
+        reconcileManagedAgents({
+          codexHome,
+          now: () => '2026-03-23T00:00:00.000Z'
+        })
+      ]);
+
+      expect(first.agents).toHaveLength(2);
+      expect(second.agents).toHaveLength(2);
+      const manifest = JSON.parse(
+        await fs.readFile(
+          path.join(codexHome, '.codex-docker-orchestrator', 'managed-agents-manifest.json'),
+          'utf8'
+        )
+      );
+      expect(manifest.agents).toHaveLength(2);
+    } finally {
+      Date.now = originalNow;
+    }
+  });
 });

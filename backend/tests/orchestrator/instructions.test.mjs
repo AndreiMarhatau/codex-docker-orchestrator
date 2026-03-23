@@ -26,6 +26,8 @@ describe('developer instructions builder', () => {
     );
 
     expect(instructions).toContain('ephemeral Docker container');
+    expect(instructions).toContain('delegate with `spawn_agent`');
+    expect(instructions).toContain('use `fork_context = false` unless you strictly need');
     expect(instructions).not.toContain('Host Docker Socket');
     expect(instructions).not.toContain('Environment variables');
   });

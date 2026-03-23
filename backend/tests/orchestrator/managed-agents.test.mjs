@@ -24,7 +24,9 @@ describe('managed agent reconciliation', () => {
     const developer = await fs.readFile(path.join(codexHome, 'agents', 'developer.toml'), 'utf8');
     const reviewer = await fs.readFile(path.join(codexHome, 'agents', 'reviewer.toml'), 'utf8');
     expect(developer).toContain('You are the developer agent.');
+    expect(developer).toContain('do not stop until verification is good');
     expect(reviewer).toContain('You are the reviewer agent.');
+    expect(reviewer).toContain('Review only the current uncommitted changes.');
   });
 
   it('removes only previously managed files that are no longer bundled', async () => {

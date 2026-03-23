@@ -80,4 +80,20 @@ describe('managed agent reconciliation', () => {
       code: 'ENOENT'
     });
   });
+
+  it('ignores a malformed existing manifest and still writes the bundled agents', async () => {
+    const codexHome = await createTempDir();
+    const metadataDir = path.join(codexHome, '.codex-docker-orchestrator');
+    await fs.mkdir(metadataDir, { recursive: true });
+    await fs.writeFile(path.join(metadataDir, 'managed-agents-manifest.json'), '{');
+
+    const manifest = await reconcileManagedAgents({
+      codexHome,
+      now: () => '2026-03-23T00:00:00.000Z'
+    });
+
+    expect(manifest.agents).toHaveLength(2);
+    await expect(fs.stat(path.join(codexHome, 'agents', 'developer.toml'))).resolves.toBeTruthy();
+    await expect(fs.stat(path.join(codexHome, 'agents', 'reviewer.toml'))).resolves.toBeTruthy();
+  });
 });

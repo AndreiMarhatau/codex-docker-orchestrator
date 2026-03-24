@@ -29,6 +29,8 @@ describe('developer instructions builder', () => {
     expect(instructions).toContain('delegate with `spawn_agent`');
     expect(instructions).toContain('use `fork_context = false` unless you strictly need');
     expect(instructions).toContain('do not pass general Codex runtime or container details');
+    expect(instructions).toContain('decide whether an `architect` review is needed before code review');
+    expect(instructions).toContain('Only after architect review is clean');
     expect(instructions).toContain('whether Docker is enabled or disabled for the task');
     expect(instructions).toContain('Docker is disabled for this task.');
     expect(instructions).toContain('/root/.artifacts');
@@ -60,6 +62,7 @@ describe('developer instructions builder', () => {
 
     expect(instructions).toContain('Follow the local handbook.');
     expect(instructions).toContain('orchestrator-developer-instructions');
+    expect(instructions).toContain('Use the `architect` agent only when the change complexity');
     expect(instructions).toContain('Docker is disabled for this task.');
     expect(instructions).toContain('/root/.artifacts');
     expect(instructions).not.toContain('Environment variables');
@@ -92,6 +95,7 @@ describe('developer instructions builder', () => {
     expect(instructions).toContain('/root/.artifacts');
     expect(instructions).toContain('Environment variables');
     expect(instructions).toContain('SAMPLE_FLAG');
+    expect(instructions).toContain('Treat architect findings as complete only when they define both the architectural problem');
     expect(instructions).not.toContain('orchestrator-developer-instructions');
   });
 });

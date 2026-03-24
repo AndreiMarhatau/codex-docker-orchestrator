@@ -12,7 +12,7 @@ const {
 } = require('../../src/orchestrator/managed-agents');
 
 describe('managed agent reconciliation', () => {
-  it('writes bundled developer and reviewer agents plus manifest', async () => {
+  it('writes bundled developer, architect, and reviewer agents plus manifest', async () => {
     const codexHome = await createTempDir();
 
     const manifest = await reconcileManagedAgents({
@@ -20,11 +20,14 @@ describe('managed agent reconciliation', () => {
       now: () => '2026-03-23T00:00:00.000Z'
     });
 
-    expect(manifest.agents).toHaveLength(2);
+    expect(manifest.agents).toHaveLength(3);
     const developer = await fs.readFile(path.join(codexHome, 'agents', 'developer.toml'), 'utf8');
+    const architect = await fs.readFile(path.join(codexHome, 'agents', 'architect.toml'), 'utf8');
     const reviewer = await fs.readFile(path.join(codexHome, 'agents', 'reviewer.toml'), 'utf8');
     expect(developer).toContain('You are the developer agent.');
     expect(developer).toContain('do not stop until verification is good');
+    expect(architect).toContain('You are the architect agent.');
+    expect(architect).toContain('emerging architectural problem');
     expect(reviewer).toContain('You are the reviewer agent.');
     expect(reviewer).toContain('Review only the current uncommitted changes.');
   });
@@ -52,6 +55,7 @@ describe('managed agent reconciliation', () => {
 
     await expect(fs.stat(path.join(agentsDir, 'user-agent.toml'))).resolves.toBeTruthy();
     await expect(fs.stat(path.join(agentsDir, 'developer.toml'))).resolves.toBeTruthy();
+    await expect(fs.stat(path.join(agentsDir, 'architect.toml'))).resolves.toBeTruthy();
     await expect(fs.stat(path.join(agentsDir, 'reviewer.toml'))).resolves.toBeTruthy();
     await expect(fs.stat(path.join(agentsDir, 'old-managed.toml'))).rejects.toMatchObject({
       code: 'ENOENT'
@@ -61,7 +65,7 @@ describe('managed agent reconciliation', () => {
   it('allows test overrides for bundled agents', async () => {
     const codexHome = await createTempDir();
     const updatedAgents = [
-      ...DEFAULT_MANAGED_AGENTS.filter((agent) => agent.id !== 'reviewer'),
+      ...DEFAULT_MANAGED_AGENTS.filter((agent) => agent.id !== 'architect' && agent.id !== 'reviewer'),
       {
         id: 'developer',
         filename: 'developer.toml',
@@ -78,6 +82,9 @@ describe('managed agent reconciliation', () => {
     expect(manifest).toMatchObject(buildManagedAgentsManifest(updatedAgents));
     const developer = await fs.readFile(path.join(codexHome, 'agents', 'developer.toml'), 'utf8');
     expect(developer).toContain('Updated');
+    await expect(fs.stat(path.join(codexHome, 'agents', 'architect.toml'))).rejects.toMatchObject({
+      code: 'ENOENT'
+    });
     await expect(fs.stat(path.join(codexHome, 'agents', 'reviewer.toml'))).rejects.toMatchObject({
       code: 'ENOENT'
     });
@@ -94,8 +101,9 @@ describe('managed agent reconciliation', () => {
       now: () => '2026-03-23T00:00:00.000Z'
     });
 
-    expect(manifest.agents).toHaveLength(2);
+    expect(manifest.agents).toHaveLength(3);
     await expect(fs.stat(path.join(codexHome, 'agents', 'developer.toml'))).resolves.toBeTruthy();
+    await expect(fs.stat(path.join(codexHome, 'agents', 'architect.toml'))).resolves.toBeTruthy();
     await expect(fs.stat(path.join(codexHome, 'agents', 'reviewer.toml'))).resolves.toBeTruthy();
   });
 
@@ -116,15 +124,15 @@ describe('managed agent reconciliation', () => {
         })
       ]);
 
-      expect(first.agents).toHaveLength(2);
-      expect(second.agents).toHaveLength(2);
+      expect(first.agents).toHaveLength(3);
+      expect(second.agents).toHaveLength(3);
       const manifest = JSON.parse(
         await fs.readFile(
           path.join(codexHome, '.codex-docker-orchestrator', 'managed-agents-manifest.json'),
           'utf8'
         )
       );
-      expect(manifest.agents).toHaveLength(2);
+      expect(manifest.agents).toHaveLength(3);
     } finally {
       Date.now = originalNow;
     }

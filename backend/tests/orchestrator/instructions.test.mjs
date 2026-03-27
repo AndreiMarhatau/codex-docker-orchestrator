@@ -29,8 +29,11 @@ describe('developer instructions builder', () => {
     expect(instructions).toContain('delegate with `spawn_agent`');
     expect(instructions).toContain('use `fork_context = false` unless you strictly need');
     expect(instructions).toContain('do not pass general Codex runtime or container details');
-    expect(instructions).toContain('decide whether an `architect` review is needed before code review');
-    expect(instructions).toContain('Only after architect review is clean');
+    expect(instructions).toContain('Make a quick decision first');
+    expect(instructions).toContain('Do not do repository investigation, code review, architect review, or reviewer work yourself');
+    expect(instructions).toContain('developer` agent does not inherit it automatically');
+    expect(instructions).toContain('including defined CI requirements');
+    expect(instructions).toContain('If the `developer` agent made any change, run the `reviewer` agent');
     expect(instructions).toContain('whether Docker is enabled or disabled for the task');
     expect(instructions).toContain('Docker is disabled for this task.');
     expect(instructions).toContain('/root/.artifacts');
@@ -62,7 +65,7 @@ describe('developer instructions builder', () => {
 
     expect(instructions).toContain('Follow the local handbook.');
     expect(instructions).toContain('orchestrator-developer-instructions');
-    expect(instructions).toContain('Use the `architect` agent only when the change complexity');
+    expect(instructions).toContain('Use the `architect` agent when changes affect infrastructure');
     expect(instructions).toContain('Docker is disabled for this task.');
     expect(instructions).toContain('/root/.artifacts');
     expect(instructions).not.toContain('Environment variables');
@@ -96,6 +99,7 @@ describe('developer instructions builder', () => {
     expect(instructions).toContain('Environment variables');
     expect(instructions).toContain('SAMPLE_FLAG');
     expect(instructions).toContain('Treat architect findings as complete only when they define both the architectural problem');
+    expect(instructions).toContain('Pass the full user request and all task-specific context');
     expect(instructions).not.toContain('orchestrator-developer-instructions');
   });
 });

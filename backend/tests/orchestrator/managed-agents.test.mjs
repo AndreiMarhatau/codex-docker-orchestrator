@@ -25,7 +25,9 @@ describe('managed agent reconciliation', () => {
     const architect = await fs.readFile(path.join(codexHome, 'agents', 'architect.toml'), 'utf8');
     const reviewer = await fs.readFile(path.join(codexHome, 'agents', 'reviewer.toml'), 'utf8');
     expect(developer).toContain('You are the developer agent.');
-    expect(developer).toContain('do not stop until verification is good');
+    expect(developer).toContain('Verification must be reasonable for the task');
+    expect(developer).toContain('defined CI requirements in full');
+    expect(developer).toContain('e2e, integration, or manual checks');
     expect(architect).toContain('You are the architect agent.');
     expect(architect).toContain('emerging architectural problem');
     expect(reviewer).toContain('You are the reviewer agent.');

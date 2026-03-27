@@ -3,6 +3,7 @@ const { defineConfig } = require('vitest/config');
 module.exports = defineConfig({
   test: {
     environment: 'node',
+    setupFiles: ['./tests/setup.mjs'],
     coverage: {
       provider: 'v8',
       all: true,

@@ -154,15 +154,17 @@ const taskDiff = {
   ]
 };
 const rateLimits = {
-  primary: {
-    usedPercent: 30,
-    windowDurationMins: 60,
-    resetsAt: Math.floor(Date.now() / 1000) + 3600
-  },
-  secondary: {
-    usedPercent: 50,
-    windowDurationMins: 1440,
-    resetsAt: Math.floor(Date.now() / 1000) + 7200
+  windows: {
+    burst: {
+      usedPercent: 30,
+      windowDurationMins: 60,
+      resetsAt: Math.floor(Date.now() / 1000) + 3600
+    },
+    long_session: {
+      usedPercent: 50,
+      windowDurationMins: 1440,
+      resetsAt: Math.floor(Date.now() / 1000) + 7200
+    }
   },
   credits: { hasCredits: true, balance: '$20' },
   planType: 'team'

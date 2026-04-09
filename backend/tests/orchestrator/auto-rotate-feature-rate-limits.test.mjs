@@ -30,24 +30,21 @@ async function setupOrchestrator(rateLimitsByToken) {
 
 function createLimitsWithExhaustedFeatureMeter() {
   return {
-    primary: { usedPercent: 5, windowDurationMins: 15, resetsAt: 1730947200 },
-    secondary: null,
+    windows: {
+      primary: { usedPercent: 5, windowDurationMins: 15, resetsAt: 1730947200 }
+    },
     credits: null,
     planType: 'prolite',
     additionalRateLimits: [
       {
         limitName: 'bonus',
         meteredFeature: 'priority_tasks',
-        primary: { usedPercent: 100, windowDurationMins: 60, resetsAt: 1730950800 },
-        secondary: null,
         windows: {
           primary: { usedPercent: 100, windowDurationMins: 60, resetsAt: 1730950800 }
         }
       }
     ],
     codeReviewRateLimit: {
-      primary: { usedPercent: 100, windowDurationMins: 60, resetsAt: 1730950800 },
-      secondary: null,
       windows: {
         primary: { usedPercent: 100, windowDurationMins: 60, resetsAt: 1730950800 }
       }
@@ -57,8 +54,6 @@ function createLimitsWithExhaustedFeatureMeter() {
 
 function createRenamedBaseWindowsWithExhaustedFeatureMeter() {
   return {
-    primary: null,
-    secondary: null,
     windows: {
       burst: { usedPercent: 5, windowDurationMins: 15, resetsAt: 1730947200 },
       sustain: { usedPercent: 10, windowDurationMins: 60, resetsAt: 1730950800 }
@@ -69,8 +64,6 @@ function createRenamedBaseWindowsWithExhaustedFeatureMeter() {
       {
         limitName: 'bonus',
         meteredFeature: 'priority_tasks',
-        primary: { usedPercent: 100, windowDurationMins: 60, resetsAt: 1730950800 },
-        secondary: null,
         windows: {
           primary: { usedPercent: 100, windowDurationMins: 60, resetsAt: 1730950800 }
         }
@@ -93,8 +86,9 @@ describe('Orchestrator auto-rotate feature-specific rate limits', () => {
   it('keeps general task rotation based on the base account windows', async () => {
     const { codexHome, orchestrator, spawnCalls } = await setupOrchestrator({
       primary: {
-        primary: { usedPercent: 100, windowDurationMins: 15, resetsAt: 1730947200 },
-        secondary: null,
+        windows: {
+          primary: { usedPercent: 100, windowDurationMins: 15, resetsAt: 1730947200 }
+        },
         credits: null,
         planType: null
       },
@@ -120,8 +114,9 @@ describe('Orchestrator auto-rotate feature-specific rate limits', () => {
   it('accepts renamed base windows without letting feature-specific meters block rotation', async () => {
     const { codexHome, orchestrator, spawnCalls } = await setupOrchestrator({
       primary: {
-        primary: { usedPercent: 100, windowDurationMins: 15, resetsAt: 1730947200 },
-        secondary: null,
+        windows: {
+          primary: { usedPercent: 100, windowDurationMins: 15, resetsAt: 1730947200 }
+        },
         credits: null,
         planType: null
       },

@@ -50,12 +50,16 @@ describe('account rate-limit normalization', () => {
     expect(normalized.planType).toBe('proliteplus');
     expect(normalized.allowed).toBe(true);
     expect(normalized.limitReached).toBe(false);
-    expect(normalized.primary.windowDurationMins).toBe(15);
+    expect(normalized).not.toHaveProperty('primary');
+    expect(normalized).not.toHaveProperty('secondary');
+    expect(normalized.windows.primary.windowDurationMins).toBe(15);
     expect(normalized.windows.burst.usedPercent).toBe(5);
     expect(normalized.windows.long_session.usedPercent).toBe(15);
     expect(normalized.windows.long_session.windowDurationMins).toBe(120);
     expect(normalized.credits.hasCredits).toBe(false);
     expect(normalized.codeReviewRateLimit.windows.secondary.usedPercent).toBe(25);
+    expect(normalized.codeReviewRateLimit).not.toHaveProperty('primary');
+    expect(normalized.codeReviewRateLimit).not.toHaveProperty('secondary');
   });
 
   it('collects only base normalized windows for general eligibility checks', () => {
@@ -64,7 +68,6 @@ describe('account rate-limit normalization', () => {
         burst: { usedPercent: 10 },
         sustain: { usedPercent: 20 }
       },
-      primary: { usedPercent: 99 },
       additionalRateLimits: [
         {
           windows: {

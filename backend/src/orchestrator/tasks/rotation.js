@@ -15,12 +15,16 @@ function summarizeRateLimits(rateLimits) {
   if (!rateLimits || typeof rateLimits !== 'object') {
     return null;
   }
-  const getUsedPercent = (window) =>
-    window && typeof window.usedPercent === 'number' ? window.usedPercent : null;
-  return {
-    primaryUsedPercent: getUsedPercent(rateLimits.primary),
-    secondaryUsedPercent: getUsedPercent(rateLimits.secondary)
-  };
+  const windows =
+    rateLimits.windows && typeof rateLimits.windows === 'object'
+      ? Object.fromEntries(
+          Object.entries(rateLimits.windows).map(([name, window]) => [
+            name,
+            window && typeof window.usedPercent === 'number' ? window.usedPercent : null
+          ])
+        )
+      : {};
+  return { windows };
 }
 
 function hasRemainingUsage(rateLimits) {

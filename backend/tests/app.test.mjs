@@ -139,9 +139,9 @@ describe('API', () => {
     const { app } = await createTestApp();
     const rateRes = await request(app).get('/api/accounts/rate-limits').expect(200);
     expect(rateRes.body.account.label).toBe('Primary');
-    expect(rateRes.body.rateLimits.primary.usedPercent).toBe(25);
-    expect(rateRes.body.rateLimits.primary.windowDurationMins).toBe(15);
-    expect(rateRes.body.rateLimits.primary.resetsAt).toBe(1730947200);
+    expect(rateRes.body.rateLimits.windows.primary.usedPercent).toBe(25);
+    expect(rateRes.body.rateLimits.windows.primary.windowDurationMins).toBe(15);
+    expect(rateRes.body.rateLimits.windows.primary.resetsAt).toBe(1730947200);
     expect(rateRes.body.fetchedAt).toBeTruthy();
   });
 

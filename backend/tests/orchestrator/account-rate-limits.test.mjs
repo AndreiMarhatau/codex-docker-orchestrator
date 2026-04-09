@@ -67,7 +67,10 @@ function createRateLimitSpawn({ updatedAuth, responseDelayMs = 0 } = {}) {
               : Promise.resolve();
             persistAuth.then(() => {
               child.stdout.write(
-                `${JSON.stringify({ id: message.id, result: { rateLimits: { primary: { usedPercent: 42 } } } })}\n`
+                `${JSON.stringify({
+                  id: message.id,
+                  result: { rateLimits: { windows: { primary: { usedPercent: 42 } } } }
+                })}\n`
               );
               setTimeout(() => {
                 child.stdout.end();

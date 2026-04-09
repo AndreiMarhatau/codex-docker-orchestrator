@@ -54,6 +54,17 @@ function RateLimitWindow({ label, window }) {
   );
 }
 
+function formatWindowLabel(name) {
+  if (!name) {
+    return 'Unknown';
+  }
+  return name
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 function UsageLimits({ accountsState }) {
   const {
     activeAccount,
@@ -83,6 +94,14 @@ function UsageLimits({ accountsState }) {
       return `Balance: ${credits.balance}`;
     }
     return 'Credits available.';
+  }, [rateLimits]);
+
+  const windowEntries = useMemo(() => {
+    const windows = rateLimits?.windows;
+    if (!windows || typeof windows !== 'object') {
+      return [];
+    }
+    return Object.entries(windows);
   }, [rateLimits]);
 
   return (
@@ -129,10 +148,17 @@ function UsageLimits({ accountsState }) {
       {rateLimits && (
         <Box className="log-box">
           <Stack spacing={1.5}>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              <RateLimitWindow label="Primary" window={rateLimits.primary} />
-              <RateLimitWindow label="Secondary" window={rateLimits.secondary} />
-            </Stack>
+            {windowEntries.length > 0 ? (
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} flexWrap="wrap">
+                {windowEntries.map(([name, window]) => (
+                  <RateLimitWindow key={name} label={formatWindowLabel(name)} window={window} />
+                ))}
+              </Stack>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No rate-limit windows available.
+              </Typography>
+            )}
             <Divider />
             <Stack spacing={0.5}>
               <Typography variant="subtitle2">Credits</Typography>

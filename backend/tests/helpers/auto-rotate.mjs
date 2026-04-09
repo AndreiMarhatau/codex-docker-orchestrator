@@ -4,8 +4,9 @@ import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 
 export const defaultRateLimits = {
-  primary: { usedPercent: 25, windowDurationMins: 15, resetsAt: 1730947200 },
-  secondary: null,
+  windows: {
+    primary: { usedPercent: 25, windowDurationMins: 15, resetsAt: 1730947200 }
+  },
   credits: null,
   planType: null
 };

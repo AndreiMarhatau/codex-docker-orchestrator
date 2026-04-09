@@ -16,8 +16,7 @@ it(
       '/api/accounts/rate-limits': {
         rateLimits: {
           credits: { hasCredits: false },
-          primary: null,
-          secondary: null
+          windows: {}
         },
         fetchedAt: ''
       }
@@ -38,7 +37,7 @@ it(
 
     await user.click(screen.getByRole('tab', { name: 'Accounts' }));
     expect(await screen.findByText('No credits available.')).toBeInTheDocument();
-    expect(screen.getAllByText('No data.').length).toBeGreaterThan(0);
+    expect(screen.getByText('No rate-limit windows available.')).toBeInTheDocument();
     expect(screen.getByText('No accounts yet. Add one to enable rotation.')).toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: 'Settings' }));

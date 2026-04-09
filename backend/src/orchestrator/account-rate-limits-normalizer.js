@@ -124,8 +124,6 @@ function normalizeAdditionalRateLimit(entry) {
     meteredFeature: readString(entry.meteredFeature, entry.metered_feature),
     allowed: readBoolean(entry.allowed, section.allowed),
     limitReached: readBoolean(entry.limitReached, entry.limit_reached, section.limitReached, section.limit_reached),
-    primary: windows.primary || null,
-    secondary: windows.secondary || null,
     windows
   };
 }
@@ -146,8 +144,6 @@ function normalizeRateLimits(rateLimits) {
   );
 
   const normalized = {
-    primary: windows.primary || null,
-    secondary: windows.secondary || null,
     windows,
     allowed: readBoolean(baseSection.allowed, rateLimits.allowed),
     limitReached: readBoolean(baseSection.limitReached, baseSection.limit_reached, rateLimits.limitReached, rateLimits.limit_reached),
@@ -167,9 +163,8 @@ function collectBaseRateLimitWindows(rateLimits) {
   if (!rateLimits || typeof rateLimits !== 'object') {
     return [];
   }
-  const baseWindows = rateLimits.windows && typeof rateLimits.windows === 'object'
-    ? Object.values(rateLimits.windows)
-    : [rateLimits.primary, rateLimits.secondary];
+  const baseWindows =
+    rateLimits.windows && typeof rateLimits.windows === 'object' ? Object.values(rateLimits.windows) : [];
   return baseWindows.filter((entry) => entry && typeof entry.usedPercent === 'number');
 }
 

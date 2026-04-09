@@ -64,14 +64,16 @@ describe('Orchestrator auto-rotate rate limits', () => {
     const { codexHome, orchestrator, spawnCalls } = await setupOrchestrator({
       rateLimitsByToken: {
         primary: {
-          primary: { usedPercent: 100, windowDurationMins: 15, resetsAt: 1730947200 },
-          secondary: null,
+          windows: {
+            primary: { usedPercent: 100, windowDurationMins: 15, resetsAt: 1730947200 }
+          },
           credits: null,
           planType: null
         },
         secondary: {
-          primary: { usedPercent: 10, windowDurationMins: 15, resetsAt: 1730947200 },
-          secondary: null,
+          windows: {
+            primary: { usedPercent: 10, windowDurationMins: 15, resetsAt: 1730947200 }
+          },
           credits: null,
           planType: null
         }
@@ -99,14 +101,16 @@ describe('Orchestrator auto-rotate rate limits', () => {
     const { codexHome, orchestrator, spawnCalls } = await setupOrchestrator({
       rateLimitsByToken: {
         primary: {
-          primary: { usedPercent: 100, windowDurationMins: 15, resetsAt: 1730947200 },
-          secondary: null,
+          windows: {
+            primary: { usedPercent: 100, windowDurationMins: 15, resetsAt: 1730947200 }
+          },
           credits: null,
           planType: null
         },
         secondary: {
-          primary: { usedPercent: 100, windowDurationMins: 15, resetsAt: 1730947200 },
-          secondary: null,
+          windows: {
+            primary: { usedPercent: 100, windowDurationMins: 15, resetsAt: 1730947200 }
+          },
           credits: null,
           planType: null
         }
@@ -134,20 +138,23 @@ describe('Orchestrator auto-rotate rate limits', () => {
     const { codexHome, orchestrator, spawnCalls } = await setupOrchestrator({
       rateLimitsByToken: {
         primary: {
-          primary: { usedPercent: 100, windowDurationMins: 15, resetsAt: 1730947200 },
-          secondary: null,
+          windows: {
+            primary: { usedPercent: 100, windowDurationMins: 15, resetsAt: 1730947200 }
+          },
           credits: null,
           planType: null
         },
         secondary: {
-          primary: { usedPercent: 100, windowDurationMins: 15, resetsAt: 1730947200 },
-          secondary: null,
+          windows: {
+            primary: { usedPercent: 100, windowDurationMins: 15, resetsAt: 1730947200 }
+          },
           credits: null,
           planType: null
         },
         tertiary: {
-          primary: { usedPercent: 5, windowDurationMins: 15, resetsAt: 1730947200 },
-          secondary: null,
+          windows: {
+            primary: { usedPercent: 5, windowDurationMins: 15, resetsAt: 1730947200 }
+          },
           credits: null,
           planType: null
         }

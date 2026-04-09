@@ -109,9 +109,7 @@ function attachAccountMethods(Orchestrator) {
   ) {
     return readAccountRateLimits({
       spawn: this.spawn,
-      env: this.buildCodexDockerEnv({ codexHomePath: codexHome }),
-      fetchImpl: this.fetch,
-      codexHomePath: codexHome
+      env: this.buildCodexDockerEnv({ codexHomePath: codexHome })
     });
   };
 }

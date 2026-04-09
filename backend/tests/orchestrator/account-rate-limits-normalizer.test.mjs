@@ -8,9 +8,9 @@ const {
 } = require('../../src/orchestrator/account-rate-limits-normalizer');
 
 describe('account rate-limit normalization', () => {
-  it('normalizes raw wham usage payloads with dynamic window names', () => {
+  it('keeps opaque plan names and normalizes dynamic base and feature window names', () => {
     const normalized = normalizeRateLimits({
-      plan_type: 'prolite',
+      plan_type: 'proliteplus',
       rate_limit: {
         allowed: true,
         limit_reached: false,
@@ -24,6 +24,13 @@ describe('account rate-limit normalization', () => {
           used_percent: 5,
           limit_window_seconds: 300,
           reset_at: 1730946900
+        },
+        windows: {
+          longSession: {
+            used_percent: 15,
+            limit_window_seconds: 7200,
+            reset_at: 1730954400
+          }
         }
       },
       credits: {
@@ -40,11 +47,13 @@ describe('account rate-limit normalization', () => {
       }
     });
 
-    expect(normalized.planType).toBe('prolite');
+    expect(normalized.planType).toBe('proliteplus');
     expect(normalized.allowed).toBe(true);
     expect(normalized.limitReached).toBe(false);
     expect(normalized.primary.windowDurationMins).toBe(15);
     expect(normalized.windows.burst.usedPercent).toBe(5);
+    expect(normalized.windows.long_session.usedPercent).toBe(15);
+    expect(normalized.windows.long_session.windowDurationMins).toBe(120);
     expect(normalized.credits.hasCredits).toBe(false);
     expect(normalized.codeReviewRateLimit.windows.secondary.usedPercent).toBe(25);
   });

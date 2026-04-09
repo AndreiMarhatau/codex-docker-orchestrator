@@ -2,6 +2,7 @@ const os = require('node:os');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { readJson, writeJson, pathExists, removePath } = require('../../storage');
+const { collectBaseRateLimitWindows } = require('../account-rate-limits-normalizer');
 const { isUsageLimitError } = require('../logs');
 
 function shouldRotate({ prompt, result }) {
@@ -23,10 +24,7 @@ function summarizeRateLimits(rateLimits) {
 }
 
 function hasRemainingUsage(rateLimits) {
-  if (!rateLimits || typeof rateLimits !== 'object') {
-    return false;
-  }
-  const windows = Object.values(rateLimits).filter((entry) => entry && typeof entry.usedPercent === 'number');
+  const windows = collectBaseRateLimitWindows(rateLimits);
   if (windows.length === 0) {
     return false;
   }

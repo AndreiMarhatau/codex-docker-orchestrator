@@ -1,3 +1,8 @@
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const { normalizeRateLimits, readString } = require('./account-rate-limits-normalizer');
+const WHAM_USAGE_URL = 'https://chatgpt.com/backend-api/wham/usage';
+
 function createRateLimitPayloads() {
   const initRequestId = 1;
   const rateLimitRequestId = 2;
@@ -22,6 +27,89 @@ function sendJsonLine(child, payload, onError) {
   } catch (error) {
     onError(error);
   }
+}
+
+function shouldFallbackToWhamUsage(error) {
+  const message = readString(error?.message);
+  if (!message) {
+    return false;
+  }
+  const lower = message.toLowerCase();
+  const contractIndicators = [
+    'decod',
+    'deserial',
+    'schema',
+    'unknown variant',
+    'unknown field',
+    'missing field',
+    'invalid type',
+    'unexpected type',
+    'unexpected value',
+    'parse error',
+    'failed to parse'
+  ];
+  if (!contractIndicators.some((indicator) => lower.includes(indicator))) {
+    return false;
+  }
+  const unrelatedIndicators = [
+    'timed out',
+    'timeout',
+    'unauthorized',
+    'forbidden',
+    'permission denied',
+    'network',
+    'econn',
+    'enotfound',
+    'socket hang up',
+    'tls',
+    'certificate',
+    'service unavailable'
+  ];
+  return !unrelatedIndicators.some((indicator) => lower.includes(indicator));
+}
+
+async function readAuthJson(codexHomePath) {
+  if (!readString(codexHomePath)) {
+    throw new Error('Unable to locate Codex auth.json for direct rate-limit fetch.');
+  }
+  const authPath = path.join(codexHomePath, 'auth.json');
+  const raw = await fs.readFile(authPath, 'utf8');
+  return JSON.parse(raw);
+}
+
+function readAccessToken(auth) {
+  return readString(auth?.tokens?.access_token, auth?.access_token);
+}
+
+async function fetchWhamUsageRateLimits({ fetchImpl, codexHomePath }) {
+  if (typeof fetchImpl !== 'function') {
+    throw new Error('Fetch is not available for direct rate-limit fallback.');
+  }
+  const auth = await readAuthJson(codexHomePath);
+  const accessToken = readAccessToken(auth);
+  if (!accessToken) {
+    throw new Error('Active account auth.json does not include an access token for rate-limit fallback.');
+  }
+  const response = await fetchImpl(WHAM_USAGE_URL, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: 'application/json'
+    }
+  });
+  const text = await response.text();
+  let payload = null;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch (error) {
+    payload = null;
+  }
+  if (!response.ok) {
+    const message =
+      readString(payload?.detail, payload?.message, payload?.error?.message) ||
+      `Direct rate-limit fetch failed with status ${response.status}.`;
+    throw new Error(message);
+  }
+  return normalizeRateLimits(payload);
 }
 
 function readRateLimits(child, payloads) {
@@ -110,14 +198,20 @@ function readRateLimits(child, payloads) {
   });
 }
 
-async function readAccountRateLimits({ spawn, env }) {
-  const child = spawn('codex-docker', ['app-server'], {
-    env,
-    stdio: ['pipe', 'pipe', 'pipe']
-  });
-  return readRateLimits(child, createRateLimitPayloads());
+async function readAccountRateLimits({ spawn, env, fetchImpl = global.fetch, codexHomePath }) {
+  try {
+    const child = spawn('codex-docker', ['app-server'], {
+      env,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+    const rateLimits = await readRateLimits(child, createRateLimitPayloads());
+    return normalizeRateLimits(rateLimits);
+  } catch (error) {
+    if (!shouldFallbackToWhamUsage(error)) {
+      throw error;
+    }
+    return fetchWhamUsageRateLimits({ fetchImpl, codexHomePath });
+  }
 }
 
-module.exports = {
-  readAccountRateLimits
-};
+module.exports = { readAccountRateLimits };

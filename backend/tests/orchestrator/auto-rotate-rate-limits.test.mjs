@@ -173,5 +173,4 @@ describe('Orchestrator auto-rotate rate limits', () => {
     const activeAuth = JSON.parse(await fs.readFile(path.join(codexHome, 'auth.json'), 'utf8'));
     expect(activeAuth).toEqual({ token: 'tertiary' });
   });
-
 });

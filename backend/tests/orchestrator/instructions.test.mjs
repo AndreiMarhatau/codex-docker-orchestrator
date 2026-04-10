@@ -6,22 +6,36 @@ import { createTempDir } from '../helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { buildDeveloperInstructions } = require('../../src/orchestrator/tasks/instructions');
-const { DEFAULT_TASK_DEVELOPER_INSTRUCTIONS_FILE } = require('../../src/orchestrator/constants');
+const REPO_ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../..');
 const ORCHESTRATOR_DEVELOPER_INSTRUCTIONS_FILE = path.resolve(
   path.dirname(new URL(import.meta.url).pathname),
   '../../../ORCHESTRATOR_DEVELOPER_INSTRUCTIONS.md'
 );
 
 describe('developer instructions builder', () => {
-  it('ships the bundled task developer instructions file', async () => {
-    await expect(fs.stat(DEFAULT_TASK_DEVELOPER_INSTRUCTIONS_FILE)).resolves.toBeTruthy();
+  it('does not ship a separate delegated developer instructions file', async () => {
+    await expect(fs.stat(path.join(REPO_ROOT, 'DEVELOPER_TASK_INSTRUCTIONS.md'))).rejects.toMatchObject({
+      code: 'ENOENT'
+    });
   });
 
-  it('keeps orchestrator and task instruction roles separate', async () => {
-    const [orchestratorInstructions, taskInstructions] = await Promise.all([
-      fs.readFile(ORCHESTRATOR_DEVELOPER_INSTRUCTIONS_FILE, 'utf8'),
-      fs.readFile(DEFAULT_TASK_DEVELOPER_INSTRUCTIONS_FILE, 'utf8')
-    ]);
+  it('keeps orchestrator and delegated developer instruction roles separate', async () => {
+    const orchestratorInstructions = await fs.readFile(ORCHESTRATOR_DEVELOPER_INSTRUCTIONS_FILE, 'utf8');
+    const delegatedInstructions = buildDeveloperInstructions.call(
+      {},
+      {
+        useHostDockerSocket: false,
+        contextRepos: [],
+        attachments: [],
+        envVars: null,
+        exposedPaths: {
+          uploadsPath: '/attachments',
+          repositoriesPath: '/readonly',
+          repositoriesAliasPath: '/readonly',
+          contextRepos: []
+        }
+      }
+    );
 
     expect(orchestratorInstructions).toContain('top-level orchestrator');
     expect(orchestratorInstructions).toContain('coordination, delegation, scope control');
@@ -29,10 +43,10 @@ describe('developer instructions builder', () => {
     expect(orchestratorInstructions).toContain('delegated `developer` agent');
     expect(orchestratorInstructions).not.toContain('Fully address the request in the repository');
 
-    expect(taskInstructions).toContain('Fully address the request in the repository and verify the result before stopping.');
-    expect(taskInstructions).toContain('Do not add fallbacks or backward-compatibility work unless the request explicitly asks for it');
-    expect(taskInstructions).not.toContain('spawn_agent');
-    expect(taskInstructions).not.toContain('top-level orchestrator');
+    expect(delegatedInstructions).toContain('Fully address the request. Investigate, make the required changes, and finish the implementation before stopping.');
+    expect(delegatedInstructions).toContain('Do not add fallbacks or backward-compatibility work unless the request context explicitly asks for it');
+    expect(delegatedInstructions).not.toContain('spawn_agent');
+    expect(delegatedInstructions).not.toContain('top-level orchestrator');
   });
 
   it('builds static instructions without a codex home or dynamic sections', async () => {
@@ -54,9 +68,9 @@ describe('developer instructions builder', () => {
 
     expect(instructions).toContain('ephemeral Docker container');
     expect(instructions).toContain('without asking for approval first');
-    expect(instructions).toContain('Fully address the request in the repository and verify the result before stopping.');
-    expect(instructions).toContain('Do not add fallbacks or backward-compatibility work unless the request explicitly asks for it');
-    expect(instructions).toContain('note the case in your final report');
+    expect(instructions).toContain('Fully address the request. Investigate, make the required changes, and finish the implementation before stopping.');
+    expect(instructions).toContain('Do not add fallbacks or backward-compatibility work unless the request context explicitly asks for it');
+    expect(instructions).toContain('call out the case in your return summary');
     expect(instructions).toContain('Docker is disabled for this task.');
     expect(instructions).toContain('/root/.artifacts');
     expect(instructions).not.toContain('spawn_agent');
@@ -91,7 +105,7 @@ describe('developer instructions builder', () => {
 
     expect(instructions).toContain('Follow the local handbook.');
     expect(instructions).toContain('task-developer-instructions');
-    expect(instructions).toContain('note the case in your final report');
+    expect(instructions).toContain('call out the case in your return summary');
     expect(instructions).toContain('Docker is disabled for this task.');
     expect(instructions).toContain('/root/.artifacts');
     expect(instructions).not.toContain('informing the user');
@@ -126,8 +140,8 @@ describe('developer instructions builder', () => {
     expect(instructions).toContain('/root/.artifacts');
     expect(instructions).toContain('Environment variables');
     expect(instructions).toContain('SAMPLE_FLAG');
-    expect(instructions).toContain('backward-compatibility work unless the request explicitly asks for it');
-    expect(instructions).toContain('note the case in your final report');
+    expect(instructions).toContain('backward-compatibility work unless the request context explicitly asks for it');
+    expect(instructions).toContain('call out the case in your return summary');
     expect(instructions).not.toContain('task-developer-instructions');
     expect(instructions).not.toContain('Pass the full user request and all task-specific context');
   });

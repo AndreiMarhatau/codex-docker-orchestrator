@@ -84,6 +84,7 @@ describe('Orchestrator task context', () => {
     expect(developerInstructions).toContain('Environment variables');
     expect(developerInstructions).toContain('API_TOKEN');
     expect(developerInstructions).toContain('FEATURE_FLAG');
+    expect(developerInstructions).toContain('You are the developer agent.');
     expect(developerInstructions).not.toContain('spawn_agent');
     expect(developerInstructions).not.toContain('reviewer` agent');
   });

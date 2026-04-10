@@ -64,8 +64,8 @@ You can also set the variable in a `.env` file in `ui/` (for example, `VITE_API_
 
 ## Prompt architecture
 - `ORCHESTRATOR_DEVELOPER_INSTRUCTIONS.md` is the outer prompt for the top-level orchestrator agent. It should talk only about coordination, delegation, scope control, review flow, and final completion/commit ownership.
-- `DEVELOPER_TASK_INSTRUCTIONS.md` is the inner baseline prompt that the backend injects into each delegated task run via `developer_instructions=...`. It is where repository implementation and verification guidance belongs.
-- They are both required because they target different runtime roles. The orchestrator file is not the task-run prompt, and the task-run file should not contain orchestrator-only delegation logic.
+- The delegated `developer` prompt has a single source of truth in `backend/src/orchestrator/agent-instructions.js`. The backend injects that developer text into delegated task runs via `developer_instructions=...`, and the same text is used to generate the managed `developer` agent.
+- The orchestrator prompt remains separate because it targets a different runtime role. Delegated developer runs should not receive orchestrator-only delegation logic.
 
 ## Environment variables inside Codex
 - Each environment can define key/value pairs in the Environments tab; they are injected into every

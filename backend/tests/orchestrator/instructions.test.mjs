@@ -6,8 +6,13 @@ import { createTempDir } from '../helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { buildDeveloperInstructions } = require('../../src/orchestrator/tasks/instructions');
+const { DEFAULT_TASK_DEVELOPER_INSTRUCTIONS_FILE } = require('../../src/orchestrator/constants');
 
 describe('developer instructions builder', () => {
+  it('ships the bundled task developer instructions file', async () => {
+    await expect(fs.stat(DEFAULT_TASK_DEVELOPER_INSTRUCTIONS_FILE)).resolves.toBeTruthy();
+  });
+
   it('builds static instructions without a codex home or dynamic sections', async () => {
     const instructions = buildDeveloperInstructions.call(
       {},
@@ -26,18 +31,16 @@ describe('developer instructions builder', () => {
     );
 
     expect(instructions).toContain('ephemeral Docker container');
-    expect(instructions).toContain('delegate with `spawn_agent`');
-    expect(instructions).toContain('use `fork_context = false` unless you strictly need');
-    expect(instructions).toContain('do not pass general Codex runtime or container details');
-    expect(instructions).toContain('Make a quick decision first');
-    expect(instructions).toContain('Do not add fallbacks or backward-compatibility work unless the user explicitly asks for it');
-    expect(instructions).toContain('Do not do repository investigation, code review, architect review, or reviewer work yourself');
-    expect(instructions).toContain('developer` agent does not inherit it automatically');
-    expect(instructions).toContain('including defined CI requirements');
-    expect(instructions).toContain('If the `developer` agent made any change, run the `reviewer` agent');
-    expect(instructions).toContain('whether Docker is enabled or disabled for the task');
+    expect(instructions).toContain('without asking for approval first');
+    expect(instructions).toContain('Fully address the request in the repository and verify the result before stopping.');
+    expect(instructions).toContain('Do not add fallbacks or backward-compatibility work unless the request explicitly asks for it');
+    expect(instructions).toContain('note the case in your final report');
     expect(instructions).toContain('Docker is disabled for this task.');
     expect(instructions).toContain('/root/.artifacts');
+    expect(instructions).not.toContain('spawn_agent');
+    expect(instructions).not.toContain('fork_context = false');
+    expect(instructions).not.toContain('architect` agent');
+    expect(instructions).not.toContain('reviewer` agent');
     expect(instructions).not.toContain('Environment variables');
   });
 
@@ -65,11 +68,12 @@ describe('developer instructions builder', () => {
     );
 
     expect(instructions).toContain('Follow the local handbook.');
-    expect(instructions).toContain('orchestrator-developer-instructions');
-    expect(instructions).toContain('prefer informing the user about the case instead of overcomplicating the implementation');
-    expect(instructions).toContain('Use the `architect` agent when changes affect infrastructure');
+    expect(instructions).toContain('task-developer-instructions');
+    expect(instructions).toContain('note the case in your final report');
     expect(instructions).toContain('Docker is disabled for this task.');
     expect(instructions).toContain('/root/.artifacts');
+    expect(instructions).not.toContain('informing the user');
+    expect(instructions).not.toContain('Use the `architect` agent');
     expect(instructions).not.toContain('Environment variables');
   });
 
@@ -100,9 +104,9 @@ describe('developer instructions builder', () => {
     expect(instructions).toContain('/root/.artifacts');
     expect(instructions).toContain('Environment variables');
     expect(instructions).toContain('SAMPLE_FLAG');
-    expect(instructions).toContain('backward-compatibility work unless the user explicitly asks for it');
-    expect(instructions).toContain('Treat architect findings as complete only when they define both the architectural problem');
-    expect(instructions).toContain('Pass the full user request and all task-specific context');
-    expect(instructions).not.toContain('orchestrator-developer-instructions');
+    expect(instructions).toContain('backward-compatibility work unless the request explicitly asks for it');
+    expect(instructions).toContain('note the case in your final report');
+    expect(instructions).not.toContain('task-developer-instructions');
+    expect(instructions).not.toContain('Pass the full user request and all task-specific context');
   });
 });

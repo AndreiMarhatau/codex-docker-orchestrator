@@ -1,20 +1,20 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const {
-  DEFAULT_DEVELOPER_INSTRUCTIONS_FILE,
+  DEFAULT_TASK_DEVELOPER_INSTRUCTIONS_FILE,
   DEFAULT_CONTEXT_REPOS_TEMPLATE_FILE,
   DEFAULT_ATTACHMENTS_TEMPLATE_FILE,
   DEFAULT_INNER_ARTIFACTS_DIR
 } = require('../constants');
 const { buildAttachmentsSection, buildContextReposSection } = require('../context');
 
-const ORCHESTRATOR_INSTRUCTIONS_SEPARATOR = '\n\n--- orchestrator-developer-instructions ---\n\n';
+const TASK_INSTRUCTIONS_SEPARATOR = '\n\n--- task-developer-instructions ---\n\n';
 
 function readStaticInstructions() {
-  if (!fs.existsSync(DEFAULT_DEVELOPER_INSTRUCTIONS_FILE)) {
+  if (!fs.existsSync(DEFAULT_TASK_DEVELOPER_INSTRUCTIONS_FILE)) {
     throw new Error('Static developer instructions file is missing.');
   }
-  return fs.readFileSync(DEFAULT_DEVELOPER_INSTRUCTIONS_FILE, 'utf8').trim();
+  return fs.readFileSync(DEFAULT_TASK_DEVELOPER_INSTRUCTIONS_FILE, 'utf8').trim();
 }
 
 function readUserDeveloperInstructions(codexHome) {
@@ -145,7 +145,7 @@ function buildDeveloperInstructions({
   }
   const [firstSection, secondSection, ...remainingSections] = sections;
   const combined = [firstSection, secondSection].join(
-    userInstructions ? ORCHESTRATOR_INSTRUCTIONS_SEPARATOR : '\n\n'
+    userInstructions ? TASK_INSTRUCTIONS_SEPARATOR : '\n\n'
   );
   const tail = remainingSections.length === 0
     ? ''

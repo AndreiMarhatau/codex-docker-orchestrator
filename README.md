@@ -62,6 +62,11 @@ You can also set the variable in a `.env` file in `ui/` (for example, `VITE_API_
 - Backend tests: `npm -C backend test`
 - UI tests: `npm -C ui test`
 
+## Prompt architecture
+- `ORCHESTRATOR_DEVELOPER_INSTRUCTIONS.md` is the outer prompt for the top-level orchestrator agent. It should talk only about coordination, delegation, scope control, review flow, and final completion/commit ownership.
+- `DEVELOPER_TASK_INSTRUCTIONS.md` is the inner baseline prompt that the backend injects into each delegated task run via `developer_instructions=...`. It is where repository implementation and verification guidance belongs.
+- They are both required because they target different runtime roles. The orchestrator file is not the task-run prompt, and the task-run file should not contain orchestrator-only delegation logic.
+
 ## Environment variables inside Codex
 - Each environment can define key/value pairs in the Environments tab; they are injected into every
   `codex-docker` run for that environment and are available inside the Codex container.

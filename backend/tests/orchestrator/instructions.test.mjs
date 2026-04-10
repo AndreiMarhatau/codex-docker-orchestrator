@@ -7,10 +7,32 @@ import { createTempDir } from '../helpers.mjs';
 const require = createRequire(import.meta.url);
 const { buildDeveloperInstructions } = require('../../src/orchestrator/tasks/instructions');
 const { DEFAULT_TASK_DEVELOPER_INSTRUCTIONS_FILE } = require('../../src/orchestrator/constants');
+const ORCHESTRATOR_DEVELOPER_INSTRUCTIONS_FILE = path.resolve(
+  path.dirname(new URL(import.meta.url).pathname),
+  '../../../ORCHESTRATOR_DEVELOPER_INSTRUCTIONS.md'
+);
 
 describe('developer instructions builder', () => {
   it('ships the bundled task developer instructions file', async () => {
     await expect(fs.stat(DEFAULT_TASK_DEVELOPER_INSTRUCTIONS_FILE)).resolves.toBeTruthy();
+  });
+
+  it('keeps orchestrator and task instruction roles separate', async () => {
+    const [orchestratorInstructions, taskInstructions] = await Promise.all([
+      fs.readFile(ORCHESTRATOR_DEVELOPER_INSTRUCTIONS_FILE, 'utf8'),
+      fs.readFile(DEFAULT_TASK_DEVELOPER_INSTRUCTIONS_FILE, 'utf8')
+    ]);
+
+    expect(orchestratorInstructions).toContain('top-level orchestrator');
+    expect(orchestratorInstructions).toContain('coordination, delegation, scope control');
+    expect(orchestratorInstructions).toContain('Do not independently expand implementation scope');
+    expect(orchestratorInstructions).toContain('delegated `developer` agent');
+    expect(orchestratorInstructions).not.toContain('Fully address the request in the repository');
+
+    expect(taskInstructions).toContain('Fully address the request in the repository and verify the result before stopping.');
+    expect(taskInstructions).toContain('Do not add fallbacks or backward-compatibility work unless the request explicitly asks for it');
+    expect(taskInstructions).not.toContain('spawn_agent');
+    expect(taskInstructions).not.toContain('top-level orchestrator');
   });
 
   it('builds static instructions without a codex home or dynamic sections', async () => {

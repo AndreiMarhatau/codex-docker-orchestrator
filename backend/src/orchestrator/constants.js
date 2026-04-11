@@ -10,13 +10,6 @@ const DEFAULT_GIT_CONFIG_CONTAINER_DIR = '/orchestrator-git';
 const DEFAULT_INNER_CODEX_HOME = '/root/.codex';
 const DEFAULT_INNER_ARTIFACTS_DIR = '/root/.artifacts';
 const DEFAULT_IMAGE_NAME = 'ghcr.io/andreimarhatau/codex-docker:latest';
-const DEFAULT_DEVELOPER_INSTRUCTIONS_FILE = path.join(
-  __dirname,
-  '..',
-  '..',
-  '..',
-  'ORCHESTRATOR_DEVELOPER_INSTRUCTIONS.md'
-);
 const DEFAULT_CONTEXT_REPOS_TEMPLATE_FILE = path.join(
   __dirname,
   '..',
@@ -51,7 +44,6 @@ module.exports = {
   DEFAULT_INNER_CODEX_HOME,
   DEFAULT_INNER_ARTIFACTS_DIR,
   DEFAULT_IMAGE_NAME,
-  DEFAULT_DEVELOPER_INSTRUCTIONS_FILE,
   DEFAULT_CONTEXT_REPOS_TEMPLATE_FILE,
   DEFAULT_ATTACHMENTS_TEMPLATE_FILE,
   COMMIT_SHA_REGEX,

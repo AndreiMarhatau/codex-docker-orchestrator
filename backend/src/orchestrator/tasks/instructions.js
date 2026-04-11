@@ -1,20 +1,24 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const {
-  DEFAULT_DEVELOPER_INSTRUCTIONS_FILE,
   DEFAULT_CONTEXT_REPOS_TEMPLATE_FILE,
   DEFAULT_ATTACHMENTS_TEMPLATE_FILE,
   DEFAULT_INNER_ARTIFACTS_DIR
 } = require('../constants');
+const { DEVELOPER_AGENT_INSTRUCTIONS } = require('../agent-instructions');
 const { buildAttachmentsSection, buildContextReposSection } = require('../context');
 
-const ORCHESTRATOR_INSTRUCTIONS_SEPARATOR = '\n\n--- orchestrator-developer-instructions ---\n\n';
+const TASK_INSTRUCTIONS_SEPARATOR = '\n\n--- task-developer-instructions ---\n\n';
 
 function readStaticInstructions() {
-  if (!fs.existsSync(DEFAULT_DEVELOPER_INSTRUCTIONS_FILE)) {
-    throw new Error('Static developer instructions file is missing.');
-  }
-  return fs.readFileSync(DEFAULT_DEVELOPER_INSTRUCTIONS_FILE, 'utf8').trim();
+  return [
+    'You are running inside an ephemeral Docker container with unrestricted access to the container filesystem and process environment.',
+    '',
+    '- The container is disposable. You are expected to do whatever is necessary to complete the work and verify results: install any tool, dependency, or system package; run any command, service, server, build, test, installer, or long-running process; and take any other action you need, without asking for approval first.',
+    '- Prefer keeping temporary downloads, caches, and generated artifacts outside the repository when practical.',
+    '',
+    DEVELOPER_AGENT_INSTRUCTIONS
+  ].join('\n').trim();
 }
 
 function readUserDeveloperInstructions(codexHome) {
@@ -145,7 +149,7 @@ function buildDeveloperInstructions({
   }
   const [firstSection, secondSection, ...remainingSections] = sections;
   const combined = [firstSection, secondSection].join(
-    userInstructions ? ORCHESTRATOR_INSTRUCTIONS_SEPARATOR : '\n\n'
+    userInstructions ? TASK_INSTRUCTIONS_SEPARATOR : '\n\n'
   );
   const tail = remainingSections.length === 0
     ? ''

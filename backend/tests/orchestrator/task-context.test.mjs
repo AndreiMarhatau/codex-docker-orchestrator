@@ -75,7 +75,7 @@ describe('Orchestrator task context', () => {
 
     const developerInstructions = extractDeveloperInstructions(runCall.args);
     expect(developerInstructions).toContain('Preserve my team rules.');
-    expect(developerInstructions).toContain('orchestrator-developer-instructions');
+    expect(developerInstructions).toContain('task-developer-instructions');
     expect(developerInstructions).toContain('ephemeral Docker container');
     expect(developerInstructions).toContain('Read-only reference repositories');
     expect(developerInstructions).toContain('/readonly/context');
@@ -84,6 +84,9 @@ describe('Orchestrator task context', () => {
     expect(developerInstructions).toContain('Environment variables');
     expect(developerInstructions).toContain('API_TOKEN');
     expect(developerInstructions).toContain('FEATURE_FLAG');
+    expect(developerInstructions).toContain('You are the developer agent.');
+    expect(developerInstructions).not.toContain('spawn_agent');
+    expect(developerInstructions).not.toContain('reviewer` agent');
   });
 
   it('mounts per-task docker sidecar socket when enabled and skips when disabled', async () => {

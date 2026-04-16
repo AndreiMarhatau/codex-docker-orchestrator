@@ -47,14 +47,18 @@ function attachSetupMethods(Orchestrator) {
     await ensureDir(this.codexHome);
   };
 
-  Orchestrator.prototype.initializeAppStartup = async function initializeAppStartup() {
-    await this.init();
+  Orchestrator.prototype.syncManagedAgents = async function syncManagedAgents() {
     await this.ensurePersistentConfig();
-    await reconcileManagedAgents({
+    return reconcileManagedAgents({
       codexHome: this.codexHome,
       now: this.now,
       managedAgents: this.managedAgents
     });
+  };
+
+  Orchestrator.prototype.initializeAppStartup = async function initializeAppStartup() {
+    await this.init();
+    await this.syncManagedAgents();
     await this.accountStore.applyActiveAccount();
   };
 

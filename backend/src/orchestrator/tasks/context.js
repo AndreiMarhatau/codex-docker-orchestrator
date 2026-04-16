@@ -2,7 +2,7 @@ const { ensureDir } = require('../../storage');
 const { invalidContextError } = require('../errors');
 const { normalizeOptionalString } = require('../utils');
 const { resolveRefInRepo } = require('../git');
-const { buildDeveloperInstructions } = require('./instructions');
+const { buildDeveloperInstructions, buildOrchestratorInstructions } = require('./instructions');
 async function prepareContextRepos(taskId, contextRepos) {
   if (!Array.isArray(contextRepos) || contextRepos.length === 0) {
     return [];
@@ -91,6 +91,7 @@ function attachTaskContextMethods(Orchestrator) {
   Orchestrator.prototype.materializeContextRepos = materializeContextRepos;
   Orchestrator.prototype.resolveContextRepos = resolveContextRepos;
   Orchestrator.prototype.buildDeveloperInstructions = buildDeveloperInstructions;
+  Orchestrator.prototype.buildOrchestratorInstructions = buildOrchestratorInstructions;
 }
 
 module.exports = {

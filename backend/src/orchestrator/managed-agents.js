@@ -6,6 +6,7 @@ const {
   ARCHITECT_AGENT_INSTRUCTIONS,
   REVIEWER_AGENT_INSTRUCTIONS
 } = require('./agent-instructions');
+const { readUserInstructions } = require('./user-instructions');
 
 const MANAGED_AGENTS_MANIFEST_VERSION = 1;
 
@@ -13,34 +14,56 @@ const DEFAULT_MANAGED_AGENTS = [
   {
     id: 'developer',
     filename: 'developer.toml',
-    content: `name = "developer"
-description = "Developer agent for investigation, implementation, and verification."
-developer_instructions = """
-${DEVELOPER_AGENT_INSTRUCTIONS}
-"""
-`
+    name: 'developer',
+    description: 'Developer agent for investigation, implementation, and verification.',
+    developerInstructions: DEVELOPER_AGENT_INSTRUCTIONS
   },
   {
     id: 'architect',
     filename: 'architect.toml',
-    content: `name = "architect"
-description = "Architect agent for architecture-focused review when complexity or domain risk warrants it."
-developer_instructions = """
-${ARCHITECT_AGENT_INSTRUCTIONS}
-"""
-`
+    name: 'architect',
+    description: 'Architect agent for architecture-focused review when complexity or domain risk warrants it.',
+    developerInstructions: ARCHITECT_AGENT_INSTRUCTIONS
   },
   {
     id: 'reviewer',
     filename: 'reviewer.toml',
-    content: `name = "reviewer"
-description = "Reviewer agent for reviewing uncommitted changes and reporting issues."
-developer_instructions = """
-${REVIEWER_AGENT_INSTRUCTIONS}
-"""
-`
+    name: 'reviewer',
+    description: 'Reviewer agent for reviewing uncommitted changes and reporting issues.',
+    developerInstructions: REVIEWER_AGENT_INSTRUCTIONS
   }
 ];
+
+function buildManagedAgentContent(agent, userInstructions) {
+  if (typeof agent?.content === 'string' && !agent?.developerInstructions) {
+    return agent.content;
+  }
+
+  let instructions = agent?.developerInstructions || '';
+  if (userInstructions && agent?.id === 'developer') {
+    instructions = [
+      userInstructions,
+      '',
+      '--- managed-developer-instructions ---',
+      '',
+      instructions
+    ].join('\n');
+  }
+
+  return [
+    `name = ${JSON.stringify(agent?.name || '')}`,
+    `description = ${JSON.stringify(agent?.description || '')}`,
+    `developer_instructions = ${JSON.stringify(instructions)}`,
+    ''
+  ].join('\n');
+}
+
+function resolveManagedAgents(managedAgents, userInstructions) {
+  return managedAgents.map((agent) => ({
+    ...agent,
+    content: buildManagedAgentContent(agent, userInstructions)
+  }));
+}
 
 function buildManagedAgentsManifest(agents) {
   return {
@@ -48,7 +71,9 @@ function buildManagedAgentsManifest(agents) {
     agents: agents.map((agent) => ({
       id: agent.id,
       filename: agent.filename,
-      sha256: crypto.createHash('sha256').update(agent.content).digest('hex')
+      sha256: crypto.createHash('sha256').update(
+        typeof agent?.content === 'string' ? agent.content : buildManagedAgentContent(agent, '')
+      ).digest('hex')
     }))
   };
 }
@@ -80,7 +105,9 @@ async function reconcileManagedAgents({
         .filter(Boolean)
       : []
   );
-  const nextManagedFiles = new Set(managedAgents.map((agent) => agent.filename));
+  const userInstructions = readUserInstructions(codexHome);
+  const resolvedManagedAgents = resolveManagedAgents(managedAgents, userInstructions);
+  const nextManagedFiles = new Set(resolvedManagedAgents.map((agent) => agent.filename));
 
   for (const filename of previousManagedFiles) {
     if (nextManagedFiles.has(filename)) {
@@ -89,12 +116,12 @@ async function reconcileManagedAgents({
     await removePath(path.join(agentsDir, filename));
   }
 
-  for (const agent of managedAgents) {
+  for (const agent of resolvedManagedAgents) {
     await writeText(path.join(agentsDir, agent.filename), agent.content);
   }
 
   const manifest = {
-    ...buildManagedAgentsManifest(managedAgents),
+    ...buildManagedAgentsManifest(resolvedManagedAgents),
     updatedAt: now()
   };
   await writeJson(manifestPath, manifest);

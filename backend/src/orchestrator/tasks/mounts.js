@@ -112,7 +112,7 @@ function buildTaskRunEnvOverrides(envVars, useHostDockerSocket) {
   }
   return {
     ...envVars,
-    DOCKER_HOST: 'unix:///var/run/orch-task-docker/docker.sock'
+    CODEX_CONTAINER_ENV_DOCKER_HOST: 'unix:///var/run/orch-task-docker/docker.sock'
   };
 }
 

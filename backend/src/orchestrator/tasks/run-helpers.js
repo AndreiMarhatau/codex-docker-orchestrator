@@ -28,13 +28,17 @@ function applyEnvOverrides(env, envOverrides) {
     return;
   }
   const keys = Object.keys(envOverrides);
+  const passthroughKeys = [];
   for (const key of keys) {
     if (!key) {
       continue;
     }
     env[key] = String(envOverrides[key]);
+    if (!key.startsWith('CODEX_CONTAINER_ENV_')) {
+      passthroughKeys.push(key);
+    }
   }
-  mergePassthroughEnv(env, keys);
+  mergePassthroughEnv(env, passthroughKeys);
 }
 function buildRunEnv({
   orchestrator,

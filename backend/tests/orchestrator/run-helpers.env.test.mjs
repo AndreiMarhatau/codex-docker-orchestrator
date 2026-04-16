@@ -111,4 +111,31 @@ describe('run helpers env', () => {
     );
     delete process.env.CODEX_PASSTHROUGH_ENV;
   });
+
+  it('keeps CODEX_CONTAINER_ENV overrides out of passthrough forwarding', async () => {
+    const root = await createTempDir();
+    const orchestrator = createOrchestrator(root);
+    const codexHome = orchestrator.codexHome;
+    const artifactsDir = path.join(root, 'artifacts');
+    await fs.mkdir(codexHome, { recursive: true });
+    await fs.mkdir(artifactsDir, { recursive: true });
+    process.env.CODEX_PASSTHROUGH_ENV = 'EXISTING_VAR';
+
+    const env = buildRunEnv({
+      orchestrator,
+      workspaceDir: '/workspace/repo',
+      artifactsDir,
+      envOverrides: {
+        CODEX_CONTAINER_ENV_DOCKER_HOST: 'unix:///var/run/orch-task-docker/docker.sock',
+        SAMPLE_FLAG: 'alpha'
+      }
+    });
+
+    expect(env.CODEX_CONTAINER_ENV_DOCKER_HOST).toBe('unix:///var/run/orch-task-docker/docker.sock');
+    expect(env.CODEX_PASSTHROUGH_ENV.split(',')).toEqual(
+      expect.arrayContaining(['EXISTING_VAR', 'GIT_CONFIG_GLOBAL', 'GH_TOKEN', 'SAMPLE_FLAG'])
+    );
+    expect(env.CODEX_PASSTHROUGH_ENV.split(',')).not.toContain('CODEX_CONTAINER_ENV_DOCKER_HOST');
+    delete process.env.CODEX_PASSTHROUGH_ENV;
+  });
 });

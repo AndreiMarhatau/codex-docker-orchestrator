@@ -113,7 +113,9 @@ describe('Orchestrator task context', () => {
     const createCall = spawn.calls.find((call) => call.command === 'codex-docker');
     const createVolumeMounts = (createCall.options?.env?.CODEX_VOLUME_MOUNTS || '').split(',');
     expect(createVolumeMounts.some((entry) => entry.endsWith('=/var/run/orch-task-docker'))).toBe(true);
-    expect(createCall.options?.env?.DOCKER_HOST).toBe('unix:///var/run/orch-task-docker/docker.sock');
+    expect(createCall.options?.env?.DOCKER_HOST).toBeUndefined();
+    expect(createCall.options?.env?.CODEX_CONTAINER_ENV_DOCKER_HOST).toBe('unix:///var/run/orch-task-docker/docker.sock');
+    expect(createCall.options?.env?.CODEX_PASSTHROUGH_ENV || '').not.toContain('CODEX_CONTAINER_ENV_DOCKER_HOST');
     const createDeveloperInstructions = extractDeveloperInstructions(createCall.args);
     expect(createDeveloperInstructions).toContain('You are the top-level orchestrator for the task.');
     expect(createDeveloperInstructions).toContain('Docker is enabled for this task via an isolated per-task Docker sidecar daemon.');

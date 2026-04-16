@@ -63,9 +63,10 @@ describe('task instruction roles', () => {
 
   it('builds static orchestrator instructions without a codex home or dynamic sections', async () => {
     const instructions = buildOrchestratorInstructions.call({}, buildInstructionOptions());
+    const preambleCount = instructions.split('You are running inside an ephemeral Docker container').length - 1;
 
     expect(instructions).toContain('ephemeral Docker container');
-    expect(instructions).toContain('without asking for approval first');
+    expect(instructions).toContain('without asking the user for approval first');
     expect(instructions).toContain('You are the top-level orchestrator for the task.');
     expect(instructions).toContain('creating the final git commit');
     expect(instructions).toContain('create and switch to a readable branch name');
@@ -77,6 +78,7 @@ describe('task instruction roles', () => {
     expect(instructions).toContain('reviewer` agent');
     expect(instructions).not.toContain('Environment variables');
     expect(instructions).not.toContain('You are the developer agent.');
+    expect(preambleCount).toBe(1);
   });
 
   it('builds static delegated developer instructions without a codex home or dynamic sections', async () => {

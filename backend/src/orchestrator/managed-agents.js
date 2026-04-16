@@ -6,6 +6,7 @@ const {
   ARCHITECT_AGENT_INSTRUCTIONS,
   REVIEWER_AGENT_INSTRUCTIONS
 } = require('./agent-instructions');
+const { readUserInstructions } = require('./user-instructions');
 
 const MANAGED_AGENTS_MANIFEST_VERSION = 1;
 
@@ -41,6 +42,29 @@ ${REVIEWER_AGENT_INSTRUCTIONS}
 `
   }
 ];
+
+function mergeUserInstructionsIntoDeveloperAgent(agent, userInstructions) {
+  if (!userInstructions || agent?.id !== 'developer' || typeof agent?.content !== 'string') {
+    return agent;
+  }
+  const marker = 'developer_instructions = """\n';
+  const index = agent.content.indexOf(marker);
+  if (index === -1) {
+    return agent;
+  }
+  const insertAt = index + marker.length;
+  return {
+    ...agent,
+    content: [
+      agent.content.slice(0, insertAt),
+      userInstructions,
+      '',
+      '--- managed-developer-instructions ---',
+      '',
+      agent.content.slice(insertAt)
+    ].join('\n')
+  };
+}
 
 function buildManagedAgentsManifest(agents) {
   return {
@@ -80,7 +104,11 @@ async function reconcileManagedAgents({
         .filter(Boolean)
       : []
   );
-  const nextManagedFiles = new Set(managedAgents.map((agent) => agent.filename));
+  const userInstructions = readUserInstructions(codexHome);
+  const resolvedManagedAgents = managedAgents.map((agent) =>
+    mergeUserInstructionsIntoDeveloperAgent(agent, userInstructions)
+  );
+  const nextManagedFiles = new Set(resolvedManagedAgents.map((agent) => agent.filename));
 
   for (const filename of previousManagedFiles) {
     if (nextManagedFiles.has(filename)) {
@@ -89,12 +117,12 @@ async function reconcileManagedAgents({
     await removePath(path.join(agentsDir, filename));
   }
 
-  for (const agent of managedAgents) {
+  for (const agent of resolvedManagedAgents) {
     await writeText(path.join(agentsDir, agent.filename), agent.content);
   }
 
   const manifest = {
-    ...buildManagedAgentsManifest(managedAgents),
+    ...buildManagedAgentsManifest(resolvedManagedAgents),
     updatedAt: now()
   };
   await writeJson(manifestPath, manifest);

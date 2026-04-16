@@ -7,13 +7,17 @@ const {
 } = require('../constants');
 const { DEVELOPER_AGENT_INSTRUCTIONS } = require('../agent-instructions');
 const { buildAttachmentsSection, buildContextReposSection } = require('../context');
+const { readUserInstructions } = require('../user-instructions');
 
 const ORCHESTRATOR_INSTRUCTIONS_PATH = path.resolve(
   __dirname,
   '../../../../ORCHESTRATOR_DEVELOPER_INSTRUCTIONS.md'
 );
 
-function buildStaticInstructions(baseInstructions) {
+function buildStaticInstructions(baseInstructions, includeRuntimePreamble = true) {
+  if (!includeRuntimePreamble) {
+    return (baseInstructions || '').trim();
+  }
   return [
     'You are running inside an ephemeral Docker container with unrestricted access to the container filesystem and process environment.',
     '',
@@ -22,49 +26,6 @@ function buildStaticInstructions(baseInstructions) {
     '',
     baseInstructions
   ].join('\n').trim();
-}
-
-function readUserInstructions(codexHome) {
-  if (!codexHome) {
-    return '';
-  }
-  const configPath = path.join(codexHome, 'config.toml');
-  if (!fs.existsSync(configPath)) {
-    return '';
-  }
-
-  let content = '';
-  try {
-    content = fs.readFileSync(configPath, 'utf8');
-  } catch {
-    return '';
-  }
-
-  const multilineBasic = content.match(/^\s*developer_instructions\s*=\s*"""([\s\S]*?)"""\s*$/m);
-  if (multilineBasic?.[1]) {
-    return multilineBasic[1].trim();
-  }
-
-  const multilineLiteral = content.match(/^\s*developer_instructions\s*=\s*'''([\s\S]*?)'''\s*$/m);
-  if (multilineLiteral?.[1]) {
-    return multilineLiteral[1].trim();
-  }
-
-  const basic = content.match(/^\s*developer_instructions\s*=\s*"((?:[^"\\]|\\.)*)"\s*$/m);
-  if (basic?.[1]) {
-    try {
-      return JSON.parse(`"${basic[1]}"`).trim();
-    } catch {
-      return '';
-    }
-  }
-
-  const literal = content.match(/^\s*developer_instructions\s*=\s*'([^']*)'\s*$/m);
-  if (literal?.[1]) {
-    return literal[1].trim();
-  }
-
-  return '';
 }
 
 function readOrchestratorInstructions() {
@@ -111,13 +72,14 @@ function buildArtifactsSection() {
 function buildTaskInstructions({
   baseInstructions,
   taskInstructionsLabel,
+  includeRuntimePreamble = true,
   useHostDockerSocket,
   contextRepos,
   attachments,
   envVars,
   exposedPaths
 }) {
-  const staticInstructions = buildStaticInstructions(baseInstructions);
+  const staticInstructions = buildStaticInstructions(baseInstructions, includeRuntimePreamble);
   const userInstructions = readUserInstructions(this.codexHome);
   const sections = [];
   if (userInstructions) {
@@ -170,6 +132,7 @@ function buildDeveloperInstructions(options) {
   return buildTaskInstructions.call(this, {
     ...options,
     baseInstructions: DEVELOPER_AGENT_INSTRUCTIONS,
+    includeRuntimePreamble: true,
     taskInstructionsLabel: 'task-developer-instructions'
   });
 }
@@ -178,6 +141,7 @@ function buildOrchestratorInstructions(options) {
   return buildTaskInstructions.call(this, {
     ...options,
     baseInstructions: readOrchestratorInstructions(),
+    includeRuntimePreamble: false,
     taskInstructionsLabel: 'task-orchestrator-instructions'
   });
 }

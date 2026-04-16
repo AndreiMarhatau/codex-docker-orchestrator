@@ -140,6 +140,7 @@ describe('Orchestrator task context', () => {
     const resumeCall = resumeCalls[1];
     expect(resumeCall.options?.env?.CODEX_VOLUME_MOUNTS || '').not.toContain('/var/run/orch-task-docker');
     const resumeDeveloperInstructions = extractDeveloperInstructions(resumeCall.args);
+    expect(resumeDeveloperInstructions).toContain('You are the top-level orchestrator for the task.');
     expect(resumeDeveloperInstructions).toContain('Docker is disabled for this task.');
 
     const metaPath = path.join(orchHome, 'tasks', task.taskId, 'meta.json');

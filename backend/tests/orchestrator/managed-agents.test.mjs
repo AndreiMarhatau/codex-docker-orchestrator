@@ -11,7 +11,7 @@ const {
   reconcileManagedAgents
 } = require('../../src/orchestrator/managed-agents');
 
-describe('managed agent reconciliation', () => {
+describe('managed agent reconciliation content', () => {
   it('writes bundled developer, architect, and reviewer agents plus manifest', async () => {
     const codexHome = await createTempDir();
 
@@ -37,6 +37,30 @@ describe('managed agent reconciliation', () => {
     expect(reviewer).toContain('Review only the current uncommitted changes.');
   });
 
+  it('prepends user instructions to the managed developer agent only', async () => {
+    const codexHome = await createTempDir();
+    await fs.writeFile(
+      path.join(codexHome, 'config.toml'),
+      "developer_instructions = 'Follow the local handbook.'\n"
+    );
+
+    await reconcileManagedAgents({
+      codexHome,
+      now: () => '2026-03-23T00:00:00.000Z'
+    });
+
+    const developer = await fs.readFile(path.join(codexHome, 'agents', 'developer.toml'), 'utf8');
+    const architect = await fs.readFile(path.join(codexHome, 'agents', 'architect.toml'), 'utf8');
+    const reviewer = await fs.readFile(path.join(codexHome, 'agents', 'reviewer.toml'), 'utf8');
+
+    expect(developer).toContain('Follow the local handbook.');
+    expect(developer).toContain('managed-developer-instructions');
+    expect(architect).not.toContain('Follow the local handbook.');
+    expect(reviewer).not.toContain('Follow the local handbook.');
+  });
+});
+
+describe('managed agent reconciliation manifest handling', () => {
   it('removes only previously managed files that are no longer bundled', async () => {
     const codexHome = await createTempDir();
     const agentsDir = path.join(codexHome, 'agents');

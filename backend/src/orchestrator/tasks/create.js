@@ -109,6 +109,7 @@ function attachTaskCreateMethods(Orchestrator) {
     try {
       await ensureDir(this.taskDir(taskId));
       await ensureDir(this.taskLogsDir(taskId));
+      await this.syncManagedAgents();
       const resolvedContextRepos = await this.resolveContextRepos(taskId, contextRepos);
       const { worktreePath, baseSha, targetRef } = await setupWorktree(this, { env, ref, taskId });
       createdWorktreePath = worktreePath;

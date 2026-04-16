@@ -127,6 +127,7 @@ function attachTaskResumeMethods(Orchestrator) {
     const { hasDockerSocketOverride, shouldUseHostDockerSocket } = resolveDockerUsage(meta, options);
     const env = await this.readEnv(meta.envId);
     await this.ensureOwnership(env.mirrorPath);
+    await this.syncManagedAgents();
     const exposedPaths = await this.prepareTaskExposedPaths(taskId, {
       contextRepos: resolvedContextRepos,
       attachments

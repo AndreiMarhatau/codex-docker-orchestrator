@@ -77,6 +77,7 @@ function createSettingsRouter(orchestrator) {
       return res.status(400).send('config content is required');
     }
     await writeText(getConfigPath(orchestrator), content);
+    await orchestrator.syncManagedAgents();
     res.status(204).send();
   }));
 

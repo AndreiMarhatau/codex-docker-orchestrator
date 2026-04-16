@@ -85,4 +85,21 @@ describe('settings routes', () => {
     const refreshedRes = await request(app).get('/api/settings/config').expect(200);
     expect(refreshedRes.body.content).toBe('personality = "pragmatic"');
   });
+
+  it('refreshes managed developer agents when config.toml changes via settings', async () => {
+    const orchHome = await createTempDir();
+    const codexHome = await createTempDir();
+    const orchestrator = new Orchestrator({ orchHome, codexHome });
+    const app = await createApp({ orchestrator });
+    const developerPath = `${codexHome}/agents/developer.toml`;
+
+    await request(app)
+      .post('/api/settings/config')
+      .send({ content: "developer_instructions = 'Follow the local handbook.'\n" })
+      .expect(204);
+
+    const developer = await fs.readFile(developerPath, 'utf8');
+    expect(developer).toContain('Follow the local handbook.');
+    expect(developer).toContain('managed-developer-instructions');
+  });
 });

@@ -6,7 +6,6 @@ import { createTempDir } from '../helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const {
-  DEFAULT_MANAGED_AGENTS,
   buildManagedAgentsManifest,
   reconcileManagedAgents
 } = require('../../src/orchestrator/managed-agents');
@@ -58,6 +57,28 @@ describe('managed agent reconciliation content', () => {
     expect(architect).not.toContain('Follow the local handbook.');
     expect(reviewer).not.toContain('Follow the local handbook.');
   });
+
+  it('serializes managed developer instructions safely for TOML basic strings', async () => {
+    const codexHome = await createTempDir();
+    const customInstructions = String.raw`Use regex \\w+ and triple quotes """ safely.`;
+    await fs.writeFile(
+      path.join(codexHome, 'config.toml'),
+      `developer_instructions = ${JSON.stringify(customInstructions)}\n`
+    );
+
+    await reconcileManagedAgents({
+      codexHome,
+      now: () => '2026-03-23T00:00:00.000Z'
+    });
+
+    const developer = await fs.readFile(path.join(codexHome, 'agents', 'developer.toml'), 'utf8');
+    const line = developer.split('\n').find((entry) => entry.startsWith('developer_instructions = '));
+    expect(line).toBeTruthy();
+    const encoded = line.slice('developer_instructions = '.length);
+    const parsed = JSON.parse(encoded);
+    expect(parsed).toContain(customInstructions);
+    expect(parsed).toContain('managed-developer-instructions');
+  });
 });
 
 describe('managed agent reconciliation manifest handling', () => {
@@ -94,11 +115,12 @@ describe('managed agent reconciliation manifest handling', () => {
   it('allows test overrides for bundled agents', async () => {
     const codexHome = await createTempDir();
     const updatedAgents = [
-      ...DEFAULT_MANAGED_AGENTS.filter((agent) => agent.id !== 'architect' && agent.id !== 'reviewer'),
       {
         id: 'developer',
         filename: 'developer.toml',
-        content: 'name = "developer"\ndescription = "Updated"\ndeveloper_instructions = "Updated"\n'
+        name: 'developer',
+        description: 'Updated',
+        developerInstructions: 'Updated'
       }
     ];
 

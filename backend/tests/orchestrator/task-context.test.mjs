@@ -75,7 +75,7 @@ describe('Orchestrator task context', () => {
 
     const developerInstructions = extractDeveloperInstructions(runCall.args);
     expect(developerInstructions).toContain('Preserve my team rules.');
-    expect(developerInstructions).toContain('task-developer-instructions');
+    expect(developerInstructions).toContain('task-orchestrator-instructions');
     expect(developerInstructions).toContain('ephemeral Docker container');
     expect(developerInstructions).toContain('Read-only reference repositories');
     expect(developerInstructions).toContain('/readonly/context');
@@ -84,9 +84,10 @@ describe('Orchestrator task context', () => {
     expect(developerInstructions).toContain('Environment variables');
     expect(developerInstructions).toContain('API_TOKEN');
     expect(developerInstructions).toContain('FEATURE_FLAG');
-    expect(developerInstructions).toContain('You are the developer agent.');
-    expect(developerInstructions).not.toContain('spawn_agent');
-    expect(developerInstructions).not.toContain('reviewer` agent');
+    expect(developerInstructions).toContain('You are the top-level orchestrator for the task.');
+    expect(developerInstructions).toContain('spawn_agent');
+    expect(developerInstructions).toContain('reviewer` agent');
+    expect(developerInstructions).not.toContain('You are the developer agent.');
   });
 
   it('mounts per-task docker sidecar socket when enabled and skips when disabled', async () => {
@@ -114,6 +115,7 @@ describe('Orchestrator task context', () => {
     expect(createVolumeMounts.some((entry) => entry.endsWith('=/var/run/orch-task-docker'))).toBe(true);
     expect(createCall.options?.env?.DOCKER_HOST).toBe('unix:///var/run/orch-task-docker/docker.sock');
     const createDeveloperInstructions = extractDeveloperInstructions(createCall.args);
+    expect(createDeveloperInstructions).toContain('You are the top-level orchestrator for the task.');
     expect(createDeveloperInstructions).toContain('Docker is enabled for this task via an isolated per-task Docker sidecar daemon.');
     expect(createDeveloperInstructions).toContain('/root/.artifacts');
     expect(createDeveloperInstructions).not.toContain('Environment variables');

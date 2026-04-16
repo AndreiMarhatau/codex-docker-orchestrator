@@ -119,7 +119,7 @@ function attachTaskCreateMethods(Orchestrator) {
         contextRepos: resolvedContextRepos,
         attachments
       });
-      const developerInstructions = this.buildDeveloperInstructions({
+      const orchestratorInstructions = this.buildOrchestratorInstructions({
         useHostDockerSocket: shouldUseHostDockerSocket,
         contextRepos: resolvedContextRepos,
         attachments,
@@ -152,7 +152,7 @@ function attachTaskCreateMethods(Orchestrator) {
         prompt,
         model: normalizedModel,
         reasoningEffort: normalizedReasoningEffort,
-        developerInstructions
+        developerInstructions: orchestratorInstructions
       });
       const workspaceDir = `/workspace/${repoNameFromUrl(env.repoUrl)}`;
       const volumeMounts = await buildTaskRunVolumeMounts(this, {

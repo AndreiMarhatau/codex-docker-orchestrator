@@ -131,7 +131,7 @@ function attachTaskResumeMethods(Orchestrator) {
       contextRepos: resolvedContextRepos,
       attachments
     });
-    const developerInstructions = this.buildDeveloperInstructions({
+    const orchestratorInstructions = this.buildOrchestratorInstructions({
       useHostDockerSocket: shouldUseHostDockerSocket,
       contextRepos: resolvedContextRepos,
       attachments,
@@ -157,7 +157,7 @@ function attachTaskResumeMethods(Orchestrator) {
       prompt: codexPrompt,
       model: runModel,
       reasoningEffort: runReasoningEffort,
-      developerInstructions,
+      developerInstructions: orchestratorInstructions,
       resumeThreadId: meta.threadId
     });
     const workspaceDir = `/workspace/${repoNameFromUrl(meta.repoUrl)}`;

@@ -46,7 +46,7 @@ describe('task docker sidecar', () => {
     const orchestrator = new Orchestrator({ orchHome, exec });
 
     const socketPath = await orchestrator.ensureTaskDockerSidecar('task-1');
-    expect(socketPath).toBe(path.join(orchHome, 'tasks', 'task-1', 'docker', 'sock', 'docker.sock'));
+    expect(socketPath).toBe(path.join(orchestrator.dataRoot, 'task-docker', 'task-1', 'sock', 'docker.sock'));
     expect(
       exec.calls.some((call) => call.command === 'docker' && call.args[0] === 'run')
     ).toBe(true);
@@ -158,8 +158,18 @@ describe('task docker sidecar', () => {
     });
 
     const socketPath = await orchestrator.ensureTaskDockerSidecar('task-perm');
-    expect(socketPath).toBe(path.join(orchHome, 'tasks', 'task-perm', 'docker', 'sock', 'docker.sock'));
+    expect(socketPath).toBe(
+      path.join(orchestrator.dataRoot, 'task-docker', 'task-perm', 'sock', 'docker.sock')
+    );
     expect(calls.some((call) => call.command === 'docker' && call.args[0] === 'exec')).toBe(true);
+  });
+
+  it('keeps the task Docker socket path short enough for unix sockets', async () => {
+    const orchHome = await createTempDir();
+    const orchestrator = new Orchestrator({ orchHome });
+
+    const socketPath = orchestrator.taskDockerSocketPath('85090b0e-22f9-4f21-98a9-79f63d17539f');
+    expect(socketPath.length).toBeLessThan(108);
   });
 
   it('throws when stopping sidecar fails with non-not-found error', async () => {

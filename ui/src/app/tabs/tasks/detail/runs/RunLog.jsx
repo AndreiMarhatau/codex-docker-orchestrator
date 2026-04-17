@@ -5,14 +5,14 @@ import RunArtifacts from './RunArtifacts.jsx';
 import RunEntries from './RunEntries.jsx';
 import RunRequest from './RunRequest.jsx';
 
-function RunLog({ now, run, taskId }) {
+function RunLog({ emptyEntriesMessage, now, run, taskId }) {
   const entries = run.entries || [];
   const agentMessages = collectAgentMessages(entries);
 
   return (
     <Stack spacing={1}>
       <RunRequest run={run} />
-      <RunEntries entries={entries} now={now} run={run} />
+      <RunEntries entries={entries} emptyEntriesMessage={emptyEntriesMessage} now={now} run={run} />
       <RunArtifacts run={run} taskId={taskId} />
       {agentMessages.length > 0 && (
         <RunAgentMessages agentMessages={agentMessages} runId={run.runId} />

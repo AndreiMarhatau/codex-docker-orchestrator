@@ -4,7 +4,7 @@ import { formatDuration, formatTimestamp } from '../../../../formatters.js';
 import { formatLogEntry, formatLogSummary } from '../../../../log-helpers.js';
 import { getElapsedMs } from '../../../../task-helpers.js';
 
-function RunEntries({ entries, now, run }) {
+function RunEntries({ entries, emptyEntriesMessage, now, run }) {
   return (
     <Box component="details" className="log-run">
       <summary className="log-summary">
@@ -31,7 +31,7 @@ function RunEntries({ entries, now, run }) {
       </summary>
       <Stack spacing={1} sx={{ mt: 1 }}>
         {entries.length === 0 && (
-          <Typography color="text.secondary">No logs yet.</Typography>
+          <Typography color="text.secondary">{emptyEntriesMessage || 'No logs yet.'}</Typography>
         )}
         {entries.map((entry) => (
           <Box key={`${run.runId}-${entry.id}`} component="details" className="log-entry">

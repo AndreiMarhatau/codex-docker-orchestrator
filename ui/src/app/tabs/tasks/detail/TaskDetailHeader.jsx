@@ -1,4 +1,4 @@
-import { Chip, Stack, Tooltip, Typography } from '@mui/material';
+import { Alert, AlertTitle, Chip, Stack, Tooltip, Typography } from '@mui/material';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import StatusIcon from '../../../components/StatusIcon.jsx';
 import { STATUS_CONFIG } from '../../../constants.js';
@@ -7,10 +7,67 @@ import { formatEffortDisplay, formatModelDisplay } from '../../../model-helpers.
 import { formatRepoDisplay } from '../../../repo-helpers.js';
 import { getElapsedMs, getLatestRun } from '../../../task-helpers.js';
 
+function TaskErrorAlert({ taskDetail }) {
+  const runLogs = Array.isArray(taskDetail.runLogs) ? taskDetail.runLogs : [];
+  const latestRunLog = runLogs[runLogs.length - 1] || null;
+  const latestRunFailedBeforeSpawn = latestRunLog?.failedBeforeSpawn === true;
+  const hasTaskError = Boolean(taskDetail.error);
+  const isPreSpawnFailure =
+    taskDetail.status === 'failed' && hasTaskError && latestRunFailedBeforeSpawn;
+  const showTaskError =
+    hasTaskError && (taskDetail.status === 'failed' || taskDetail.status === 'stopped');
+
+  if (!showTaskError) {
+    return null;
+  }
+
+  return (
+    <Alert
+      severity={taskDetail.status === 'stopped' ? 'info' : 'error'}
+      variant="outlined"
+      sx={{ whiteSpace: 'pre-wrap' }}
+    >
+      <AlertTitle>
+        {isPreSpawnFailure
+          ? 'Startup failed before codex-docker spawned'
+          : taskDetail.status === 'stopped'
+            ? 'Task stopped'
+            : 'Task failed'}
+      </AlertTitle>
+      {taskDetail.error}
+      {isPreSpawnFailure && (
+        <Typography variant="body2" sx={{ mt: 1 }}>
+          No log entries were produced because startup failed before codex-docker was
+          spawned.
+        </Typography>
+      )}
+    </Alert>
+  );
+}
+
+function RunningDurationChip({ now, taskDetail }) {
+  if (taskDetail.status !== 'running' && taskDetail.status !== 'stopping') {
+    return null;
+  }
+  const latestRun = getLatestRun(taskDetail);
+  const durationMs = getElapsedMs(latestRun?.startedAt || taskDetail.createdAt, null, now);
+  if (durationMs === null) {
+    return null;
+  }
+  const statusLabel = STATUS_CONFIG[taskDetail.status]?.label.toLowerCase() || 'running';
+  return (
+    <Chip
+      size="small"
+      variant="outlined"
+      icon={<AccessTimeIcon fontSize="small" />}
+      label={`${statusLabel} ${formatDuration(durationMs)}`}
+    />
+  );
+}
+
 function TaskDetailHeader({ tasksState }) {
   const { detail, gitStatusDisplay, now } = tasksState;
   const taskDetail = detail.taskDetail;
-
   const GitIcon = gitStatusDisplay?.icon;
 
   return (
@@ -26,28 +83,7 @@ function TaskDetailHeader({ tasksState }) {
         <Chip label={`model: ${formatModelDisplay(taskDetail.model)}`} size="small" />
         <Chip label={`effort: ${formatEffortDisplay(taskDetail.reasoningEffort)}`} size="small" />
         <Chip label={`thread: ${taskDetail.threadId || 'pending'}`} size="small" />
-        {(taskDetail.status === 'running' || taskDetail.status === 'stopping') &&
-          (() => {
-            const latestRun = getLatestRun(taskDetail);
-            const durationMs = getElapsedMs(
-              latestRun?.startedAt || taskDetail.createdAt,
-              null,
-              now
-            );
-            if (durationMs === null) {
-              return null;
-            }
-            const statusLabel =
-              STATUS_CONFIG[taskDetail.status]?.label.toLowerCase() || 'running';
-            return (
-              <Chip
-                size="small"
-                variant="outlined"
-                icon={<AccessTimeIcon fontSize="small" />}
-                label={`${statusLabel} ${formatDuration(durationMs)}`}
-              />
-            );
-          })()}
+        <RunningDurationChip now={now} taskDetail={taskDetail} />
         {gitStatusDisplay && GitIcon && (
           <Tooltip title={gitStatusDisplay.tooltip}>
             <Chip
@@ -60,6 +96,7 @@ function TaskDetailHeader({ tasksState }) {
           </Tooltip>
         )}
       </Stack>
+      <TaskErrorAlert taskDetail={taskDetail} />
       {taskDetail.contextRepos?.length > 0 && (
         <Stack spacing={1}>
           <Typography variant="subtitle2">Reference repos (read-only)</Typography>

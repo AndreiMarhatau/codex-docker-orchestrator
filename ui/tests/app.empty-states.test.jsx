@@ -95,3 +95,83 @@ it(
   },
   15000
 );
+
+it(
+  'surfaces deferred startup failures in task detail when explicitly marked by the backend',
+  async () => {
+    const failedTask = {
+      taskId: 'task-4',
+      envId: 'env-1',
+      repoUrl: 'https://github.com/openai/codex.git',
+      branchName: 'feature/docker-sidecar',
+      ref: 'main',
+      model: 'gpt-5.2',
+      reasoningEffort: 'high',
+      status: 'failed',
+      createdAt: '2024-01-02T12:00:00Z',
+      runs: [
+        {
+          runId: 'run-1',
+          status: 'failed',
+          startedAt: '2024-01-02T12:00:00Z',
+          finishedAt: '2024-01-02T12:01:00Z',
+          failedBeforeSpawn: true
+        }
+      ],
+      threadId: null,
+      error: 'Docker sidecar readiness timed out.',
+      useHostDockerSocket: true
+    };
+
+    mockApi({
+      '/api/envs': envs,
+      '/api/tasks': [failedTask],
+      '/api/accounts': accounts,
+      '/api/accounts/rate-limits': {
+        rateLimits,
+        fetchedAt: '2024-01-01T00:00:00Z'
+      },
+      [`/api/tasks/${failedTask.taskId}`]: {
+        ...failedTask,
+        runLogs: [
+          {
+            runId: 'run-1',
+            status: 'failed',
+            startedAt: '2024-01-02T12:00:00Z',
+            finishedAt: '2024-01-02T12:01:00Z',
+            prompt: 'Use Docker',
+            logFile: 'run-1.jsonl',
+            failedBeforeSpawn: true,
+            artifacts: [],
+            entries: []
+          }
+        ],
+        contextRepos: [],
+        attachments: [],
+        gitStatus: { hasChanges: false, dirty: false }
+      },
+      [`/api/tasks/${failedTask.taskId}/diff`]: {
+        available: false,
+        reason: 'no base'
+      }
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await waitFor(() =>
+      expect(screen.queryByText('Orchestrator locked')).not.toBeInTheDocument()
+    );
+
+    await user.click(await screen.findByText('feature/docker-sidecar'));
+    expect(
+      await screen.findByText('Startup failed before codex-docker spawned')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Docker sidecar readiness timed out.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Run logs are unavailable because startup failed before codex-docker was spawned.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No logs yet.')).not.toBeInTheDocument();
+  },
+  15000
+);

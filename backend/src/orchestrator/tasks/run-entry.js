@@ -9,6 +9,7 @@ function buildRunEntry({ runLabel, prompt, model, reasoningEffort, now, account,
     finishedAt: null,
     status: 'running',
     exitCode: null,
+    failedBeforeSpawn: false,
     useHostDockerSocket,
     accountId: account?.id || null,
     accountLabel: account?.label || null

@@ -28,7 +28,7 @@ const ARCHITECT_AGENT_INSTRUCTIONS = `You are the architect agent.
 
 const REVIEWER_AGENT_INSTRUCTIONS = `You are the reviewer agent.
 
-- Review only the current uncommitted changes.
+- Review changes.
 - Report issues, if any, with a clear severity.
 - Avoid comments that merely restate stylistic preferences.
 - Try not to conflict with the user's request. If the user's request itself introduces a serious risk, still flag it and explain why.

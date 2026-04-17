@@ -4,4 +4,4 @@ The following repositories are mounted read-only for context at `{{repositoriesP
 
 {{contextReposList}}
 
-Do not modify these paths; treat them as read-only references.
+The list may change between user requests.

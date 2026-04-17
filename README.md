@@ -58,9 +58,47 @@ VITE_API_BASE_URL=http://192.168.1.x:8080 npm run dev
 
 You can also set the variable in a `.env` file in `ui/` (for example, `VITE_API_BASE_URL=http://192.168.1.x:8080`) or pass it at build time.
 
+### UI mock preview
+Use the frontend-only mock mode when you want to review the UI without the backend, Codex, Docker, or real accounts.
+
+Start the mock UI locally:
+```
+./bin/ui-mock
+```
+
+This runs the Vite dev server with `VITE_ENABLE_MOCK_DATA=1`. The app intercepts its own API calls in the browser and serves stable fixture data. Useful direct URLs:
+- `http://localhost:5173/?tab=environments`
+- `http://localhost:5173/?tab=tasks`
+- `http://localhost:5173/?tab=accounts`
+- `http://localhost:5173/?tab=settings`
+- `http://localhost:5173/?tab=tasks&taskId=task-1`
+
+To run the mock UI from `ui/` directly:
+```
+npm run mock:dev
+```
+
+### Mock screenshots
+Generate mock screenshots for environments, tasks, task detail, accounts, and settings in both desktop and mobile layouts:
+```
+./bin/ui-mock-screenshots
+```
+
+The script builds the mock UI, starts `vite preview`, then uses the global `playwright` CLI to save screenshots under:
+```
+/root/.artifacts/mock-ui-screenshots
+```
+
+Optional overrides:
+- `MOCK_UI_SCREENSHOT_DIR=/custom/path ./bin/ui-mock-screenshots`
+- `MOCK_UI_BASE_URL=http://127.0.0.1:4173 ./bin/ui-mock-screenshots`
+
 ## Scripts
 - Backend tests: `npm -C backend test`
 - UI tests: `npm -C ui test`
+- Mock UI dev: `npm -C ui run mock:dev`
+- Mock UI build: `npm -C ui run mock:build`
+- Mock UI preview: `npm -C ui run mock:preview`
 
 ## Prompt architecture
 - `ORCHESTRATOR_DEVELOPER_INSTRUCTIONS.md` is the outer prompt for the top-level orchestrator agent. It should talk only about coordination, delegation, scope control, review flow, and final completion/commit ownership.

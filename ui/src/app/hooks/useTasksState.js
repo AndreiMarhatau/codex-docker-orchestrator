@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { MODEL_CUSTOM_VALUE } from '../constants.js';
 import { getGitStatusDisplay } from '../git-helpers.js';
 import { getEffortOptionsForModel } from '../model-helpers.js';
+import { readTaskIdQuery } from '../query-state.js';
 import useNow from './useNow.js';
 import useTaskActions from './useTaskActions.js';
 import useTaskDetail from './useTaskDetail.js';
@@ -9,7 +10,7 @@ import useTaskFormState from './useTaskFormState.js';
 import useTaskFiles from './useTaskFiles.js';
 import useTaskSelection from './useTaskSelection.js';
 
-function useTasksState({ envs, refreshAll, setError, setLoading, tasks }) {
+function useTasksState({ enabled, envs, refreshAll, setError, setLoading, tasks }) {
   const selection = useTaskSelection();
   const formState = useTaskFormState({
     envs,
@@ -18,6 +19,7 @@ function useTasksState({ envs, refreshAll, setError, setLoading, tasks }) {
   });
   const files = useTaskFiles();
   const detail = useTaskDetail({
+    enabled,
     envs,
     selectedTaskId: selection.selectedTaskId,
     setError,
@@ -90,6 +92,17 @@ function useTasksState({ envs, refreshAll, setError, setLoading, tasks }) {
       .slice()
       .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   }, [selection.taskFilterEnvId, tasks]);
+
+  useEffect(() => {
+    const queryTaskId = readTaskIdQuery();
+    if (!queryTaskId || selection.selectedTaskId || tasks.length === 0) {
+      return;
+    }
+    if (!tasks.some((task) => task.taskId === queryTaskId)) {
+      return;
+    }
+    selection.setSelectedTaskId(queryTaskId);
+  }, [selection, tasks]);
 
   const hasActiveRuns = useMemo(() => {
     const taskRunning = tasks.some(

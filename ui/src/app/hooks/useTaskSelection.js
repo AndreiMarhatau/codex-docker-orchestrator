@@ -1,8 +1,15 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { readTaskIdQuery, writeTaskIdQuery } from '../query-state.js';
 
 function useTaskSelection() {
-  const [selectedTaskId, setSelectedTaskId] = useState('');
+  const [selectedTaskIdState, setSelectedTaskIdState] = useState(readTaskIdQuery);
   const [taskFilterEnvId, setTaskFilterEnvId] = useState('');
+  const selectedTaskId = selectedTaskIdState || readTaskIdQuery();
+
+  const setSelectedTaskId = useCallback((taskId) => {
+    setSelectedTaskIdState(taskId);
+    writeTaskIdQuery(taskId);
+  }, []);
 
   function handleBackToTasks() {
     setSelectedTaskId('');

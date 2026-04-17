@@ -1,10 +1,18 @@
 import { render, screen } from './test-utils.jsx';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import useActiveTab from '../src/app/hooks/useActiveTab.js';
 
 function TabProbe() {
-  const { activeTab } = useActiveTab();
-  return <div data-testid="active-tab">{activeTab}</div>;
+  const { activeTab, setActiveTab } = useActiveTab();
+  return (
+    <>
+      <div data-testid="active-tab">{activeTab}</div>
+      <button type="button" onClick={() => setActiveTab(2)}>
+        Switch to accounts
+      </button>
+    </>
+  );
 }
 
 describe('useActiveTab', () => {
@@ -30,5 +38,14 @@ describe('useActiveTab', () => {
     window.history.pushState({}, '', '/?tab=environments');
     render(<TabProbe />);
     expect(screen.getByTestId('active-tab')).toHaveTextContent('0');
+  });
+
+  it('keeps the tab query param in sync', async () => {
+    window.history.pushState({}, '', '/?tab=tasks');
+    const user = userEvent.setup();
+    render(<TabProbe />);
+
+    await user.click(screen.getByRole('button', { name: 'Switch to accounts' }));
+    expect(window.location.search).toContain('tab=accounts');
   });
 });

@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "mock:dev": "VITE_ENABLE_MOCK_DATA=1 vite --host 0.0.0.0",
     "build": "vite build",
+    "mock:build": "VITE_ENABLE_MOCK_DATA=1 vite build",
     "preview": "vite preview",
+    "mock:preview": "sh -c 'VITE_ENABLE_MOCK_DATA=1 vite preview --host 0.0.0.0 --port \"${MOCK_UI_PORT:-4173}\"'",
     "test": "vitest run --coverage",
     "lint": "eslint --rulesdir eslint-rules --ext .js,.jsx src tests --max-warnings=0"
   },

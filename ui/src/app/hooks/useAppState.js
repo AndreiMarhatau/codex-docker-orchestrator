@@ -12,6 +12,7 @@ function useAppState() {
   const data = useAppData({ enabled: authState.isUnlocked });
   const tabState = useActiveTab();
   const tasksState = useTasksState({
+    enabled: authState.isUnlocked,
     envs: data.envs,
     refreshAll: data.refreshAll,
     setError: data.setError,
@@ -35,7 +36,6 @@ function useAppState() {
     setError: data.setError,
     setLoading: data.setLoading
   });
-  const { setSelectedTaskId } = tasksState.selection;
   const { setTaskDetail } = tasksState.detail;
 
   useStateStream({
@@ -60,11 +60,13 @@ function useAppState() {
   }, [authState.isUnlocked, tabState.activeTab, accountsState.activeAccount?.id]);
 
   useEffect(() => {
+    if (authState.checking) {
+      return;
+    }
     if (!authState.isUnlocked) {
-      setSelectedTaskId('');
       setTaskDetail(null);
     }
-  }, [authState.isUnlocked, setSelectedTaskId, setTaskDetail]);
+  }, [authState.checking, authState.isUnlocked, setTaskDetail]);
 
   return {
     accountsState,

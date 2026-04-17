@@ -28,7 +28,7 @@ function attachPathMethods(Orchestrator) {
   };
 
   Orchestrator.prototype.taskDockerDir = function taskDockerDir(taskId) {
-    return path.join(this.taskDir(taskId), 'docker');
+    return path.join(this.dataRoot, 'task-docker', taskId);
   };
 
   Orchestrator.prototype.taskDockerSocketDir = function taskDockerSocketDir(taskId) {

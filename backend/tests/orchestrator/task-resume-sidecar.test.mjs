@@ -11,12 +11,13 @@ const { Orchestrator } = require('../../src/orchestrator');
 describe('orchestrator resume sidecar cleanup', () => {
   it('does not create or clean sidecar when resume fails before deferred startup', async () => {
     const orchHome = await createTempDir();
+    const codexHome = await createTempDir();
     const calls = [];
     const exec = async (command, args) => {
       calls.push({ command, args });
       return { stdout: '', stderr: '', code: 0 };
     };
-    const orchestrator = new Orchestrator({ orchHome, exec });
+    const orchestrator = new Orchestrator({ orchHome, codexHome, exec });
     const envDir = path.join(orchHome, 'envs', 'env-1');
     await fs.mkdir(envDir, { recursive: true });
     await fs.writeFile(path.join(envDir, 'repo.url'), 'git@example.com:repo.git');
@@ -48,6 +49,7 @@ describe('orchestrator resume sidecar cleanup', () => {
 
   it('cleans up sidecar asynchronously when deferred run startup fails', async () => {
     const orchHome = await createTempDir();
+    const codexHome = await createTempDir();
     const calls = [];
     const exec = async (command, args) => {
       calls.push({ command, args });
@@ -67,7 +69,7 @@ describe('orchestrator resume sidecar cleanup', () => {
       }
       return { stdout: '', stderr: '', code: 0 };
     };
-    const orchestrator = new Orchestrator({ orchHome, exec });
+    const orchestrator = new Orchestrator({ orchHome, codexHome, exec });
     const envDir = path.join(orchHome, 'envs', 'env-1');
     await fs.mkdir(envDir, { recursive: true });
     await fs.writeFile(path.join(envDir, 'repo.url'), 'git@example.com:repo.git');
@@ -122,9 +124,10 @@ describe('orchestrator resume sidecar startup stop handling', () => {
 
   it('allows stopping while sidecar startup is pending', async () => {
     const orchHome = await createTempDir();
+    const codexHome = await createTempDir();
     const exec = createMockExec({ branches: ['main'] });
     const spawn = createMockSpawn();
-    const orchestrator = new Orchestrator({ orchHome, exec, spawn });
+    const orchestrator = new Orchestrator({ orchHome, codexHome, exec, spawn });
     await setupDockerResumeTask(orchestrator, orchHome);
 
     orchestrator.ensureTaskDockerSidecar = async () => {
@@ -140,9 +143,10 @@ describe('orchestrator resume sidecar startup stop handling', () => {
 
   it('cancels blocked sidecar startup when stop is requested', async () => {
     const orchHome = await createTempDir();
+    const codexHome = await createTempDir();
     const exec = createMockExec({ branches: ['main'] });
     const spawn = createMockSpawn();
-    const orchestrator = new Orchestrator({ orchHome, exec, spawn });
+    const orchestrator = new Orchestrator({ orchHome, codexHome, exec, spawn });
     await setupDockerResumeTask(orchestrator, orchHome);
 
     orchestrator.ensureTaskDockerSidecar = async (_taskId, options = {}) =>
@@ -167,9 +171,10 @@ describe('orchestrator resume sidecar startup stop handling', () => {
 
   it('uses non-destructive cleanup when stop interrupts sidecar inspect', async () => {
     const orchHome = await createTempDir();
+    const codexHome = await createTempDir();
     const exec = createMockExec({ branches: ['main'] });
     const spawn = createMockSpawn();
-    const orchestrator = new Orchestrator({ orchHome, exec, spawn });
+    const orchestrator = new Orchestrator({ orchHome, codexHome, exec, spawn });
     await setupDockerResumeTask(orchestrator, orchHome);
 
     const calls = [];

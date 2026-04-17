@@ -84,9 +84,9 @@ describe('Orchestrator task context', () => {
     expect(developerInstructions).toContain('Environment variables');
     expect(developerInstructions).toContain('API_TOKEN');
     expect(developerInstructions).toContain('FEATURE_FLAG');
-    expect(developerInstructions).toContain('You are the top-level orchestrator for the task.');
+    expect(developerInstructions).toContain('You are the top-level orchestrator for user requests.');
     expect(developerInstructions).toContain('spawn_agent');
-    expect(developerInstructions).toContain('reviewer` agent');
+    expect(developerInstructions).toContain("'reviewer' has to review the changes");
     expect(developerInstructions).not.toContain('You are the developer agent.');
   });
 
@@ -117,7 +117,7 @@ describe('Orchestrator task context', () => {
     expect(createCall.options?.env?.CODEX_CONTAINER_ENV_DOCKER_HOST).toBe('unix:///var/run/orch-task-docker/docker.sock');
     expect(createCall.options?.env?.CODEX_PASSTHROUGH_ENV || '').not.toContain('CODEX_CONTAINER_ENV_DOCKER_HOST');
     const createDeveloperInstructions = extractDeveloperInstructions(createCall.args);
-    expect(createDeveloperInstructions).toContain('You are the top-level orchestrator for the task.');
+    expect(createDeveloperInstructions).toContain('You are the top-level orchestrator for user requests.');
     expect(createDeveloperInstructions).toContain('Docker is enabled for this task via an isolated per-task Docker sidecar daemon.');
     expect(createDeveloperInstructions).toContain('/root/.artifacts');
     expect(createDeveloperInstructions).not.toContain('Environment variables');
@@ -142,7 +142,7 @@ describe('Orchestrator task context', () => {
     const resumeCall = resumeCalls[1];
     expect(resumeCall.options?.env?.CODEX_VOLUME_MOUNTS || '').not.toContain('/var/run/orch-task-docker');
     const resumeDeveloperInstructions = extractDeveloperInstructions(resumeCall.args);
-    expect(resumeDeveloperInstructions).toContain('You are the top-level orchestrator for the task.');
+    expect(resumeDeveloperInstructions).toContain('You are the top-level orchestrator for user requests.');
     expect(resumeDeveloperInstructions).toContain('Docker is disabled for this task.');
 
     const metaPath = path.join(orchHome, 'tasks', task.taskId, 'meta.json');

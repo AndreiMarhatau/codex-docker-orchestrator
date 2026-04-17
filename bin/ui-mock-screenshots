@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PORT="${MOCK_UI_PORT:-4173}"
+BASE_URL="${MOCK_UI_BASE_URL:-http://127.0.0.1:${PORT}}"
+OUTPUT_DIR="${MOCK_UI_SCREENSHOT_DIR:-/root/.artifacts/mock-ui-screenshots}"
+SERVER_PID=""
+
+cleanup() {
+  if [[ -n "$SERVER_PID" ]]; then
+    kill "$SERVER_PID" >/dev/null 2>&1 || true
+    wait "$SERVER_PID" >/dev/null 2>&1 || true
+  fi
+}
+
+wait_for_server() {
+  local attempt
+  for attempt in $(seq 1 60); do
+    if curl -fsS "${BASE_URL}/?tab=tasks" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+capture_screen() {
+  local name="$1"
+  local url="$2"
+  local selector="$3"
+
+  playwright screenshot \
+    --browser chromium \
+    --color-scheme light \
+    --full-page \
+    --lang en-US \
+    --viewport-size "1440,1200" \
+    --wait-for-selector "$selector" \
+    --wait-for-timeout 750 \
+    "$url" \
+    "$OUTPUT_DIR/desktop/${name}.png"
+
+  playwright screenshot \
+    --browser chromium \
+    --color-scheme light \
+    --full-page \
+    --lang en-US \
+    --user-agent "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1" \
+    --viewport-size "390,844" \
+    --wait-for-selector "$selector" \
+    --wait-for-timeout 750 \
+    "$url" \
+    "$OUTPUT_DIR/mobile/${name}.png"
+}
+
+mkdir -p "$OUTPUT_DIR/desktop" "$OUTPUT_DIR/mobile"
+trap cleanup EXIT
+
+if [[ -z "${MOCK_UI_BASE_URL:-}" ]]; then
+  npm -C "$ROOT_DIR/ui" run mock:build
+  MOCK_UI_PORT="$PORT" npm -C "$ROOT_DIR/ui" run mock:preview >/tmp/ui-mock-preview.log 2>&1 &
+  SERVER_PID="$!"
+
+  if ! wait_for_server; then
+    echo "Mock UI preview did not become ready. See /tmp/ui-mock-preview.log" >&2
+    exit 1
+  fi
+fi
+
+capture_screen "environments" "${BASE_URL}/?tab=environments" "text=Create and manage repo sources for Codex runs."
+capture_screen "tasks" "${BASE_URL}/?tab=tasks" "text=Runs in progress"
+capture_screen "accounts" "${BASE_URL}/?tab=accounts" "text=Usage limits"
+capture_screen "settings" "${BASE_URL}/?tab=settings" "text=Git Setup"
+capture_screen "task-detail" "${BASE_URL}/?tab=tasks&taskId=task-1" ".task-detail-shell"
+
+printf 'Saved mock UI screenshots to %s\n' "$OUTPUT_DIR"

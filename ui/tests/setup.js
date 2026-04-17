@@ -46,6 +46,7 @@ afterAll(() => {
 });
 
 beforeEach(() => {
+  window.history.pushState({}, '', '/');
   global.EventSource = class MockEventSource {
     addEventListener() {}
     removeEventListener() {}
@@ -92,4 +93,5 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   clearStoredPassword();
+  window.history.pushState({}, '', '/');
 });

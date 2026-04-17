@@ -5,7 +5,7 @@ import useResumeContextRepos from './useResumeContextRepos.js';
 import useTaskFiles from './useTaskFiles.js';
 import useTaskLogStream from './useTaskLogStream.js';
 
-function useTaskDetail({ envs, tasks, selectedTaskId, setError, setSelectedTaskId }) {
+function useTaskDetail({ enabled, envs, tasks, selectedTaskId, setError, setSelectedTaskId }) {
   const [taskDetail, setTaskDetail] = useState(null);
   const [taskDiff, setTaskDiff] = useState(null);
   const [revealedDiffs, setRevealedDiffs] = useState({});
@@ -58,8 +58,13 @@ function useTaskDetail({ envs, tasks, selectedTaskId, setError, setSelectedTaskI
       setResumeAttachmentRemovals([]);
       return;
     }
+    if (!enabled) {
+      setTaskDetail(null);
+      setTaskDiff(null);
+      return;
+    }
     refreshTaskDetail(selectedTaskId).catch((err) => setError(err.message));
-  }, [selectedTaskId, setError]);
+  }, [enabled, refreshTaskDetail, selectedTaskId, setError]);
 
   useEffect(() => {
     if (!selectedTaskId) {

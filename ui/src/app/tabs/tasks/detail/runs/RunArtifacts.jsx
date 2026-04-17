@@ -7,10 +7,9 @@ function RunArtifacts({ run, taskId }) {
   const artifacts = run.artifacts || [];
 
   const renderArtifactCard = (artifact, showImage) => {
-    const encodedPath = encodeArtifactPath(artifact.path);
-    const artifactUrl = apiUrlWithPassword(
-      `/api/tasks/${taskId}/artifacts/${run.runId}/${encodedPath}`
-    );
+    const artifactUrl =
+      artifact.url ||
+      apiUrlWithPassword(`/api/tasks/${taskId}/artifacts/${run.runId}/${encodeArtifactPath(artifact.path)}`);
     return (
       <Box key={artifact.path} className="artifact-item">
         {showImage && (

@@ -44,14 +44,14 @@ describe('task instruction roles', () => {
     const delegatedInstructions = buildDeveloperInstructions.call({}, buildInstructionOptions());
 
     expect(rawOrchestratorInstructions).toContain('top-level orchestrator');
-    expect(rawOrchestratorInstructions).toContain('coordination, delegation, scope control');
-    expect(rawOrchestratorInstructions).toContain('Do not independently expand implementation scope');
-    expect(rawOrchestratorInstructions).toContain('delegated `developer` agent');
+    expect(rawOrchestratorInstructions).toContain('coordinate, delegate, control');
+    expect(rawOrchestratorInstructions).toContain('Keep working with the \'developer\' subagent until acceptance criteria are met fully and verified.');
+    expect(rawOrchestratorInstructions).toContain("delegate to the 'developer' subagent");
     expect(rawOrchestratorInstructions).not.toContain('Fully address the request in the repository');
 
     expect(orchestratorInstructions).toContain('top-level orchestrator');
-    expect(orchestratorInstructions).toContain('coordination, delegation, scope control');
-    expect(orchestratorInstructions).toContain('create and switch to a readable branch name');
+    expect(orchestratorInstructions).toContain('coordinate, delegate, control');
+    expect(orchestratorInstructions).toContain("Create a meaningful branch with name starting with 'codex/' if not yet done.");
     expect(orchestratorInstructions).toContain('spawn_agent');
     expect(orchestratorInstructions).not.toContain('You are the developer agent.');
 
@@ -66,16 +66,16 @@ describe('task instruction roles', () => {
     const preambleCount = instructions.split('You are running inside an ephemeral Docker container').length - 1;
 
     expect(instructions).toContain('ephemeral Docker container');
-    expect(instructions).toContain('without asking the user for approval first');
-    expect(instructions).toContain('You are the top-level orchestrator for the task.');
-    expect(instructions).toContain('creating the final git commit');
-    expect(instructions).toContain('create and switch to a readable branch name');
+    expect(instructions).toContain('without asking the user for approval at all');
+    expect(instructions).toContain('You are the top-level orchestrator for user requests.');
+    expect(instructions).toContain('Stage and commit using a concise commit message.');
+    expect(instructions).toContain("Create a meaningful branch with name starting with 'codex/' if not yet done.");
     expect(instructions).toContain('Docker is disabled for this task.');
     expect(instructions).toContain('/root/.artifacts');
     expect(instructions).toContain('spawn_agent');
     expect(instructions).toContain('fork_context = false');
-    expect(instructions).toContain('architect` agent');
-    expect(instructions).toContain('reviewer` agent');
+    expect(instructions).toContain("'architect' review");
+    expect(instructions).toContain("'reviewer' has to review the changes");
     expect(instructions).not.toContain('Environment variables');
     expect(instructions).not.toContain('You are the developer agent.');
     expect(preambleCount).toBe(1);
@@ -114,10 +114,10 @@ describe('task instruction config merging', () => {
 
     expect(instructions).toContain('Follow the local handbook.');
     expect(instructions).toContain('task-orchestrator-instructions');
-    expect(instructions).toContain('You are the top-level orchestrator for the task.');
+    expect(instructions).toContain('You are the top-level orchestrator for user requests.');
     expect(instructions).toContain('Docker is disabled for this task.');
     expect(instructions).toContain('/root/.artifacts');
-    expect(instructions).toContain('Use the `architect` agent');
+    expect(instructions).toContain('decide if you need \'architect\' review');
     expect(instructions).not.toContain('Environment variables');
   });
 
@@ -140,9 +140,9 @@ describe('task instruction config merging', () => {
     expect(instructions).toContain('/root/.artifacts');
     expect(instructions).toContain('Environment variables');
     expect(instructions).toContain('SAMPLE_FLAG');
-    expect(instructions).toContain('Do not independently expand implementation scope');
-    expect(instructions).toContain('create a git commit');
+    expect(instructions).toContain('Keep working with the \'developer\' subagent until acceptance criteria are met fully and verified.');
+    expect(instructions).toContain('Stage and commit using a concise commit message.');
     expect(instructions).not.toContain('task-orchestrator-instructions');
-    expect(instructions).toContain('Pass the full user request and all task-specific context');
+    expect(instructions).toContain('Provide user request, any additional details, including what YOU as an orchestrator expect from the subagent.');
   });
 });

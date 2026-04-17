@@ -33,7 +33,8 @@ describe('managed agent reconciliation content', () => {
     expect(architect).toContain('You are the architect agent.');
     expect(architect).toContain('emerging architectural problem');
     expect(reviewer).toContain('You are the reviewer agent.');
-    expect(reviewer).toContain('Review only the current uncommitted changes.');
+    expect(reviewer).toContain('Review changes.');
+    expect(reviewer).toContain('Avoid comments that merely restate stylistic preferences.');
   });
 
   it('prepends user instructions to the managed developer agent only', async () => {

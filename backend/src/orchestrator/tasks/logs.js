@@ -37,6 +37,7 @@ function attachTaskLogMethods(Orchestrator) {
         finishedAt: run.finishedAt || null,
         prompt: run.prompt,
         logFile: run.logFile,
+        failedBeforeSpawn: run.failedBeforeSpawn === true,
         artifacts: run.artifacts || [],
         entries: parseLogEntries(content)
       });

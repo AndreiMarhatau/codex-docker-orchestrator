@@ -39,6 +39,9 @@ describe('orchestrator create task failures', () => {
     const taskMetaPath = path.join(orchHome, 'tasks', task.taskId, 'meta.json');
     const meta = JSON.parse(await fs.readFile(taskMetaPath, 'utf8'));
     expect(meta.error).toContain('run failed');
+    expect(meta.runs[0].failedBeforeSpawn).toBe(true);
+    const detail = await orchestrator.getTask(task.taskId);
+    expect(detail.runLogs[0].failedBeforeSpawn).toBe(true);
   });
 
   it('fails immediately before deferred startup when context resolution fails', async () => {

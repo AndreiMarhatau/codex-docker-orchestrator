@@ -51,7 +51,8 @@ function attachFailRunStartMethod(Orchestrator) {
         ...meta.runs[runIndex],
         finishedAt: now,
         status: stopped ? 'stopped' : 'failed',
-        exitCode: 1
+        exitCode: 1,
+        failedBeforeSpawn: stopped ? false : true
       };
     }
     await writeJson(this.taskMetaPath(taskId), meta);

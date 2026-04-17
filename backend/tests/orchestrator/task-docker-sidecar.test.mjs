@@ -39,7 +39,7 @@ function createDockerExec({
   return exec;
 }
 
-describe('task docker sidecar', () => {
+describe('task docker sidecar startup', () => {
   it('creates sidecar when container does not exist', async () => {
     const orchHome = await createTempDir();
     const exec = createDockerExec({ inspectCode: 1, inspectStderr: 'No such container' });
@@ -164,14 +164,9 @@ describe('task docker sidecar', () => {
     expect(calls.some((call) => call.command === 'docker' && call.args[0] === 'exec')).toBe(true);
   });
 
-  it('keeps the task Docker socket path short enough for unix sockets', async () => {
-    const orchHome = await createTempDir();
-    const orchestrator = new Orchestrator({ orchHome });
+});
 
-    const socketPath = orchestrator.taskDockerSocketPath('85090b0e-22f9-4f21-98a9-79f63d17539f');
-    expect(socketPath.length).toBeLessThan(108);
-  });
-
+describe('task docker sidecar cleanup', () => {
   it('throws when stopping sidecar fails with non-not-found error', async () => {
     const orchHome = await createTempDir();
     const exec = async (command, args) => {
@@ -183,5 +178,13 @@ describe('task docker sidecar', () => {
     const orchestrator = new Orchestrator({ orchHome, exec });
 
     await expect(orchestrator.stopTaskDockerSidecar('task-5')).rejects.toThrow(/permission denied/);
+  });
+
+  it('keeps the task Docker socket path short enough for unix sockets', async () => {
+    const orchHome = await createTempDir();
+    const orchestrator = new Orchestrator({ orchHome });
+
+    const socketPath = orchestrator.taskDockerSocketPath('85090b0e-22f9-4f21-98a9-79f63d17539f');
+    expect(socketPath.length).toBeLessThan(108);
   });
 });

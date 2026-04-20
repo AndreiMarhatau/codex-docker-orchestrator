@@ -5,7 +5,7 @@ function AccountForm({ accountsState, data }) {
   const { loading } = data;
 
   return (
-    <>
+    <Stack spacing={2} className="subpanel-card">
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         spacing={2}
@@ -66,7 +66,7 @@ function AccountForm({ accountsState, data }) {
           </Stack>
         </Stack>
       </Collapse>
-    </>
+    </Stack>
   );
 }
 

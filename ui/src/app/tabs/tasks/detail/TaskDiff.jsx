@@ -54,8 +54,8 @@ function TaskDiff({ tasksState }) {
     diffStats.totals.additions > 0 || diffStats.totals.deletions > 0;
 
   return (
-    <Box component="details" className="log-entry">
-      <summary className="log-summary">
+    <Box component="details" className="log-entry log-entry--diff diff-root" open>
+      <summary className="log-summary diff-root-summary">
         <span>Diff</span>
         <span className="log-meta">
           {taskDiff
@@ -79,19 +79,26 @@ function TaskDiff({ tasksState }) {
           </Typography>
         )}
         {taskDiff && taskDiff.available && taskDiff.baseSha && (
-          <Typography className="mono" color="text.secondary">
-            {`Base commit: ${taskDiff.baseSha}`}
-          </Typography>
+          <Box className="diff-base-commit">
+            <Typography className="mono" color="text.secondary">
+              {`Base commit: ${taskDiff.baseSha}`}
+            </Typography>
+          </Box>
         )}
         {taskDiff && taskDiff.available && taskDiff.files.length === 0 && (
           <Typography color="text.secondary">No changes yet.</Typography>
         )}
         {taskDiff && taskDiff.available && taskDiff.files.length > 0 && (
-          <Stack spacing={1}>
-            {taskDiff.files.map((file) => (
-              <Box key={file.path} component="details" className="diff-file">
-                <summary className="log-summary">
-                  <span className="mono">{file.path}</span>
+          <Stack spacing={1.25}>
+            {taskDiff.files.map((file, index) => (
+              <Box
+                key={file.path}
+                component="details"
+                className="diff-file"
+                open={index === 0 && !file.tooLarge}
+              >
+                <summary className="log-summary diff-file-summary">
+                  <span className="mono diff-file-path">{file.path}</span>
                   <span className="log-meta">
                     <span>{`${file.lineCount} lines`}</span>
                     <DiffStats

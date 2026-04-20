@@ -7,9 +7,12 @@ function useTaskSelection() {
   const selectedTaskId = selectedTaskIdState || readTaskIdQuery();
 
   const setSelectedTaskId = useCallback((taskId) => {
+    const currentTaskId = selectedTaskIdState || readTaskIdQuery();
     setSelectedTaskIdState(taskId);
-    writeTaskIdQuery(taskId);
-  }, []);
+    writeTaskIdQuery(taskId, {
+      clearDetailTab: !taskId || currentTaskId !== taskId
+    });
+  }, [selectedTaskIdState]);
 
   function handleBackToTasks() {
     setSelectedTaskId('');

@@ -29,8 +29,8 @@ function AccountCard({
   const authChanged = authDraft !== (account.authJson ?? '');
 
   return (
-    <Card className="task-card">
-      <CardContent>
+    <Card className="task-card account-card">
+      <CardContent className="task-card-content">
         <Stack spacing={1}>
           <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
             <Typography fontWeight={600}>{formatAccountLabel(account)}</Typography>
@@ -56,6 +56,7 @@ function AccountCard({
             </Button>
             <Button
               size="small"
+              variant="text"
               color="secondary"
               onClick={() => accountsState.handleDeleteAccount(account.id)}
               disabled={loading || account.isActive}

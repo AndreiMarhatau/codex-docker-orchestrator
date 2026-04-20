@@ -34,14 +34,16 @@ describe('useTaskSelection', () => {
   });
 
   it('keeps the taskId query param in sync', async () => {
-    window.history.pushState({}, '', '/?tab=tasks');
+    window.history.pushState({}, '', '/?tab=tasks&detailTab=diff');
     const user = userEvent.setup();
     render(<TaskSelectionProbe />);
 
     await user.click(screen.getByRole('button', { name: 'Select task-2' }));
     expect(window.location.search).toContain('taskId=task-2');
+    expect(window.location.search).not.toContain('detailTab=');
 
     await user.click(screen.getByRole('button', { name: 'Clear task' }));
     expect(window.location.search).not.toContain('taskId=');
+    expect(window.location.search).not.toContain('detailTab=');
   });
 });

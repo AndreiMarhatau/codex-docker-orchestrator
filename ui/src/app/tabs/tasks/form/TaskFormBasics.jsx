@@ -7,6 +7,7 @@ function TaskFormBasics({ envs, selectedEnv, setTaskForm, taskForm }) {
       <TextField
         select
         label="Environment"
+        size="small"
         value={taskForm.envId}
         onChange={(event) => setTaskForm((prev) => ({ ...prev, envId: event.target.value }))}
         fullWidth
@@ -19,10 +20,12 @@ function TaskFormBasics({ envs, selectedEnv, setTaskForm, taskForm }) {
       </TextField>
       <TextField
         label="Branch / tag / ref"
+        size="small"
         fullWidth
         value={taskForm.ref}
         onChange={(event) => setTaskForm((prev) => ({ ...prev, ref: event.target.value }))}
         placeholder={selectedEnv?.defaultBranch || 'main'}
+        helperText={`Defaults to ${selectedEnv?.defaultBranch || 'main'} when left blank.`}
       />
       <TextField
         label="Task prompt"

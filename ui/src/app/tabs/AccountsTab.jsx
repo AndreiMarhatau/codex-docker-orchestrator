@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, Divider, Stack } from '@mui/material';
+import { Box, Card, CardContent, Stack } from '@mui/material';
 import AccountsHeader from './accounts/AccountsHeader.jsx';
 import AccountForm from './accounts/AccountForm.jsx';
 import AccountList from './accounts/AccountList.jsx';
@@ -11,16 +11,17 @@ function AccountsTab({ accountsState, data }) {
       <Stack spacing={2}>
         <Card className="panel-card">
           <CardContent className="panel-content">
-            <Stack spacing={2}>
-              <AccountsHeader accountsState={accountsState} data={data} />
+            <Box className="accounts-grid">
+              <Box className="accounts-grid-span">
+                <AccountsHeader accountsState={accountsState} data={data} />
+              </Box>
               <UsageLimits accountsState={accountsState} />
-              <Divider />
               <RotationQueue accountsState={accountsState} data={data} />
-              <Divider />
               <AccountForm accountsState={accountsState} data={data} />
-              <Divider />
-              <AccountList accountsState={accountsState} data={data} />
-            </Stack>
+              <Box className="accounts-grid-span">
+                <AccountList accountsState={accountsState} data={data} />
+              </Box>
+            </Box>
           </CardContent>
         </Card>
       </Stack>

@@ -2,10 +2,13 @@ import { Box, Stack } from '@mui/material';
 
 function RunAgentMessages({ agentMessages, runId }) {
   return (
-    <Box component="details" className="log-entry" open>
+    <Box component="details" className="run-section-card run-section-card--messages">
       <summary className="log-summary">
         <span>Agent messages</span>
-        <span className="log-meta">{runId}</span>
+        <span className="log-meta">
+          <span>{runId}</span>
+          <span>{agentMessages.length}</span>
+        </span>
       </summary>
       <Stack spacing={1} sx={{ mt: 1 }}>
         {agentMessages.map((message, index) => (

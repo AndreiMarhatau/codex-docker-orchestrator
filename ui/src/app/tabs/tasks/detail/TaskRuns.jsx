@@ -1,4 +1,4 @@
-import { Stack, Typography } from '@mui/material';
+import { Box, Stack, Typography } from '@mui/material';
 import RunLog from './runs/RunLog.jsx';
 
 function TaskRuns({ tasksState }) {
@@ -10,9 +10,19 @@ function TaskRuns({ tasksState }) {
     taskDetail.status === 'failed' && latestRunLog?.failedBeforeSpawn === true;
 
   return (
-    <>
-      <Typography variant="subtitle2">Runs</Typography>
-      <Stack spacing={1}>
+    <Box className="detail-section">
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1}
+        alignItems={{ xs: 'flex-start', sm: 'center' }}
+        justifyContent="space-between"
+      >
+        <Typography variant="subtitle2">Runs</Typography>
+        <Typography color="text.secondary" variant="body2">
+          {runLogs.length} {runLogs.length === 1 ? 'run' : 'runs'}
+        </Typography>
+      </Stack>
+      <Stack spacing={1.25}>
         {runLogs.map((run) => (
           <RunLog
             key={run.runId}
@@ -35,7 +45,7 @@ function TaskRuns({ tasksState }) {
           </Typography>
         )}
       </Stack>
-    </>
+    </Box>
   );
 }
 

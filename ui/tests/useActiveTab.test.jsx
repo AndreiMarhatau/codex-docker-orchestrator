@@ -48,4 +48,19 @@ describe('useActiveTab', () => {
     await user.click(screen.getByRole('button', { name: 'Switch to accounts' }));
     expect(window.location.search).toContain('tab=accounts');
   });
+
+  it('clears task-scoped query params when leaving tasks', async () => {
+    window.history.pushState({}, '', '/?tab=tasks&taskId=task-1&detailTab=diff');
+    const user = userEvent.setup();
+    render(<TabProbe />);
+
+    expect(screen.getByTestId('active-tab')).toHaveTextContent('1');
+    expect(window.location.search).toContain('taskId=task-1');
+    expect(window.location.search).toContain('detailTab=diff');
+
+    await user.click(screen.getByRole('button', { name: 'Switch to accounts' }));
+    expect(window.location.search).toContain('tab=accounts');
+    expect(window.location.search).not.toContain('taskId=');
+    expect(window.location.search).not.toContain('detailTab=');
+  });
 });

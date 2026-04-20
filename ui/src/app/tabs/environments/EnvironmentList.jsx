@@ -9,7 +9,7 @@ function EnvironmentList({
   setSelectedEnvId
 }) {
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2} className="subpanel-card">
       <Typography variant="h6" className="panel-title">
         Environments
       </Typography>
@@ -17,14 +17,14 @@ function EnvironmentList({
         {envs.map((env) => (
           <Card
             key={env.envId}
-            className="task-card"
+            className={`task-card task-card--interactive${env.envId === selectedEnvId ? ' task-card--selected' : ''}`}
             sx={{
               borderColor: env.envId === selectedEnvId ? 'primary.main' : 'divider',
               cursor: 'pointer'
             }}
             onClick={() => setSelectedEnvId(env.envId)}
           >
-            <CardContent>
+            <CardContent className="task-card-content">
               <Stack spacing={0.5}>
                 <Tooltip title={env.repoUrl || ''}>
                   <Typography fontWeight={600}>

@@ -50,7 +50,8 @@ function AccountList({ accountsState, data }) {
   };
 
   return (
-    <>
+    <Stack spacing={1.5} className="subpanel-card">
+      <Typography variant="subtitle2">Stored accounts</Typography>
       <Stack spacing={1.5}>
         {accountState.accounts.map((account) => (
           <AccountCard
@@ -76,7 +77,7 @@ function AccountList({ accountsState, data }) {
           </Typography>
         )}
       </Stack>
-    </>
+    </Stack>
   );
 }
 

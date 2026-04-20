@@ -11,6 +11,8 @@ import { getGitStatusDisplay } from '../../../git-helpers.js';
 import { formatEffortDisplay, formatModelDisplay } from '../../../model-helpers.js';
 import { formatRepoDisplay } from '../../../repo-helpers.js';
 import { getElapsedMs, getLatestRun } from '../../../task-helpers.js';
+import DisclosureSection from '../../../components/DisclosureSection.jsx';
+import WorkspaceHeader from '../../../components/WorkspaceHeader.jsx';
 
 const GIT_ICON_MAP = {
   clean: CheckCircleOutlineIcon,
@@ -173,78 +175,66 @@ function TaskDetailHeader({ tasksState }) {
   }));
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={1.5}>
       <Box className="task-summary-card">
-        <Stack spacing={2.5}>
-          <Stack
-            direction={{ xs: 'column', lg: 'row' }}
-            spacing={2}
-            justifyContent="space-between"
-            alignItems={{ xs: 'flex-start', lg: 'flex-start' }}
-          >
-            <Stack spacing={0.85} sx={{ maxWidth: 720 }}>
-              <Typography className="task-summary-label">
-                {formatRepoDisplay(taskDetail.repoUrl) || taskDetail.repoUrl}
-              </Typography>
-              <Typography variant="h5" className="task-summary-title">
-                {taskDetail.branchName}
-              </Typography>
-              <Typography color="text.secondary">
-                Created {formatTimestamp(taskDetail.createdAt)}
-              </Typography>
-            </Stack>
-
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              <StatusPill status={taskDetail.status} />
-              <GitStatusPill gitStatus={taskDetail.gitStatus} />
-              <Chip size="small" label={`ref ${taskDetail.ref}`} variant="outlined" />
-              <Chip size="small" label={`model ${formatModelDisplay(taskDetail.model)}`} variant="outlined" />
-              <Chip size="small" label={`effort ${formatEffortDisplay(taskDetail.reasoningEffort)}`} variant="outlined" />
-              <Chip size="small" label={`thread ${taskDetail.threadId || 'pending'}`} variant="outlined" />
-              <Chip
-                size="small"
-                label={`artifacts ${generatedArtifacts.length}`}
-                variant="outlined"
-              />
-              <RunningDurationChip now={now} taskDetail={taskDetail} />
-            </Stack>
-          </Stack>
+        <Stack spacing={1.5}>
+          <WorkspaceHeader
+            eyebrow={formatRepoDisplay(taskDetail.repoUrl) || taskDetail.repoUrl}
+            title={taskDetail.branchName}
+            subtitle={`Created ${formatTimestamp(taskDetail.createdAt)}`}
+            meta={(
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <StatusPill status={taskDetail.status} />
+                <GitStatusPill gitStatus={taskDetail.gitStatus} />
+                <Chip size="small" label={`ref ${taskDetail.ref}`} variant="outlined" />
+                <Chip size="small" label={`model ${formatModelDisplay(taskDetail.model)}`} variant="outlined" />
+                <Chip size="small" label={`effort ${formatEffortDisplay(taskDetail.reasoningEffort)}`} variant="outlined" />
+                <Chip size="small" label={`thread ${taskDetail.threadId || 'pending'}`} variant="outlined" />
+                <Chip size="small" label={`${generatedArtifacts.length} outputs`} variant="outlined" />
+                <Chip size="small" label={`${attachmentItems.length} files`} variant="outlined" />
+                <RunningDurationChip now={now} taskDetail={taskDetail} />
+              </Stack>
+            )}
+          />
 
           <TaskErrorAlert taskDetail={taskDetail} />
 
-          <Box className="detail-meta-grid">
-            <Box className="detail-meta-panel">
-              <Stack spacing={1.25}>
-                <Typography variant="subtitle2">Reference repos</Typography>
-                <DetailList
-                  emptyLabel="No reference repos attached."
-                  items={contextRepoItems}
-                />
-              </Stack>
-            </Box>
-            <Box className="detail-meta-panel">
-              <Stack spacing={1.25}>
-                <Typography variant="subtitle2">Task files</Typography>
-                <DetailList
-                  emptyLabel="No task files attached."
-                  items={attachmentItems}
-                />
-              </Stack>
-            </Box>
-            <Box className="detail-meta-panel">
-              <Stack spacing={1.25}>
-                <Typography variant="subtitle2">Outputs</Typography>
-                <DetailList
-                  emptyLabel="No outputs generated yet."
-                  items={generatedArtifacts.slice(0, 4)}
-                />
-                {generatedArtifacts.length > 4 && (
-                  <Typography color="text.secondary" variant="body2">
-                    {`${generatedArtifacts.length - 4} more outputs are available in the run artifacts below.`}
-                  </Typography>
-                )}
-              </Stack>
-            </Box>
+          <Box className="task-secondary-grid">
+            <DisclosureSection
+              className="task-secondary-section"
+              title="Outputs"
+              meta={`${generatedArtifacts.length}`}
+            >
+              <DetailList
+                emptyLabel="No outputs generated yet."
+                items={generatedArtifacts.slice(0, 5)}
+              />
+              {generatedArtifacts.length > 5 ? (
+                <Typography color="text.secondary" variant="body2" sx={{ mt: 1.25 }}>
+                  {`${generatedArtifacts.length - 5} more outputs are available below.`}
+                </Typography>
+              ) : null}
+            </DisclosureSection>
+            <DisclosureSection
+              className="task-secondary-section"
+              title="Task files"
+              meta={`${attachmentItems.length}`}
+            >
+              <DetailList
+                emptyLabel="No task files attached."
+                items={attachmentItems}
+              />
+            </DisclosureSection>
+            <DisclosureSection
+              className="task-secondary-section"
+              title="Reference repos"
+              meta={`${contextRepoItems.length}`}
+            >
+              <DetailList
+                emptyLabel="No reference repos attached."
+                items={contextRepoItems}
+              />
+            </DisclosureSection>
           </Box>
         </Stack>
       </Box>

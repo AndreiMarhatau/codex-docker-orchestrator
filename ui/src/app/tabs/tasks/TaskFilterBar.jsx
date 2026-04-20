@@ -9,17 +9,17 @@ function TaskFilterBar({ data, tasksState }) {
   return (
     <Box className="subpanel-card">
       <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        spacing={2}
-        alignItems={{ xs: 'stretch', md: 'center' }}
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1.5}
+        alignItems={{ xs: 'stretch', sm: 'center' }}
         justifyContent="space-between"
       >
-        <Stack spacing={0.5}>
-          <Typography variant="subtitle2">Focus the board</Typography>
+        <Stack spacing={0.35} sx={{ minWidth: 0 }}>
+          <Typography variant="subtitle2">Filter by environment</Typography>
           <Typography color="text.secondary" variant="body2">
             {selectedEnv
-              ? `Showing tasks for ${formatRepoDisplay(selectedEnv.repoUrl) || selectedEnv.repoUrl}.`
-              : 'Narrow the list to one environment or keep everything visible.'}
+              ? `Showing ${formatRepoDisplay(selectedEnv.repoUrl) || selectedEnv.repoUrl}.`
+              : 'Keep the list focused on one environment.'}
           </Typography>
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} alignItems={{ xs: 'stretch', sm: 'center' }}>
@@ -29,7 +29,7 @@ function TaskFilterBar({ data, tasksState }) {
             label="Environment filter"
             value={selection.taskFilterEnvId}
             onChange={(event) => selection.setTaskFilterEnvId(event.target.value)}
-            sx={{ minWidth: { xs: '100%', sm: 260 } }}
+            sx={{ minWidth: { xs: '100%', sm: 260 }, flexShrink: 0 }}
           >
             <MenuItem value="">All environments</MenuItem>
             {envs.map((env) => (

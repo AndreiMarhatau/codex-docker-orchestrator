@@ -8,8 +8,6 @@ function TasksOverview({ data, tasksState }) {
   return (
     <Stack spacing={2.5}>
       <TasksHeader tasksState={tasksState} />
-      <TaskFilterBar data={data} tasksState={tasksState} />
-      <TaskForm data={data} tasksState={tasksState} />
       <TaskList
         data={data}
         handleDeleteTask={tasksState.listActions.handleDeleteTask}
@@ -19,6 +17,8 @@ function TasksOverview({ data, tasksState }) {
         setSelectedTaskId={tasksState.selection.setSelectedTaskId}
         visibleTasks={tasksState.visibleTasks}
       />
+      <TaskFilterBar data={data} tasksState={tasksState} />
+      <TaskForm data={data} tasksState={tasksState} />
     </Stack>
   );
 }

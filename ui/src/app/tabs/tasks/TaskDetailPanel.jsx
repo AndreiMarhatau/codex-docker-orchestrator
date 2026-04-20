@@ -107,20 +107,24 @@ function TaskDetailPanel({ data, tasksState }) {
     return gitStatus.hasChanges === true && gitStatus.pushed === false;
   }, [detail.taskDetail?.gitStatus]);
   const taskTitle = detail.taskDetail?.branchName || 'Task details';
+  const hasSelectedTask = Boolean(selection.selectedTaskId);
   return (
     <Box className="task-detail-shell">
       <Box className="task-detail-top">
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <Tooltip title="Back to tasks">
-            <IconButton
-              size="small"
-              color="primary"
-              onClick={selection.handleBackToTasks}
-              aria-label="Back to tasks"
-            >
-              <ArrowBackOutlinedIcon />
-            </IconButton>
-          </Tooltip>
+          {hasSelectedTask && (
+            <Tooltip title="Back to tasks">
+              <IconButton
+                size="small"
+                color="primary"
+                onClick={selection.handleBackToTasks}
+                aria-label="Back to tasks"
+                className="task-detail-back"
+              >
+                <ArrowBackOutlinedIcon />
+              </IconButton>
+            </Tooltip>
+          )}
           <Stack spacing={0.4}>
             <Typography variant="h6" className="panel-title">
               {taskTitle}
@@ -164,10 +168,16 @@ function TaskDetailPanel({ data, tasksState }) {
             }}
             ref={overviewPaneRef}
           >
-            <Stack spacing={2}>
+            <Stack spacing={2.5}>
               <TaskDetailHeader tasksState={tasksState} />
-              <TaskRunOverrides tasksState={tasksState} />
-              <TaskRuns tasksState={tasksState} />
+              <Box className="task-detail-main-grid">
+                <Box className="task-detail-stream">
+                  <TaskRuns tasksState={tasksState} />
+                </Box>
+                <Box className="task-detail-side">
+                  <TaskRunOverrides tasksState={tasksState} />
+                </Box>
+              </Box>
             </Stack>
           </Box>
         )}

@@ -41,7 +41,7 @@ function RunArtifacts({ run, taskId }) {
   const fileArtifacts = artifacts.filter((artifact) => !isImageArtifact(artifact.path));
 
   return (
-    <Box component="details" className="run-section-card run-section-card--artifacts" open={artifacts.length > 0}>
+    <Box component="details" className="run-section-card run-section-card--artifacts">
       <summary className="log-summary">
         <span>Outputs</span>
         <span className="log-meta">{artifacts.length}</span>

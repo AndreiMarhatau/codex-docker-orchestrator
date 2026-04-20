@@ -1,24 +1,29 @@
-import { Box, Card, CardContent } from '@mui/material';
+import { Box } from '@mui/material';
 import TaskDetailPanel from './tasks/TaskDetailPanel.jsx';
 import TasksOverview from './tasks/TasksOverview.jsx';
 
 function TasksTab({ data, tasksState }) {
   const { selectedTaskId } = tasksState.selection;
-  const panelContentClass = selectedTaskId
-    ? 'panel-content panel-content--flush'
-    : 'panel-content';
+  const workspaceClassName = `tasks-workspace${selectedTaskId ? ' tasks-workspace--detail-open' : ''}`;
+  const detailClassName = `tasks-workspace-detail${selectedTaskId ? ' tasks-workspace-detail--open' : ''}`;
 
   return (
-    <Box className="section-shell fade-in">
-      <Card className="panel-card">
-        <CardContent className={panelContentClass}>
-          {!selectedTaskId ? (
-            <TasksOverview data={data} tasksState={tasksState} />
-          ) : (
-            <TaskDetailPanel data={data} tasksState={tasksState} />
-          )}
-        </CardContent>
-      </Card>
+    <Box className={`${workspaceClassName} fade-in`}>
+      <Box className="tasks-workspace-board">
+        <TasksOverview data={data} tasksState={tasksState} />
+      </Box>
+      <Box className={detailClassName}>
+        {selectedTaskId ? (
+          <TaskDetailPanel data={data} tasksState={tasksState} />
+        ) : (
+          <Box className="task-detail-placeholder">
+            <Box className="task-detail-placeholder-mark">Open a task</Box>
+            <Box className="task-detail-placeholder-body">
+              Select a row to jump straight into the latest agent message, artifacts, and git state.
+            </Box>
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 }

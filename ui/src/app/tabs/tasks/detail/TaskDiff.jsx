@@ -1,6 +1,7 @@
 import { Box, Button, Stack, Typography } from '@mui/material';
 import { useMemo } from 'react';
 import { buildDiffRows, getDiffStats } from '../../../diff-helpers.js';
+import DisclosureSection from '../../../components/DisclosureSection.jsx';
 
 function DiffStats({ additions, deletions }) {
   if (!additions && !deletions) {
@@ -54,24 +55,29 @@ function TaskDiff({ tasksState }) {
     diffStats.totals.additions > 0 || diffStats.totals.deletions > 0;
 
   return (
-    <Box component="details" className="log-entry log-entry--diff diff-root" open>
-      <summary className="log-summary diff-root-summary">
-        <span>Diff</span>
-        <span className="log-meta">
-          {taskDiff
-            ? taskDiff.available
-              ? `${taskDiff.files.length} files`
-              : 'Unavailable'
-            : 'Loading'}
+    <DisclosureSection
+      className="log-entry log-entry--diff diff-root"
+      defaultOpen
+      title="Diff"
+      meta={(
+        <>
+          <span>
+            {taskDiff
+              ? taskDiff.available
+                ? `${taskDiff.files.length} files`
+                : 'Unavailable'
+              : 'Loading'}
+          </span>
           {taskDiff?.available && showTotals && (
             <DiffStats
               additions={diffStats.totals.additions}
               deletions={diffStats.totals.deletions}
             />
           )}
-        </span>
-      </summary>
-      <Stack spacing={1} sx={{ mt: 1 }}>
+        </>
+      )}
+    >
+      <Stack spacing={1}>
         {!taskDiff && <Typography color="text.secondary">Loading diff...</Typography>}
         {taskDiff && !taskDiff.available && (
           <Typography color="text.secondary">
@@ -128,7 +134,7 @@ function TaskDiff({ tasksState }) {
           </Stack>
         )}
       </Stack>
-    </Box>
+    </DisclosureSection>
   );
 }
 

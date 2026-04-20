@@ -80,7 +80,7 @@ if [[ -z "${MOCK_UI_BASE_URL:-}" ]]; then
 fi
 
 capture_screen "environments" "${BASE_URL}/?tab=environments" "text=Create and manage repo sources for Codex runs."
-capture_screen "tasks" "${BASE_URL}/?tab=tasks" "text=Runs in progress"
+capture_screen "tasks" "${BASE_URL}/?tab=tasks" "text=Filter by environment"
 capture_screen "accounts" "${BASE_URL}/?tab=accounts" "text=Usage limits"
 capture_screen "settings" "${BASE_URL}/?tab=settings" "text=Git Setup"
 capture_screen "task-detail" "${BASE_URL}/?tab=tasks&taskId=task-1" ".task-summary-card"

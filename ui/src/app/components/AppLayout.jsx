@@ -1,6 +1,6 @@
 /* eslint-disable complexity */
 import { useEffect, useState } from 'react';
-import { Box, Card, CardContent, Stack, Tab, Tabs, Typography, useMediaQuery } from '@mui/material';
+import { Box, Stack, Tab, Tabs, Typography, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
@@ -115,23 +115,25 @@ function AppLayout({ accountsState, authState, data, envState, tabState, tasksSt
         {activeTab === 0 && (setupReady ? (
           <EnvironmentsTab data={data} envState={envState} />
         ) : (
-          <Card><CardContent><Typography>Finish setup in Settings and add a Codex account to enable environments.</Typography></CardContent></Card>
+          <Box className="workspace-empty">
+            <Typography>Finish setup in Settings and add a Codex account to enable environments.</Typography>
+          </Box>
         ))}
         {activeTab === 1 && (setupReady ? (
           <TasksTab data={data} tasksState={tasksState} />
         ) : (
-          <Card><CardContent><Typography>Finish setup in Settings and add a Codex account to enable tasks.</Typography></CardContent></Card>
+          <Box className="workspace-empty">
+            <Typography>Finish setup in Settings and add a Codex account to enable tasks.</Typography>
+          </Box>
         ))}
         {activeTab === 2 && <AccountsTab accountsState={accountsState} data={data} />}
         {activeTab === 3 && <SettingsTab authState={authState} refreshAll={data.refreshAll} setupState={setupState} />}
       </Box>
 
       {error && (
-        <Card sx={{ mt: 3 }}>
-          <CardContent>
-            <Typography color="error">{error}</Typography>
-          </CardContent>
-        </Card>
+        <Box className="workspace-error">
+          <Typography color="error">{error}</Typography>
+        </Box>
       )}
       {locked && <AuthGate authState={authState} />}
     </Box>

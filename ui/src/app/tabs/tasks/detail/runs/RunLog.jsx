@@ -29,33 +29,33 @@ function RunLog({ emptyEntriesMessage, now, run, taskId }) {
               {formatTimestamp(run.startedAt)}
             </Typography>
           </Stack>
-          <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-            <Box component="span" className="run-status-pill">
-              <StatusIcon status={run.status} size="small" />
-              <span>{run.status}</span>
-            </Box>
-            {durationMs !== null && (
-              <Chip size="small" variant="outlined" label={formatDuration(durationMs)} />
-            )}
-            {artifacts.length > 0 && (
-              <Chip size="small" variant="outlined" label={`${artifacts.length} outputs`} />
-            )}
-            {entries.length > 0 && (
-              <Chip size="small" variant="outlined" label={`${entries.length} events`} />
-            )}
-            {agentMessages.length > 0 && (
-              <Chip size="small" variant="outlined" label={`${agentMessages.length} messages`} />
-            )}
-          </Stack>
+        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+          <Box component="span" className="run-status-pill">
+            <StatusIcon status={run.status} size="small" />
+            <span>{run.status}</span>
+          </Box>
+          {durationMs !== null && (
+            <Chip size="small" variant="outlined" label={formatDuration(durationMs)} />
+          )}
+          {agentMessages.length > 0 && (
+            <Chip size="small" variant="outlined" label={`${agentMessages.length} messages`} />
+          )}
+          {artifacts.length > 0 && (
+            <Chip size="small" variant="outlined" label={`${artifacts.length} outputs`} />
+          )}
+          {entries.length > 0 && (
+            <Chip size="small" variant="outlined" label={`${entries.length} events`} />
+          )}
         </Stack>
+      </Stack>
       </summary>
       <Stack spacing={1.25} className="run-card-body">
-        <RunRequest run={run} />
-        <RunArtifacts run={run} taskId={taskId} />
-        <RunEntries entries={entries} emptyEntriesMessage={emptyEntriesMessage} />
         {agentMessages.length > 0 && (
           <RunAgentMessages agentMessages={agentMessages} runId={run.runId} />
         )}
+        <RunArtifacts run={run} taskId={taskId} />
+        <RunRequest run={run} />
+        <RunEntries entries={entries} emptyEntriesMessage={emptyEntriesMessage} />
       </Stack>
     </Box>
   );

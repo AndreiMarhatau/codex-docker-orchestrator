@@ -4,13 +4,11 @@ import {
   Box,
   Card,
   CardContent,
-  Chip,
   IconButton,
   Stack,
   Tooltip,
   Typography
 } from '@mui/material';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined';
 import { STATUS_CONFIG } from '../../constants.js';
@@ -52,36 +50,12 @@ function GitDiffStats({ gitStatus }) {
   );
 }
 
-function RunningDurationChip({ task, now }) {
-  if (task.status !== 'running' && task.status !== 'stopping') {
-    return null;
-  }
-  const latestRun = getLatestRun(task);
-  const durationMs = getElapsedMs(latestRun?.startedAt || task.createdAt, null, now);
-  if (durationMs === null) {
-    return null;
-  }
+function MetaLabel({ children }) {
   return (
-    <Chip
-      size="small"
-      variant="outlined"
-      icon={<AccessTimeIcon fontSize="small" />}
-      label={formatDuration(durationMs)}
-    />
+    <Box component="span" sx={{ color: 'text.primary', fontWeight: 700 }}>
+      {children}
+    </Box>
   );
-}
-
-function ArtifactChip({ task }) {
-  const artifactCount = (task.runs || []).reduce(
-    (count, run) => count + ((run.artifacts || []).length || 0),
-    0
-  );
-
-  if (artifactCount <= 0) {
-    return null;
-  }
-
-  return <Chip size="small" label={`outputs ${artifactCount}`} />;
 }
 
 function StatusPill({ status }) {
@@ -91,6 +65,165 @@ function StatusPill({ status }) {
       <span className="status-pill-dot" style={{ backgroundColor: config.border }} />
       <span>{config.label}</span>
     </Box>
+  );
+}
+
+function countTaskArtifacts(task) {
+  return (task.runs || []).reduce((count, run) => count + ((run.artifacts || []).length || 0), 0);
+}
+
+function TaskRowHeader({ task }) {
+  return (
+    <Stack
+      spacing={1}
+      alignItems="flex-start"
+    >
+      <Stack spacing={0.35} sx={{ minWidth: 0, flex: 1 }}>
+        <Typography className="task-card-title" sx={{ overflowWrap: 'anywhere' }}>
+          {task.branchName}
+        </Typography>
+        <Typography className="task-card-repo" sx={{ overflowWrap: 'anywhere' }}>
+          {formatRepoDisplay(task.repoUrl) || task.repoUrl}
+        </Typography>
+      </Stack>
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        flexWrap="wrap"
+        useFlexGap
+      >
+        <StatusPill status={task.status} />
+        <GitStatusPill gitStatus={task.gitStatus} />
+        <GitDiffStats gitStatus={task.gitStatus} />
+      </Stack>
+    </Stack>
+  );
+}
+
+function TaskRowSummary({ artifactCount, elapsedLabel, task }) {
+  return (
+    <Stack spacing={0.35}>
+      <Typography color="text.secondary" variant="body2" sx={{ overflowWrap: 'anywhere', lineHeight: 1.45 }}>
+        <MetaLabel>Ref</MetaLabel> {task.ref}
+        <Box component="span" sx={{ mx: 0.75 }}>
+          ·
+        </Box>
+        <MetaLabel>Created</MetaLabel> {formatTimestamp(task.createdAt)}
+        {(task.model || task.reasoningEffort) && (
+          <>
+            <Box component="span" sx={{ mx: 0.75 }}>
+              ·
+            </Box>
+            <MetaLabel>Model</MetaLabel> {formatModelDisplay(task.model)}
+            <Box component="span" sx={{ mx: 0.75 }}>
+              ·
+            </Box>
+            <MetaLabel>Effort</MetaLabel> {formatEffortDisplay(task.reasoningEffort)}
+          </>
+        )}
+      </Typography>
+      <Typography color="text.secondary" variant="body2" sx={{ overflowWrap: 'anywhere', lineHeight: 1.45 }}>
+        <MetaLabel>Thread</MetaLabel> {task.threadId ? `#${task.threadId}` : 'pending'}
+        {(artifactCount > 0 || elapsedLabel) && (
+          <>
+            <Box component="span" sx={{ mx: 0.75 }}>
+              ·
+            </Box>
+            {artifactCount > 0 && (
+              <>
+                <MetaLabel>Outputs</MetaLabel> {artifactCount}
+                {elapsedLabel && (
+                  <Box component="span" sx={{ mx: 0.75 }}>
+                    ·
+                  </Box>
+                )}
+              </>
+            )}
+            {elapsedLabel && (
+              <>
+                <MetaLabel>Elapsed</MetaLabel> {elapsedLabel}
+              </>
+            )}
+          </>
+        )}
+      </Typography>
+    </Stack>
+  );
+}
+
+function TaskRowActions({ handleDeleteTask, handleStopTask, loading, task }) {
+  return (
+    <Stack
+      direction="row"
+      spacing={0.5}
+      justifyContent="flex-end"
+      alignItems="center"
+      flexWrap="wrap"
+      useFlexGap
+    >
+      <Tooltip title="Stop task">
+        <span>
+          <IconButton
+            size="small"
+            color="error"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleStopTask(task.taskId);
+            }}
+            disabled={loading || task.status !== 'running'}
+            aria-label={`Stop task ${task.taskId}`}
+          >
+            <StopCircleOutlinedIcon fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
+      <Tooltip title="Remove task">
+        <span>
+          <IconButton
+            size="small"
+            color="secondary"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleDeleteTask(task.taskId);
+            }}
+            disabled={loading}
+            aria-label={`Remove task ${task.taskId}`}
+          >
+            <DeleteOutlineIcon fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
+    </Stack>
+  );
+}
+
+function TaskRow({ handleDeleteTask, handleStopTask, now, selectedTaskId, setSelectedTaskId, task, loading }) {
+  const artifactCount = countTaskArtifacts(task);
+  const isActiveTask = task.status === 'running' || task.status === 'stopping';
+  const latestRun = isActiveTask ? getLatestRun(task) : null;
+  const elapsedLabel = isActiveTask
+    ? formatDuration(getElapsedMs(latestRun?.startedAt || task.createdAt, null, now))
+    : null;
+
+  return (
+    <Card
+      className={`task-card task-card--interactive${task.taskId === selectedTaskId ? ' task-card--selected' : ''}`}
+      onClick={() => setSelectedTaskId(task.taskId)}
+    >
+      <CardContent className="task-card-content">
+        <Stack spacing={1.5}>
+          <TaskRowHeader task={task} />
+          <TaskRowSummary artifactCount={artifactCount} elapsedLabel={elapsedLabel} task={task} />
+          <TaskRowActions
+            handleDeleteTask={handleDeleteTask}
+            handleStopTask={handleStopTask}
+            loading={loading}
+            task={task}
+          />
+        </Stack>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -108,7 +241,7 @@ function TaskList({
     <Stack spacing={1.5}>
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
-        spacing={1}
+        spacing={1.25}
         justifyContent="space-between"
         alignItems={{ xs: 'flex-start', sm: 'center' }}
       >
@@ -121,92 +254,16 @@ function TaskList({
       </Stack>
       <Stack spacing={1.5}>
         {visibleTasks.map((task) => (
-          <Card
+          <TaskRow
             key={task.taskId}
-            className={`task-card task-card--interactive${task.taskId === selectedTaskId ? ' task-card--selected' : ''}`}
-            onClick={() => setSelectedTaskId(task.taskId)}
-          >
-            <CardContent className="task-card-content">
-              <Stack spacing={2}>
-                <Stack
-                  direction={{ xs: 'column', md: 'row' }}
-                  spacing={1.5}
-                  justifyContent="space-between"
-                  alignItems={{ xs: 'flex-start', md: 'center' }}
-                >
-                  <Stack spacing={0.65}>
-                    <Typography className="task-card-title">
-                      {task.branchName}
-                    </Typography>
-                    <Typography className="task-card-repo">
-                      {formatRepoDisplay(task.repoUrl) || task.repoUrl}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                    <StatusPill status={task.status} />
-                    <GitStatusPill gitStatus={task.gitStatus} />
-                    <GitDiffStats gitStatus={task.gitStatus} />
-                  </Stack>
-                </Stack>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  <Chip size="small" label={`ref ${task.ref}`} />
-                  {(task.model || task.reasoningEffort) && (
-                    <Chip size="small" label={`model ${formatModelDisplay(task.model)}`} />
-                  )}
-                  {(task.model || task.reasoningEffort) && (
-                    <Chip size="small" label={`effort ${formatEffortDisplay(task.reasoningEffort)}`} />
-                  )}
-                  <Chip size="small" label={`created ${formatTimestamp(task.createdAt)}`} />
-                  <ArtifactChip task={task} />
-                  <RunningDurationChip task={task} now={now} />
-                </Stack>
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  justifyContent="space-between"
-                  alignItems="center"
-                >
-                  <Typography color="text.secondary" variant="body2">
-                    {task.threadId ? `Thread ${task.threadId}` : 'Thread pending'}
-                  </Typography>
-                  <Stack direction="row" spacing={0.5}>
-                    <Tooltip title="Stop task">
-                      <span>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleStopTask(task.taskId);
-                          }}
-                          disabled={loading || task.status !== 'running'}
-                          aria-label={`Stop task ${task.taskId}`}
-                        >
-                          <StopCircleOutlinedIcon fontSize="small" />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                    <Tooltip title="Remove task">
-                      <span>
-                        <IconButton
-                          size="small"
-                          color="secondary"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleDeleteTask(task.taskId);
-                          }}
-                          disabled={loading}
-                          aria-label={`Remove task ${task.taskId}`}
-                        >
-                          <DeleteOutlineIcon fontSize="small" />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  </Stack>
-                </Stack>
-              </Stack>
-            </CardContent>
-          </Card>
+            handleDeleteTask={handleDeleteTask}
+            handleStopTask={handleStopTask}
+            loading={loading}
+            now={now}
+            selectedTaskId={selectedTaskId}
+            setSelectedTaskId={setSelectedTaskId}
+            task={task}
+          />
         ))}
         {visibleTasks.length === 0 && (
           <Box className="empty-state">

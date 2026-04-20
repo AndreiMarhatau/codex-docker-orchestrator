@@ -1,16 +1,15 @@
-import { Box, Stack } from '@mui/material';
+import { Box, Stack, Typography } from '@mui/material';
 
 function RunAgentMessages({ agentMessages, runId }) {
   return (
-    <Box component="details" className="run-section-card run-section-card--messages">
-      <summary className="log-summary">
-        <span>Agent messages</span>
-        <span className="log-meta">
-          <span>{runId}</span>
-          <span>{agentMessages.length}</span>
-        </span>
-      </summary>
-      <Stack spacing={1} sx={{ mt: 1 }}>
+    <Box className="run-section-card run-section-card--messages">
+      <Stack spacing={1}>
+        <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="baseline">
+          <Typography variant="subtitle2">Agent messages</Typography>
+          <Typography color="text.secondary" variant="caption">
+            {agentMessages.length}
+          </Typography>
+        </Stack>
         {agentMessages.map((message, index) => (
           <Box key={`${runId}-agent-message-${index}`} className="log-box log-box--full agent-message-item">
             <pre>{message}</pre>

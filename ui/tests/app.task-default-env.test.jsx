@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from './test-utils.jsx';
+import { render, screen, waitFor, within } from './test-utils.jsx';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App.jsx';
 import mockApi from './helpers/mock-api.js';
@@ -64,7 +64,8 @@ it(
     expect(await screen.findByText('2 total')).toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: 'New task' }));
 
-    expect(await screen.findByRole('button', { name: 'openai/agents' })).toBeInTheDocument();
+    const createDialog = await screen.findByRole('dialog', { name: 'New task' });
+    expect(within(createDialog).getAllByLabelText('Environment')[0]).toHaveTextContent('openai/agents');
   },
   15000
 );

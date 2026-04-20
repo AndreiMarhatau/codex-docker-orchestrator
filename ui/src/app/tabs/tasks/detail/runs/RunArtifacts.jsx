@@ -11,7 +11,7 @@ function RunArtifacts({ run, taskId }) {
       artifact.url ||
       apiUrlWithPassword(`/api/tasks/${taskId}/artifacts/${run.runId}/${encodeArtifactPath(artifact.path)}`);
     return (
-      <Box key={artifact.path} className="artifact-item">
+      <Box key={artifact.path} className={`artifact-item${showImage ? ' artifact-item--image' : ''}`}>
         {showImage && (
           <img className="artifact-image" src={artifactUrl} alt={artifact.path} />
         )}
@@ -41,9 +41,9 @@ function RunArtifacts({ run, taskId }) {
   const fileArtifacts = artifacts.filter((artifact) => !isImageArtifact(artifact.path));
 
   return (
-    <Box component="details" className="log-entry">
+    <Box component="details" className="run-section-card run-section-card--artifacts" open={artifacts.length > 0}>
       <summary className="log-summary">
-        <span>Artifacts</span>
+        <span>Outputs</span>
         <span className="log-meta">{artifacts.length}</span>
       </summary>
       <Box sx={{ mt: 1 }}>

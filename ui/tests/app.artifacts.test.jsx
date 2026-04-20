@@ -120,7 +120,7 @@ it(
     );
 
     await user.click(await screen.findByText('feature/one-type'));
-    expect(await screen.findByText('report.txt')).toBeInTheDocument();
+    expect((await screen.findAllByText('report.txt')).length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Open' })).toBeInTheDocument();
   },
   15000

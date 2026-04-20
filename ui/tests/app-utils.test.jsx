@@ -140,9 +140,9 @@ describe('app helpers', () => {
 
   it('renders git status display', () => {
     expect(getGitStatusDisplay()).toBeNull();
-    expect(getGitStatusDisplay({ hasChanges: false, dirty: false }).label).toBe('No changes');
-    expect(getGitStatusDisplay({ pushed: true, dirty: true }).label).toBe('Changes pushed');
-    expect(getGitStatusDisplay({ pushed: false, dirty: false }).label).toBe('Unpushed changes');
-    expect(getGitStatusDisplay({ dirty: false }).label).toBe('Git status unknown');
+    expect(getGitStatusDisplay({ hasChanges: false, dirty: false }).label).toBe('Clean');
+    expect(getGitStatusDisplay({ pushed: true, dirty: true }).label).toBe('Uncommitted');
+    expect(getGitStatusDisplay({ pushed: false, dirty: false }).label).toBe('Needs push');
+    expect(getGitStatusDisplay({ dirty: false }).label).toBe('Git unknown');
   });
 });

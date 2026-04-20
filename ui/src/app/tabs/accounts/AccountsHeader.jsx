@@ -1,22 +1,34 @@
-import { Button, Stack, Typography } from '@mui/material';
+import { Button } from '@mui/material';
+import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
+import SectionHeader from '../../components/SectionHeader.jsx';
 
 function AccountsHeader({ accountsState, data }) {
   const { loading } = data;
 
   return (
-    <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-      <Typography variant="h6" className="panel-title">
-        Accounts
-      </Typography>
-      <Button
-        size="small"
-        variant="outlined"
-        onClick={() => accountsState.refreshAccounts()}
-        disabled={loading}
-      >
-        Refresh
-      </Button>
-    </Stack>
+    <SectionHeader
+      eyebrow="Access"
+      icon={<AccountCircleOutlinedIcon fontSize="small" />}
+      title="Accounts"
+      description="Manage the active Codex accounts, rotation order, and usage headroom across the orchestrator."
+      chips={[
+        { label: `${data.accountState.accounts.length} accounts`, tone: 'neutral' },
+        {
+          label: accountsState.activeAccount ? `Active ${accountsState.activeAccount.label}` : 'No active account',
+          tone: accountsState.activeAccount ? 'live' : 'muted'
+        }
+      ]}
+      actions={(
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => accountsState.refreshAccounts()}
+          disabled={loading}
+        >
+          Refresh
+        </Button>
+      )}
+    />
   );
 }
 

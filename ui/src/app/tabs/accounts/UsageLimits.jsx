@@ -86,7 +86,7 @@ function UsageLimits({ accountsState }) {
   }, [rateLimits]);
 
   return (
-    <>
+    <Stack spacing={1.5} className="subpanel-card">
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
         <Stack spacing={0.5}>
           <Typography variant="subtitle2">Usage limits</Typography>
@@ -127,7 +127,7 @@ function UsageLimits({ accountsState }) {
         <Typography color="text.secondary">Usage limits have not been loaded yet.</Typography>
       )}
       {rateLimits && (
-        <Box className="log-box">
+        <Box className="detail-meta-panel">
           <Stack spacing={1.5}>
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
               <RateLimitWindow label="Primary" window={rateLimits.primary} />
@@ -154,7 +154,7 @@ function UsageLimits({ accountsState }) {
           Last usage trigger {formatTimestamp(triggerUsageTriggeredAt)}
         </Typography>
       )}
-    </>
+    </Stack>
   );
 }
 

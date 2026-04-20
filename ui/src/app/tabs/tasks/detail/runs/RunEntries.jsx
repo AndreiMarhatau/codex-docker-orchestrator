@@ -1,43 +1,22 @@
 import { Box, Stack, Typography } from '@mui/material';
-import StatusIcon from '../../../../components/StatusIcon.jsx';
-import { formatDuration, formatTimestamp } from '../../../../formatters.js';
 import { formatLogEntry, formatLogSummary } from '../../../../log-helpers.js';
-import { getElapsedMs } from '../../../../task-helpers.js';
 
-function RunEntries({ entries, emptyEntriesMessage, now, run }) {
+function RunEntries({ entries, emptyEntriesMessage }) {
   return (
-    <Box component="details" className="log-run">
+    <Box component="details" className="run-section-card run-section-card--log" open={entries.length <= 2}>
       <summary className="log-summary">
-        <span>{run.runId}</span>
-        <Box
-          component="span"
-          className="log-meta"
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 1
-          }}
-        >
-          <StatusIcon status={run.status} size="small" />
-          <span>{formatTimestamp(run.startedAt)}</span>
-          {(() => {
-            const durationMs = getElapsedMs(run.startedAt, run.finishedAt, now);
-            if (durationMs === null) {
-              return null;
-            }
-            return <span>{formatDuration(durationMs)}</span>;
-          })()}
-        </Box>
+        <span>Activity log</span>
+        <span className="log-meta">{entries.length}</span>
       </summary>
       <Stack spacing={1} sx={{ mt: 1 }}>
         {entries.length === 0 && (
           <Typography color="text.secondary">{emptyEntriesMessage || 'No logs yet.'}</Typography>
         )}
         {entries.map((entry) => (
-          <Box key={`${run.runId}-${entry.id}`} component="details" className="log-entry">
-            <summary className="log-summary">
+          <Box key={entry.id} className="log-stream-item">
+            <Box className="log-stream-head">
               <span className="mono">{formatLogSummary(entry)}</span>
-            </summary>
+            </Box>
             <Box className="log-box">
               <pre>{formatLogEntry(entry)}</pre>
             </Box>

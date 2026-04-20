@@ -5,6 +5,7 @@ function RotationQueue({ accountsState, data }) {
 
   return (
     <Stack
+        className="subpanel-card"
         direction={{ xs: 'column', sm: 'row' }}
         spacing={2}
         alignItems={{ xs: 'flex-start', sm: 'center' }}

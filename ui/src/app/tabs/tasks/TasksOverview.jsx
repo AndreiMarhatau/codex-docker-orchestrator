@@ -1,4 +1,4 @@
-import { Divider, Stack } from '@mui/material';
+import { Stack } from '@mui/material';
 import TaskFilterBar from './TaskFilterBar.jsx';
 import TaskForm from './TaskForm.jsx';
 import TaskList from './TaskList.jsx';
@@ -6,12 +6,10 @@ import TasksHeader from './TasksHeader.jsx';
 
 function TasksOverview({ data, tasksState }) {
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2.5}>
       <TasksHeader tasksState={tasksState} />
-      <Divider />
       <TaskFilterBar data={data} tasksState={tasksState} />
       <TaskForm data={data} tasksState={tasksState} />
-      <Divider />
       <TaskList
         data={data}
         handleDeleteTask={tasksState.listActions.handleDeleteTask}

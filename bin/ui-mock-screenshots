@@ -5,6 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORT="${MOCK_UI_PORT:-4173}"
 BASE_URL="${MOCK_UI_BASE_URL:-http://127.0.0.1:${PORT}}"
 OUTPUT_DIR="${MOCK_UI_SCREENSHOT_DIR:-/root/.artifacts/mock-ui-screenshots}"
+COLOR_SCHEME="${MOCK_UI_COLOR_SCHEME:-light}"
+THEME_QUERY="${MOCK_UI_THEME:-}"
 SERVER_PID=""
 
 cleanup() {
@@ -29,28 +31,37 @@ capture_screen() {
   local name="$1"
   local url="$2"
   local selector="$3"
+  local final_url="$url"
+
+  if [[ -n "$THEME_QUERY" ]]; then
+    if [[ "$final_url" == *\?* ]]; then
+      final_url="${final_url}&theme=${THEME_QUERY}"
+    else
+      final_url="${final_url}?theme=${THEME_QUERY}"
+    fi
+  fi
 
   playwright screenshot \
     --browser chromium \
-    --color-scheme light \
+    --color-scheme "$COLOR_SCHEME" \
     --full-page \
     --lang en-US \
     --viewport-size "1440,1200" \
     --wait-for-selector "$selector" \
     --wait-for-timeout 750 \
-    "$url" \
+    "$final_url" \
     "$OUTPUT_DIR/desktop/${name}.png"
 
   playwright screenshot \
     --browser chromium \
-    --color-scheme light \
+    --color-scheme "$COLOR_SCHEME" \
     --full-page \
     --lang en-US \
     --user-agent "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1" \
     --viewport-size "390,844" \
     --wait-for-selector "$selector" \
     --wait-for-timeout 750 \
-    "$url" \
+    "$final_url" \
     "$OUTPUT_DIR/mobile/${name}.png"
 }
 
@@ -72,6 +83,7 @@ capture_screen "environments" "${BASE_URL}/?tab=environments" "text=Create and m
 capture_screen "tasks" "${BASE_URL}/?tab=tasks" "text=Runs in progress"
 capture_screen "accounts" "${BASE_URL}/?tab=accounts" "text=Usage limits"
 capture_screen "settings" "${BASE_URL}/?tab=settings" "text=Git Setup"
-capture_screen "task-detail" "${BASE_URL}/?tab=tasks&taskId=task-1" ".task-detail-shell"
+capture_screen "task-detail" "${BASE_URL}/?tab=tasks&taskId=task-1" ".task-summary-card"
+capture_screen "task-diff" "${BASE_URL}/?tab=tasks&taskId=task-1&detailTab=diff" ".diff-file"
 
 printf 'Saved mock UI screenshots to %s\n' "$OUTPUT_DIR"

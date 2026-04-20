@@ -1,22 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import { resolveModelValue, resolveReasoningEffortValue } from '../../model-helpers.js';
-import { formatRepoDisplay } from '../../repo-helpers.js';
 import TaskCreateBody from './form/TaskCreateBody.jsx';
-import TaskCreatePopovers from './form/TaskCreatePopovers.jsx';
 
 function TaskForm({ data, tasksState }) {
   const { envs, loading } = data;
   const { actions, files, formState } = tasksState;
-  const [envMenuAnchor, setEnvMenuAnchor] = useState(null);
-  const [refPopoverAnchor, setRefPopoverAnchor] = useState(null);
-  const [settingsAnchor, setSettingsAnchor] = useState(null);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
 
   useEffect(() => {
     if (!formState.showTaskForm) {
-      setEnvMenuAnchor(null);
-      setRefPopoverAnchor(null);
-      setSettingsAnchor(null);
+      setShowAdvancedSettings(false);
     }
   }, [formState.showTaskForm]);
 
@@ -24,9 +18,6 @@ function TaskForm({ data, tasksState }) {
     () => envs.find((env) => env.envId === formState.taskForm.envId) || null,
     [envs, formState.taskForm.envId]
   );
-  const defaultRef = selectedEnv?.defaultBranch || 'main';
-  const effectiveRef = formState.taskForm.ref.trim() || defaultRef;
-  const hasCustomRef = formState.taskForm.ref.trim().length > 0;
   const modelValue = resolveModelValue(formState.taskForm.modelChoice, formState.taskForm.customModel);
   const reasoningEffortValue = resolveReasoningEffortValue(formState.taskForm);
   const hasAdvancedSettings =
@@ -38,9 +29,12 @@ function TaskForm({ data, tasksState }) {
     0,
     Math.min(100, Math.round(files.taskFileUploadProgress?.percent || 0))
   );
-  const envLabel = selectedEnv
-    ? formatRepoDisplay(selectedEnv.repoUrl) || selectedEnv.repoUrl
-    : 'Select environment';
+
+  useEffect(() => {
+    if (formState.showTaskForm && hasAdvancedSettings) {
+      setShowAdvancedSettings(true);
+    }
+  }, [formState.showTaskForm, hasAdvancedSettings]);
 
   return (
     <Dialog
@@ -53,19 +47,16 @@ function TaskForm({ data, tasksState }) {
       <DialogTitle>New task</DialogTitle>
       <DialogContent>
         <TaskCreateBody
-          effectiveRef={effectiveRef}
-          envLabel={envLabel}
           envs={envs}
           files={files}
           formState={formState}
           hasAdvancedSettings={hasAdvancedSettings}
-          hasCustomRef={hasCustomRef}
           loading={loading}
           modelValue={modelValue}
+          selectedEnv={selectedEnv}
           reasoningEffortValue={reasoningEffortValue}
-          setEnvMenuAnchor={setEnvMenuAnchor}
-          setRefPopoverAnchor={setRefPopoverAnchor}
-          setSettingsAnchor={setSettingsAnchor}
+          setShowAdvancedSettings={setShowAdvancedSettings}
+          showAdvancedSettings={showAdvancedSettings}
         />
       </DialogContent>
       <DialogActions>
@@ -83,18 +74,6 @@ function TaskForm({ data, tasksState }) {
           {files.taskFileUploading ? `Uploading attachments... ${uploadPercent}%` : 'Run task'}
         </Button>
       </DialogActions>
-      <TaskCreatePopovers
-        defaultRef={defaultRef}
-        envMenuAnchor={envMenuAnchor}
-        envs={envs}
-        formState={formState}
-        loading={loading}
-        refPopoverAnchor={refPopoverAnchor}
-        setEnvMenuAnchor={setEnvMenuAnchor}
-        setRefPopoverAnchor={setRefPopoverAnchor}
-        setSettingsAnchor={setSettingsAnchor}
-        settingsAnchor={settingsAnchor}
-      />
     </Dialog>
   );
 }

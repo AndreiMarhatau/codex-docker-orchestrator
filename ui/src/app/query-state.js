@@ -1,4 +1,5 @@
 const TAB_QUERY_NAMES = ['environments', 'tasks', 'accounts', 'settings'];
+const DETAIL_TAB_QUERY_NAMES = ['overview', 'diff'];
 
 function getWindowUrl() {
   if (typeof window === 'undefined') {
@@ -23,6 +24,13 @@ function readTaskIdQuery() {
   return url?.searchParams.get('taskId') || '';
 }
 
+function readDetailTabQuery() {
+  const url = getWindowUrl();
+  const value = (url?.searchParams.get('detailTab') || '').trim().toLowerCase();
+  const detailIndex = DETAIL_TAB_QUERY_NAMES.indexOf(value);
+  return detailIndex === -1 ? 0 : detailIndex;
+}
+
 function replaceQueryParams(updates) {
   const url = getWindowUrl();
   if (!url) {
@@ -42,18 +50,36 @@ function replaceQueryParams(updates) {
 }
 
 function writeTabQuery(activeTab) {
-  replaceQueryParams({ tab: TAB_QUERY_NAMES[activeTab] || TAB_QUERY_NAMES[1] });
+  const isTasksTab = activeTab === 1;
+  replaceQueryParams({
+    tab: TAB_QUERY_NAMES[activeTab] || TAB_QUERY_NAMES[1],
+    taskId: isTasksTab ? undefined : null,
+    detailTab: isTasksTab ? undefined : null
+  });
 }
 
-function writeTaskIdQuery(taskId) {
-  replaceQueryParams({ taskId: taskId || null });
+function writeTaskIdQuery(taskId, options = {}) {
+  const { clearDetailTab = false } = options;
+  replaceQueryParams({
+    taskId: taskId || null,
+    detailTab: clearDetailTab ? null : undefined
+  });
+}
+
+function writeDetailTabQuery(activeTab) {
+  replaceQueryParams({
+    detailTab: DETAIL_TAB_QUERY_NAMES[activeTab] || DETAIL_TAB_QUERY_NAMES[0]
+  });
 }
 
 export {
+  DETAIL_TAB_QUERY_NAMES,
   readTabQuery,
+  readDetailTabQuery,
   readTaskIdQuery,
   replaceQueryParams,
   TAB_QUERY_NAMES,
+  writeDetailTabQuery,
   writeTabQuery,
   writeTaskIdQuery
 };

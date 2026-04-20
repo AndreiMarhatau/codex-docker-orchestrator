@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, Divider, Stack } from '@mui/material';
+import { Box, Card, CardContent, Stack } from '@mui/material';
 import EnvironmentEditor from './environments/EnvironmentEditor.jsx';
 import EnvironmentForm from './environments/EnvironmentForm.jsx';
 import EnvironmentHeader from './environments/EnvironmentHeader.jsx';
@@ -35,14 +35,12 @@ function EnvironmentsTab({ data, envState }) {
               refreshAll={refreshAll}
               selectedEnv={selectedEnv}
             />
-            <Divider />
             <EnvironmentForm
               envForm={envForm}
               handleCreateEnv={handleCreateEnv}
               loading={loading}
               setEnvForm={setEnvForm}
             />
-            <Divider />
             <EnvironmentList
               envs={envs}
               handleDeleteEnv={handleDeleteEnv}

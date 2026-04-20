@@ -3,7 +3,7 @@ import FolderOpenOutlinedIcon from '@mui/icons-material/FolderOpenOutlined';
 
 function EnvironmentForm({ envForm, handleCreateEnv, loading, setEnvForm }) {
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2} className="subpanel-card">
       <Stack direction="row" spacing={1} alignItems="center">
         <FolderOpenOutlinedIcon color="primary" />
         <Typography variant="h6" className="panel-title">
@@ -38,6 +38,7 @@ function EnvironmentForm({ envForm, handleCreateEnv, loading, setEnvForm }) {
         variant="contained"
         onClick={handleCreateEnv}
         disabled={loading || !envForm.repoUrl.trim()}
+        sx={{ alignSelf: 'flex-start' }}
       >
         Create environment
       </Button>

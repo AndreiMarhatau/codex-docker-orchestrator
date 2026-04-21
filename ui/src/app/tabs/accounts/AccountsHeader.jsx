@@ -10,11 +10,11 @@ function AccountsHeader({ accountsState, data }) {
       eyebrow="Access"
       icon={<AccountCircleOutlinedIcon fontSize="small" />}
       title="Accounts"
-      description="Manage the active Codex accounts, rotation order, and usage headroom across the orchestrator."
+      description="Watch the active account, keep the rotation queue healthy, and check usage headroom before a run starts."
       chips={[
         { label: `${data.accountState.accounts.length} accounts`, tone: 'neutral' },
         {
-          label: accountsState.activeAccount ? `Active ${accountsState.activeAccount.label}` : 'No active account',
+          label: accountsState.activeAccount ? `Active: ${accountsState.activeAccount.label}` : 'No active account',
           tone: accountsState.activeAccount ? 'live' : 'muted'
         }
       ]}
@@ -25,7 +25,7 @@ function AccountsHeader({ accountsState, data }) {
           onClick={() => accountsState.refreshAccounts()}
           disabled={loading}
         >
-          Refresh
+          Refresh accounts
         </Button>
       )}
     />

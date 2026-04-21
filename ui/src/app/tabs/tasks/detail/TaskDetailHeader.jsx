@@ -1,18 +1,18 @@
 /* eslint-disable max-lines */
-import { Alert, AlertTitle, Box, Chip, Stack, Tooltip, Typography } from '@mui/material';
+import { Alert, AlertTitle, Box, Stack, Tooltip, Typography } from '@mui/material';
 import CloudDoneOutlinedIcon from '@mui/icons-material/CloudDoneOutlined';
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { STATUS_CONFIG } from '../../../constants.js';
-import { formatBytes, formatDuration, formatTimestamp } from '../../../formatters.js';
+import { formatDuration, formatTimestamp } from '../../../formatters.js';
 import { getGitStatusDisplay } from '../../../git-helpers.js';
 import { formatEffortDisplay, formatModelDisplay } from '../../../model-helpers.js';
 import { formatRepoDisplay } from '../../../repo-helpers.js';
 import { getElapsedMs, getLatestRun } from '../../../task-helpers.js';
-import DisclosureSection from '../../../components/DisclosureSection.jsx';
 import WorkspaceHeader from '../../../components/WorkspaceHeader.jsx';
+import TaskDetailCollections from './TaskDetailCollections.jsx';
 
 const GIT_ICON_MAP = {
   clean: CheckCircleOutlineIcon,
@@ -21,6 +21,10 @@ const GIT_ICON_MAP = {
   unpushed: CloudUploadOutlinedIcon,
   unknown: HelpOutlineIcon
 };
+
+function formatCount(value, singular, plural = `${singular}s`) {
+  return `${value} ${value === 1 ? singular : plural}`;
+}
 
 function TaskErrorAlert({ taskDetail }) {
   const runLogs = Array.isArray(taskDetail.runLogs) ? taskDetail.runLogs : [];
@@ -60,7 +64,7 @@ function TaskErrorAlert({ taskDetail }) {
   );
 }
 
-function RunningDurationChip({ now, taskDetail }) {
+function RunningDurationLabel({ now, taskDetail }) {
   if (taskDetail.status !== 'running' && taskDetail.status !== 'stopping') {
     return null;
   }
@@ -70,13 +74,7 @@ function RunningDurationChip({ now, taskDetail }) {
     return null;
   }
 
-  return (
-    <Chip
-      size="small"
-      variant="outlined"
-      label={`Live ${formatDuration(durationMs)}`}
-    />
-  );
+  return `Live ${formatDuration(durationMs)}`;
 }
 
 function StatusPill({ status }) {
@@ -108,136 +106,65 @@ function GitStatusPill({ gitStatus }) {
   );
 }
 
-function DetailList({ emptyLabel, items }) {
-  if (items.length === 0) {
-    return (
-      <Box className="detail-list-empty">
-        <Typography color="text.secondary">{emptyLabel}</Typography>
-      </Box>
-    );
-  }
-
+function DetailMeta({ items }) {
   return (
-    <Stack spacing={1.25}>
-      {items.map((item) => (
-        <Box key={item.key} className="detail-list-item">
-          <Stack spacing={0.5}>
-            <Typography className="detail-list-title">{item.title}</Typography>
-            {item.subtitle && (
-              <Typography color="text.secondary" variant="body2">
-                {item.subtitle}
-              </Typography>
-            )}
-          </Stack>
-          {item.meta?.length > 0 && (
-            <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-              {item.meta.map((value) => (
-                <Chip key={`${item.key}-${value}`} size="small" label={value} variant="outlined" />
-              ))}
-            </Stack>
-          )}
-          {item.path && (
-            <Typography className="mono" color="text.secondary">
-              {item.path}
-            </Typography>
-          )}
-        </Box>
+    <Box className="detail-meta-inline">
+      {items.filter(Boolean).map((item) => (
+        <span key={item} className="detail-meta-inline-item">{item}</span>
       ))}
-    </Stack>
+    </Box>
   );
 }
 
 function TaskDetailHeader({ tasksState }) {
   const { detail, now } = tasksState;
   const taskDetail = detail.taskDetail;
-  const generatedArtifacts = (taskDetail.runLogs || []).flatMap((run) =>
-    (run.artifacts || []).map((artifact, index) => ({
-      key: `${run.runId}-${artifact.path}-${index}`,
-      title: artifact.path.split('/').pop() || artifact.path,
-      subtitle: `from ${run.runId}`,
-      meta: [formatBytes(artifact.size)],
-      path: artifact.path
-    }))
+  const generatedArtifactCount = (taskDetail.runLogs || []).reduce(
+    (count, run) => count + (run.artifacts || []).length,
+    0
   );
-  const contextRepoItems = (taskDetail.contextRepos || []).map((repo, index) => ({
-    key: `${repo.envId || repo.repoUrl || 'repo'}-${index}`,
-    title: formatRepoDisplay(repo.repoUrl) || repo.repoUrl || repo.envId,
-    subtitle: repo.ref ? `ref ${repo.ref}` : '',
-    meta: repo.ref ? [`ref ${repo.ref}`] : [],
-    path: repo.worktreePath || ''
-  }));
-  const attachmentItems = (taskDetail.attachments || []).map((file, index) => ({
-    key: `${file.name || 'file'}-${index}`,
-    title: file.originalName || file.name,
-    subtitle: Number.isFinite(file.size) ? formatBytes(file.size) : '',
-    meta: Number.isFinite(file.size) ? [formatBytes(file.size)] : [],
-    path: file.path || ''
-  }));
+  const attachmentCount = (taskDetail.attachments || []).length;
+  const contextRepoCount = (taskDetail.contextRepos || []).length;
+  const hasRunLogs = (taskDetail.runLogs || []).length > 0;
+  const showTaskContextDetails = !hasRunLogs && (attachmentCount > 0 || contextRepoCount > 0);
+  const liveLabel = RunningDurationLabel({ now, taskDetail });
 
   return (
     <Stack spacing={1.5}>
-      <Box className="task-summary-card">
-        <Stack spacing={1.5}>
-          <WorkspaceHeader
-            eyebrow={formatRepoDisplay(taskDetail.repoUrl) || taskDetail.repoUrl}
-            title={taskDetail.branchName}
-            subtitle={`Created ${formatTimestamp(taskDetail.createdAt)}`}
-            meta={(
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                <StatusPill status={taskDetail.status} />
-                <GitStatusPill gitStatus={taskDetail.gitStatus} />
-                <Chip size="small" label={`ref ${taskDetail.ref}`} variant="outlined" />
-                <Chip size="small" label={`model ${formatModelDisplay(taskDetail.model)}`} variant="outlined" />
-                <Chip size="small" label={`effort ${formatEffortDisplay(taskDetail.reasoningEffort)}`} variant="outlined" />
-                <Chip size="small" label={`thread ${taskDetail.threadId || 'pending'}`} variant="outlined" />
-                <Chip size="small" label={`${generatedArtifacts.length} outputs`} variant="outlined" />
-                <Chip size="small" label={`${attachmentItems.length} files`} variant="outlined" />
-                <RunningDurationChip now={now} taskDetail={taskDetail} />
-              </Stack>
-            )}
+      <WorkspaceHeader
+        eyebrow={formatRepoDisplay(taskDetail.repoUrl) || taskDetail.repoUrl}
+        title={taskDetail.branchName}
+        actions={(
+          <Stack spacing={0.75} className="workspace-header-side">
+            <Typography className="workspace-side-meta" color="text.secondary" variant="body2">
+              {`Created ${formatTimestamp(taskDetail.createdAt)}`}
+            </Typography>
+            <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap alignItems="center" justifyContent={{ xs: 'flex-start', lg: 'flex-end' }}>
+              <StatusPill status={taskDetail.status} />
+              <GitStatusPill gitStatus={taskDetail.gitStatus} />
+            </Stack>
+          </Stack>
+        )}
+        meta={(
+          <DetailMeta
+            items={[
+              `ref ${taskDetail.ref}`,
+              `model ${formatModelDisplay(taskDetail.model)}`,
+              `effort ${formatEffortDisplay(taskDetail.reasoningEffort)}`,
+              `thread ${taskDetail.threadId || 'pending'}`,
+              formatCount(generatedArtifactCount, 'output'),
+              formatCount(attachmentCount, 'file'),
+              formatCount(contextRepoCount, 'repo'),
+              liveLabel
+            ]}
           />
+        )}
+      />
 
-          <TaskErrorAlert taskDetail={taskDetail} />
-
-          <Box className="task-secondary-grid">
-            <DisclosureSection
-              className="task-secondary-section"
-              title="Outputs"
-              meta={`${generatedArtifacts.length}`}
-            >
-              <DetailList
-                emptyLabel="No outputs generated yet."
-                items={generatedArtifacts.slice(0, 5)}
-              />
-              {generatedArtifacts.length > 5 ? (
-                <Typography color="text.secondary" variant="body2" sx={{ mt: 1.25 }}>
-                  {`${generatedArtifacts.length - 5} more outputs are available below.`}
-                </Typography>
-              ) : null}
-            </DisclosureSection>
-            <DisclosureSection
-              className="task-secondary-section"
-              title="Task files"
-              meta={`${attachmentItems.length}`}
-            >
-              <DetailList
-                emptyLabel="No task files attached."
-                items={attachmentItems}
-              />
-            </DisclosureSection>
-            <DisclosureSection
-              className="task-secondary-section"
-              title="Reference repos"
-              meta={`${contextRepoItems.length}`}
-            >
-              <DetailList
-                emptyLabel="No reference repos attached."
-                items={contextRepoItems}
-              />
-            </DisclosureSection>
-          </Box>
-        </Stack>
-      </Box>
+      <TaskErrorAlert taskDetail={taskDetail} />
+      {showTaskContextDetails ? (
+        <TaskDetailCollections taskDetail={taskDetail} includeOutputs={false} onlyNonEmpty />
+      ) : null}
     </Stack>
   );
 }

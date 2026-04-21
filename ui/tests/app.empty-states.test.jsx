@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from './test-utils.jsx';
+import { render, screen, waitFor, within } from './test-utils.jsx';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App.jsx';
 import { accounts, envs, rateLimits } from './app-fixtures.js';
@@ -31,15 +31,28 @@ it(
     expect(await screen.findByText('No tasks yet. Create one to get started.')).toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: 'Environments' }));
-    await user.type(screen.getByLabelText('Repository URL'), 'https://github.com/openai/codex');
-    await user.click(screen.getByRole('button', { name: 'Create environment' }));
+    await user.click(screen.getByRole('button', { name: 'New source' }));
+    const createDialog = await screen.findByRole('dialog', { name: 'Register source' });
+    await user.type(
+      within(createDialog).getByLabelText('Repository URL'),
+      'https://github.com/openai/codex'
+    );
+    await user.click(within(createDialog).getByRole('button', { name: 'Register source' }));
     expect(await screen.findByText('Failed to create environment.')).toBeInTheDocument();
-    expect(screen.getByText('No environments yet. Create one to get started.')).toBeInTheDocument();
+    expect(
+      screen.getByText('No sources yet. Register one to make it available to tasks and runs.')
+    ).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Register source' })).not.toBeInTheDocument()
+    );
 
     await user.click(screen.getByRole('tab', { name: 'Accounts' }));
     expect(await screen.findByText('No credits available.')).toBeInTheDocument();
     expect(screen.getAllByText('No data.').length).toBeGreaterThan(0);
-    expect(screen.getByText('No accounts yet. Add one to enable rotation.')).toBeInTheDocument();
+    expect(
+      screen.getByText('No accounts yet. Add one to enable rotation and usage checks.')
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: 'Settings' }));
   },
@@ -166,12 +179,8 @@ it(
       await screen.findByText('Startup failed before codex-docker spawned')
     ).toBeInTheDocument();
     expect(screen.getByText('Docker sidecar readiness timed out.')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Run logs are unavailable because startup failed before codex-docker was spawned.'
-      )
-    ).toBeInTheDocument();
-    expect(screen.queryByText('No logs yet.')).not.toBeInTheDocument();
+    expect(screen.getByText('Use Docker')).toBeInTheDocument();
+    expect(screen.queryByText('Raw event log')).not.toBeInTheDocument();
   },
   15000
 );

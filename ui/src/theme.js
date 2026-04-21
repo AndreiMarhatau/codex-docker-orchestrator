@@ -5,36 +5,36 @@ function getPalette(mode, isDark) {
   return {
     mode,
     primary: {
-      main: isDark ? '#63b3ff' : '#0b63d9',
-      light: isDark ? '#9bd0ff' : '#5498ef',
-      dark: isDark ? '#2f7de3' : '#0849a2',
-      contrastText: '#f8fbff'
+      main: isDark ? '#8ec4b2' : '#1d6b57',
+      light: isDark ? '#b7ddd2' : '#4c947f',
+      dark: isDark ? '#5f9c88' : '#14493d',
+      contrastText: isDark ? '#0b1412' : '#f7f1e5'
     },
     secondary: {
-      main: isDark ? '#5eead4' : '#0f766e',
-      light: isDark ? '#9af6e7' : '#2ea89d',
-      dark: isDark ? '#24bfa4' : '#0a5953'
+      main: isDark ? '#e0b86a' : '#b77a26',
+      light: isDark ? '#efd396' : '#cf9a4f',
+      dark: isDark ? '#c89335' : '#8c5d1a'
     },
     background: {
-      default: isDark ? '#07111f' : '#eef4fb',
-      paper: isDark ? '#0c1829' : '#ffffff'
+      default: isDark ? '#0f120f' : '#f2f0eb',
+      paper: isDark ? '#171b18' : '#fbf8f2'
     },
     text: {
-      primary: isDark ? '#edf3ff' : '#0f172a',
-      secondary: isDark ? '#9fb2c9' : '#526070'
+      primary: isDark ? '#f2ecdf' : '#1f1c17',
+      secondary: isDark ? '#b8afa0' : '#655c52'
     },
-    divider: isDark ? 'rgba(148, 163, 184, 0.18)' : 'rgba(100, 116, 139, 0.16)',
+    divider: isDark ? 'rgba(226, 216, 201, 0.12)' : 'rgba(83, 72, 55, 0.12)',
     success: {
-      main: isDark ? '#4ade80' : '#16a34a'
+      main: isDark ? '#7dd9ab' : '#2d8b66'
     },
     warning: {
-      main: isDark ? '#fbbf24' : '#d97706'
+      main: isDark ? '#f2c16e' : '#b97d26'
     },
     error: {
-      main: isDark ? '#fb7185' : '#dc2626'
+      main: isDark ? '#f09493' : '#b85b5e'
     },
     info: {
-      main: isDark ? '#63b3ff' : '#2563eb'
+      main: isDark ? '#9cc7e2' : '#3d728f'
     }
   };
 }
@@ -89,8 +89,8 @@ function getTypography() {
 
 function getComponents(theme, isDark) {
   const shellGradient = isDark
-    ? `linear-gradient(180deg, ${alpha('#11233c', 0.9)}, ${alpha('#0c1829', 0.92)})`
-    : `linear-gradient(180deg, ${alpha('#ffffff', 0.96)}, ${alpha('#f8fbff', 0.98)})`;
+    ? `linear-gradient(180deg, ${alpha('#1d221d', 0.96)}, ${alpha('#141816', 0.98)})`
+    : `linear-gradient(180deg, ${alpha('#fffdf7', 0.96)}, ${alpha('#f7f2e8', 0.98)})`;
 
   return {
     MuiCssBaseline: {
@@ -106,8 +106,8 @@ function getComponents(theme, isDark) {
           border: `1px solid ${theme.palette.divider}`,
           backgroundImage: shellGradient,
           boxShadow: isDark
-            ? '0 28px 80px rgba(1, 8, 20, 0.44)'
-            : '0 24px 60px rgba(15, 23, 42, 0.08)',
+            ? '0 22px 64px rgba(0, 0, 0, 0.32)'
+            : '0 24px 56px rgba(58, 43, 19, 0.08)',
           backdropFilter: 'blur(20px)'
         }
       }
@@ -115,19 +115,26 @@ function getComponents(theme, isDark) {
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 14,
+          borderRadius: 999,
           paddingLeft: 18,
           paddingRight: 18,
           minHeight: 42
         },
         contained: {
           boxShadow: isDark
-            ? '0 18px 36px rgba(11, 99, 217, 0.24)'
-            : '0 18px 32px rgba(37, 99, 235, 0.18)'
+            ? '0 16px 30px rgba(29, 107, 87, 0.28)'
+            : '0 16px 30px rgba(29, 107, 87, 0.18)'
         },
         outlined: {
-          borderColor: alpha(theme.palette.primary.main, isDark ? 0.34 : 0.22),
-          backgroundColor: alpha(theme.palette.primary.main, isDark ? 0.06 : 0.03)
+          borderColor: alpha(theme.palette.primary.main, isDark ? 0.28 : 0.18),
+          backgroundColor: alpha(theme.palette.primary.main, isDark ? 0.04 : 0.025)
+        }
+      }
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 999
         }
       }
     },
@@ -136,18 +143,25 @@ function getComponents(theme, isDark) {
         root: {
           fontWeight: 650,
           borderRadius: 999,
-          backdropFilter: 'blur(18px)'
+          backdropFilter: 'blur(18px)',
+          minHeight: 28,
+          alignItems: 'center'
+        },
+        label: {
+          lineHeight: '28px',
+          paddingLeft: 10,
+          paddingRight: 10
         },
         filled: {
           backgroundColor: isDark
             ? alpha(theme.palette.common.white, 0.08)
-            : alpha(theme.palette.primary.main, 0.08)
+            : alpha(theme.palette.secondary.main, 0.08)
         },
         outlined: {
           borderColor: theme.palette.divider,
           backgroundColor: isDark
             ? alpha(theme.palette.common.white, 0.03)
-            : alpha(theme.palette.common.white, 0.72)
+            : alpha('#fffdf8', 0.78)
         }
       }
     },
@@ -176,9 +190,9 @@ function getComponents(theme, isDark) {
           '&.Mui-selected': {
             color: theme.palette.text.primary,
             backgroundColor: isDark
-              ? alpha(theme.palette.primary.main, 0.16)
-              : alpha(theme.palette.primary.main, 0.12),
-            borderColor: alpha(theme.palette.primary.main, isDark ? 0.22 : 0.16)
+              ? alpha(theme.palette.primary.main, 0.18)
+              : alpha(theme.palette.primary.main, 0.1),
+            borderColor: alpha(theme.palette.primary.main, isDark ? 0.28 : 0.16)
           }
         }
       }
@@ -189,7 +203,7 @@ function getComponents(theme, isDark) {
           borderRadius: 16,
           backgroundColor: isDark
             ? alpha(theme.palette.common.white, 0.04)
-            : alpha(theme.palette.common.white, 0.82),
+            : alpha('#fffdf8', 0.86),
           '& fieldset': {
             borderColor: theme.palette.divider
           },

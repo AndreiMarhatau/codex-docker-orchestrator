@@ -2,12 +2,12 @@
 import { fireEvent, render, screen, waitFor, within } from './test-utils.jsx';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App.jsx';
-import { accounts, envs, rateLimits, taskDetail, taskDiff, tasks } from './app-fixtures.js';
+import { accounts, envs, rateLimits, taskDetail, taskDiff, tasks, zeroRunTaskDetail } from './app-fixtures.js';
 import { exerciseAccountsTab, exerciseEnvironmentsTab } from './app-integration-helpers.js';
 import mockApi from './helpers/mock-api.js';
 
 async function configureNewTask(user) {
-  expect(await screen.findByText('2 total')).toBeInTheDocument();
+  expect(await screen.findByText('3 total')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'New task' }));
   const createDialog = await screen.findByRole('dialog', { name: 'New task' });
 
@@ -62,14 +62,13 @@ async function exerciseTaskDetail(user) {
   await user.click(screen.getByLabelText('Remove task task-2'));
 
   await user.click(screen.getByText('feature/refactor'));
-  expect(screen.getByText('Agent messages')).toBeInTheDocument();
   expect(screen.getByText('Hello from agent')).toBeInTheDocument();
   expect(screen.getByText('Second agent update')).toBeInTheDocument();
   expect(document.querySelectorAll('.agent-message-item')).toHaveLength(2);
   expect(screen.getAllByText('output.png').length).toBeGreaterThan(0);
   expect(screen.getAllByText('report.txt').length).toBeGreaterThan(0);
 
-  await user.click(screen.getByRole('tab', { name: 'Diff' }));
+    await user.click(screen.getByRole('tab', { name: 'Diff' }));
   await user.click(await screen.findByRole('button', { name: 'Show diff' }));
   expect(screen.getByText('diff content')).toBeInTheDocument();
 
@@ -119,6 +118,13 @@ async function exerciseTaskDetail(user) {
     expect(screen.queryByRole('dialog', { name: 'Ask for changes' })).not.toBeInTheDocument()
   );
   await user.click(screen.getByRole('button', { name: 'Push' }));
+  await user.click(screen.getByLabelText('Back to tasks'));
+  await user.click(screen.getByText('feature/preflight'));
+  await user.click(screen.getByText('Task context'));
+  expect(screen.getAllByText('Task files').length).toBeGreaterThan(0);
+  expect(screen.getByText('brief.md')).toBeInTheDocument();
+  expect(screen.getAllByText('Reference repos').length).toBeGreaterThan(0);
+  expect(screen.getByText('openai/reference')).toBeInTheDocument();
   await user.click(screen.getByLabelText('Back to tasks'));
   const removeTaskButtons = screen.getAllByLabelText(/Remove task/);
   await user.click(removeTaskButtons[removeTaskButtons.length - 1]);
@@ -270,7 +276,13 @@ it(
         fetchedAt: '2024-01-01T00:00:00Z'
       },
       [`/api/tasks/${taskDetail.taskId}`]: taskDetail,
-      [`/api/tasks/${taskDetail.taskId}/diff`]: taskDiff
+      [`/api/tasks/${taskDetail.taskId}/diff`]: taskDiff,
+      [`/api/tasks/${zeroRunTaskDetail.taskId}`]: zeroRunTaskDetail,
+      [`/api/tasks/${zeroRunTaskDetail.taskId}/diff`]: {
+        available: false,
+        baseSha: '',
+        files: []
+      }
     });
     const user = userEvent.setup();
     render(<App />);

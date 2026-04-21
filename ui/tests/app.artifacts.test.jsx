@@ -59,7 +59,8 @@ it(
     );
 
     await user.click(await screen.findByText('feature/empty-artifacts'));
-    expect(await screen.findByText('No logs yet.')).toBeInTheDocument();
+    expect(await screen.findByText('Testing run')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Artifacts' }));
     expect(screen.getByText('No artifacts for this run.')).toBeInTheDocument();
   },
   15000
@@ -120,6 +121,7 @@ it(
     );
 
     await user.click(await screen.findByText('feature/one-type'));
+    await user.click(screen.getByRole('button', { name: 'Artifacts 1' }));
     expect((await screen.findAllByText('report.txt')).length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Open' })).toBeInTheDocument();
   },
@@ -182,6 +184,7 @@ it(
     );
 
     await user.click(await screen.findByText('feature/inline-artifacts'));
+    await user.click(screen.getByRole('button', { name: 'Artifacts 1' }));
     const preview = await screen.findByAltText('preview.png');
     expect(preview).toHaveAttribute('src', inlineUrl);
     expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute('href', inlineUrl);

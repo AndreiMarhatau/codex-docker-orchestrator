@@ -1,4 +1,5 @@
 import { Box } from '@mui/material';
+import { useState } from 'react';
 
 function DisclosureSection({
   children,
@@ -7,15 +8,25 @@ function DisclosureSection({
   meta = null,
   title
 }) {
-  const classes = ['disclosure-section', className].filter(Boolean).join(' ');
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const classes = [
+    'disclosure-section',
+    isOpen ? 'is-open' : '',
+    className
+  ].filter(Boolean).join(' ');
 
   return (
-    <Box component="details" className={classes} {...(defaultOpen ? { open: true } : {})}>
-      <summary className="disclosure-summary">
+    <Box className={classes}>
+      <button
+        type="button"
+        className="disclosure-summary"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-expanded={isOpen}
+      >
         <span>{title}</span>
         {meta ? <span className="disclosure-meta">{meta}</span> : null}
-      </summary>
-      <Box className="disclosure-body">
+      </button>
+      <Box className="disclosure-body" hidden={!isOpen}>
         {children}
       </Box>
     </Box>

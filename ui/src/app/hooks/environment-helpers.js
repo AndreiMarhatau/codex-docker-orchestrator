@@ -43,7 +43,7 @@ function envVarsToText(envVars) {
 
 async function requestCreateEnv({ envForm, refreshAll, setEnvForm, setError, setLoading }) {
   if (!envForm.repoUrl.trim()) {
-    return;
+    return false;
   }
   setError('');
   setLoading(true);
@@ -53,7 +53,7 @@ async function requestCreateEnv({ envForm, refreshAll, setEnvForm, setError, set
   } catch (err) {
     setError(err.message);
     setLoading(false);
-    return;
+    return false;
   }
   try {
     await apiRequest('/api/envs', {
@@ -66,8 +66,10 @@ async function requestCreateEnv({ envForm, refreshAll, setEnvForm, setError, set
     });
     setEnvForm(emptyEnvForm);
     await refreshAll();
+    return true;
   } catch (err) {
     setError(err.message);
+    return false;
   } finally {
     setLoading(false);
   }

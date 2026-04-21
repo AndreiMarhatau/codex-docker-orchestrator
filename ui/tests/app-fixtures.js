@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 const envs = [
   {
     envId: 'env-1',
@@ -51,6 +52,26 @@ const tasks = [
       pushed: false,
       dirty: false,
       diffStats: { additions: 12, deletions: 4 }
+    }
+  },
+  {
+    taskId: 'task-3',
+    envId: 'env-1',
+    repoUrl: 'https://github.com/openai/codex.git',
+    branchName: 'feature/preflight',
+    ref: 'main',
+    model: 'gpt-5.1-codex-mini',
+    reasoningEffort: 'low',
+    status: 'failed',
+    createdAt: '2024-01-02T13:00:00Z',
+    runs: [],
+    threadId: 'thread-3',
+    useHostDockerSocket: false,
+    gitStatus: {
+      hasChanges: false,
+      pushed: true,
+      dirty: false,
+      diffStats: { additions: 0, deletions: 0 }
     }
   }
 ];
@@ -153,6 +174,43 @@ const taskDiff = {
     { path: 'big/file.js', lineCount: 1200, tooLarge: true, diff: 'diff content' }
   ]
 };
+const zeroRunTaskDetail = {
+  taskId: 'task-3',
+  envId: 'env-1',
+  repoUrl: 'https://github.com/openai/codex.git',
+  branchName: 'feature/preflight',
+  ref: 'main',
+  model: 'gpt-5.1-codex-mini',
+  reasoningEffort: 'low',
+  status: 'failed',
+  createdAt: '2024-01-02T13:00:00Z',
+  threadId: 'thread-3',
+  contextRepos: [
+    {
+      envId: 'env-2',
+      repoUrl: 'https://github.com/openai/reference.git',
+      ref: 'release',
+      worktreePath: '/tmp/reference'
+    }
+  ],
+  runLogs: [],
+  attachments: [
+    {
+      name: 'brief.md',
+      originalName: 'brief.md',
+      path: '/tmp/task-uploads/brief.md',
+      size: 512
+    }
+  ],
+  error: 'Task failed before codex-docker spawned.',
+  gitStatus: {
+    hasChanges: false,
+    pushed: true,
+    dirty: false,
+    diffStats: { additions: 0, deletions: 0 }
+  },
+  useHostDockerSocket: false
+};
 const rateLimits = {
   primary: {
     usedPercent: 30,
@@ -167,4 +225,4 @@ const rateLimits = {
   credits: { hasCredits: true, balance: '$20' },
   planType: 'team'
 };
-export { accounts, envs, rateLimits, taskDetail, taskDiff, tasks };
+export { accounts, envs, rateLimits, taskDetail, taskDiff, tasks, zeroRunTaskDetail };

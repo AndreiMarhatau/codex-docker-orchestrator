@@ -16,7 +16,13 @@ function EnvironmentEditor({
     ? formatRepoDisplay(selectedEnv.repoUrl) || selectedEnv.repoUrl
     : '';
   return (
-    <Dialog open={isOpen} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{ className: 'dense-dialog' }}
+    >
       <DialogTitle>Edit environment</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>

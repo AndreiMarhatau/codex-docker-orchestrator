@@ -1,4 +1,4 @@
-/* eslint-disable max-lines-per-function */
+/* eslint-disable max-lines, max-lines-per-function */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
@@ -10,8 +10,6 @@ import {
   Typography
 } from '@mui/material';
 import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
-import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
-import DifferenceOutlinedIcon from '@mui/icons-material/DifferenceOutlined';
 import TaskDetailActions from './detail/TaskDetailActions.jsx';
 import TaskDetailHeader from './detail/TaskDetailHeader.jsx';
 import TaskDiff from './detail/TaskDiff.jsx';
@@ -106,48 +104,53 @@ function TaskDetailPanel({ data, tasksState }) {
     }
     return gitStatus.hasChanges === true && gitStatus.pushed === false;
   }, [detail.taskDetail?.gitStatus]);
-  const taskTitle = detail.taskDetail?.branchName || 'Task details';
   const hasSelectedTask = Boolean(selection.selectedTaskId);
+  const overviewTabId = 'task-detail-tab-overview';
+  const diffTabId = 'task-detail-tab-diff';
+  const overviewPanelId = 'task-detail-panel-overview';
+  const diffPanelId = 'task-detail-panel-diff';
   return (
     <Box className="task-detail-shell">
-      <Box className="task-detail-top">
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          {hasSelectedTask && (
-            <Tooltip title="Back to tasks">
-              <IconButton
-                size="small"
-                color="primary"
-                onClick={selection.handleBackToTasks}
-                aria-label="Back to tasks"
-                className="task-detail-back"
-              >
-                <ArrowBackOutlinedIcon />
-              </IconButton>
-            </Tooltip>
-          )}
-          <Stack spacing={0.4}>
-            <Typography variant="h6" className="panel-title">
-              {taskTitle}
-            </Typography>
-            {detail.taskDetail?.repoUrl && (
-              <Typography className="task-detail-top-subtitle">
-                {detail.taskDetail.repoUrl}
-              </Typography>
-            )}
-          </Stack>
-        </Stack>
+      {hasSelectedTask && (
+        <Box className="task-detail-top">
+          <Tooltip title="Back to tasks">
+            <IconButton
+              size="small"
+              color="primary"
+              onClick={selection.handleBackToTasks}
+              aria-label="Back to tasks"
+              className="task-detail-back"
+            >
+              <ArrowBackOutlinedIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
+      <Box className="task-detail-modebar">
+        <Tabs
+          value={activeTab}
+          onChange={(_, value) => setActiveTab(value)}
+          aria-label="Task detail sections"
+          className="task-detail-tabs"
+        >
+          <Tab
+            className="task-detail-mode"
+            disableRipple
+            id={overviewTabId}
+            aria-controls={overviewPanelId}
+            label="Overview"
+            value={0}
+          />
+          <Tab
+            className="task-detail-mode"
+            disableRipple
+            id={diffTabId}
+            aria-controls={diffPanelId}
+            label="Diff"
+            value={1}
+          />
+        </Tabs>
       </Box>
-      <Tabs
-        className="task-detail-tabs"
-        value={activeTab}
-        onChange={(event, value) => setActiveTab(value)}
-        aria-label="Task detail tabs"
-        variant="scrollable"
-        allowScrollButtonsMobile
-      >
-        <Tab icon={<DashboardOutlinedIcon fontSize="small" />} iconPosition="start" label="Overview" />
-        <Tab icon={<DifferenceOutlinedIcon fontSize="small" />} iconPosition="start" label="Diff" />
-      </Tabs>
       <Box className="task-detail-content">
         {!hasTaskDetail && (
           <Box className="task-detail-pane task-detail-pane--overview">
@@ -156,6 +159,9 @@ function TaskDetailPanel({ data, tasksState }) {
         )}
         {hasTaskDetail && activeTab === 0 && (
           <Box
+            aria-labelledby={overviewTabId}
+            id={overviewPanelId}
+            role="tabpanel"
             className="task-detail-pane task-detail-pane--overview"
             onScroll={() => {
               const node = overviewPaneRef.current;
@@ -168,21 +174,24 @@ function TaskDetailPanel({ data, tasksState }) {
             }}
             ref={overviewPaneRef}
           >
-            <Stack spacing={2.5}>
+            <Stack spacing={0.9}>
               <TaskDetailHeader tasksState={tasksState} />
-              <Box className="task-detail-main-grid">
-                <Box className="task-detail-stream">
-                  <TaskRuns tasksState={tasksState} />
-                </Box>
-                <Box className="task-detail-side">
+              <Box className="task-detail-stream">
+                <Stack spacing={0.4}>
                   <TaskRunOverrides tasksState={tasksState} />
-                </Box>
+                  <TaskRuns tasksState={tasksState} />
+                </Stack>
               </Box>
             </Stack>
           </Box>
         )}
         {hasTaskDetail && activeTab === 1 && (
-          <Box className="task-detail-pane task-detail-pane--diff">
+          <Box
+            aria-labelledby={diffTabId}
+            id={diffPanelId}
+            role="tabpanel"
+            className="task-detail-pane task-detail-pane--diff"
+          >
             <TaskDiff tasksState={tasksState} />
           </Box>
         )}

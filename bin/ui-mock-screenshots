@@ -7,6 +7,7 @@ BASE_URL="${MOCK_UI_BASE_URL:-http://127.0.0.1:${PORT}}"
 OUTPUT_DIR="${MOCK_UI_SCREENSHOT_DIR:-/root/.artifacts/mock-ui-screenshots}"
 COLOR_SCHEME="${MOCK_UI_COLOR_SCHEME:-light}"
 THEME_QUERY="${MOCK_UI_THEME:-}"
+MOCK_OUT_DIR="${MOCK_UI_OUT_DIR:-dist-mock}"
 SERVER_PID=""
 
 cleanup() {
@@ -70,7 +71,7 @@ trap cleanup EXIT
 
 if [[ -z "${MOCK_UI_BASE_URL:-}" ]]; then
   npm -C "$ROOT_DIR/ui" run mock:build
-  MOCK_UI_PORT="$PORT" npm -C "$ROOT_DIR/ui" run mock:preview >/tmp/ui-mock-preview.log 2>&1 &
+  MOCK_UI_PORT="$PORT" MOCK_UI_OUT_DIR="$MOCK_OUT_DIR" npm -C "$ROOT_DIR/ui" run mock:preview >/tmp/ui-mock-preview.log 2>&1 &
   SERVER_PID="$!"
 
   if ! wait_for_server; then
@@ -83,7 +84,7 @@ capture_screen "environments" "${BASE_URL}/?tab=environments" "text=Create and m
 capture_screen "tasks" "${BASE_URL}/?tab=tasks" "text=Filter by environment"
 capture_screen "accounts" "${BASE_URL}/?tab=accounts" "text=Usage limits"
 capture_screen "settings" "${BASE_URL}/?tab=settings" "text=Git Setup"
-capture_screen "task-detail" "${BASE_URL}/?tab=tasks&taskId=task-1" ".task-summary-card"
+capture_screen "task-detail" "${BASE_URL}/?tab=tasks&taskId=task-1" ".task-detail-shell"
 capture_screen "task-diff" "${BASE_URL}/?tab=tasks&taskId=task-1&detailTab=diff" ".diff-file"
 
 printf 'Saved mock UI screenshots to %s\n' "$OUTPUT_DIR"

@@ -26,18 +26,9 @@ function RateLimitWindow({ label, window }) {
   const resetsDisplay = resetsRelative === 'unknown' ? resetsAt : `${resetsAt} (${resetsRelative})`;
 
   return (
-    <Box
-      sx={{
-        flex: 1,
-        minWidth: 200,
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 2,
-        padding: 1.5
-      }}
-    >
-      <Stack spacing={0.5}>
-        <Typography variant="subtitle2">{label}</Typography>
+    <Box className="dense-metric-card">
+      <Stack spacing={0.35}>
+        <Typography variant="subtitle2" className="dense-metric-title">{label}</Typography>
         {hasWindow ? (
           <>
             <Typography variant="body2">Left: {leftDisplay}</Typography>
@@ -86,52 +77,56 @@ function UsageLimits({ accountsState }) {
   }, [rateLimits]);
 
   return (
-    <Stack spacing={1.5} className="subpanel-card">
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-        <Stack spacing={0.5}>
-          <Typography variant="subtitle2">Usage limits</Typography>
-          <Typography color="text.secondary">
-            {activeAccount
-              ? `Active account: ${formatAccountLabel(activeAccount)}`
-              : 'No active account selected.'}
-          </Typography>
+    <Box className="dense-panel dense-panel--list">
+      <Stack spacing={1.5}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start" justifyContent="space-between">
+          <Stack spacing={0.35}>
+            <Typography variant="h6" className="dense-panel-title">Usage limits</Typography>
+            <Typography color="text.secondary" className="dense-panel-copy">
+              {activeAccount
+                ? `Active account: ${formatAccountLabel(activeAccount)}`
+                : 'No active account selected. Pick one before checking limits.'}
+            </Typography>
+          </Stack>
+          <Stack className="dense-actions" direction="row" spacing={0.75} flexWrap="wrap">
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={refreshRateLimits}
+              disabled={rateLimitsLoading || triggerUsageLoading}
+            >
+              Check usage limits
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={triggerUsage}
+              disabled={rateLimitsLoading || triggerUsageLoading}
+            >
+              Trigger usage
+            </Button>
+          </Stack>
         </Stack>
-        <Stack direction="row" spacing={1}>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={refreshRateLimits}
-            disabled={rateLimitsLoading || triggerUsageLoading}
-          >
-            Check usage limits
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={triggerUsage}
-            disabled={rateLimitsLoading || triggerUsageLoading}
-          >
-            Trigger usage
-          </Button>
-        </Stack>
-      </Stack>
-      {triggerUsageLoading && (
-        <Typography color="text.secondary">Triggering usage...</Typography>
-      )}
-      {triggerUsageError && <Typography color="error">{triggerUsageError}</Typography>}
-      {rateLimitsLoading && (
-        <Typography color="text.secondary">Loading usage limits...</Typography>
-      )}
-      {rateLimitsError && <Typography color="error">{rateLimitsError}</Typography>}
-      {!rateLimitsLoading && !rateLimitsError && !rateLimits && (
-        <Typography color="text.secondary">Usage limits have not been loaded yet.</Typography>
-      )}
-      {rateLimits && (
-        <Box className="detail-meta-panel">
-          <Stack spacing={1.5}>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              <RateLimitWindow label="Primary" window={rateLimits.primary} />
-              <RateLimitWindow label="Secondary" window={rateLimits.secondary} />
+        <Typography variant="body2" color="text.secondary" className="dense-panel-copy">
+          This view shows the windows that matter for rotation decisions and whether credits are
+          still available.
+        </Typography>
+        {triggerUsageLoading && (
+          <Typography color="text.secondary">Triggering usage...</Typography>
+        )}
+        {triggerUsageError && <Typography color="error">{triggerUsageError}</Typography>}
+        {rateLimitsLoading && (
+          <Typography color="text.secondary">Loading usage limits...</Typography>
+        )}
+        {rateLimitsError && <Typography color="error">{rateLimitsError}</Typography>}
+        {!rateLimitsLoading && !rateLimitsError && !rateLimits && (
+          <Typography color="text.secondary">Usage limits have not been loaded yet.</Typography>
+        )}
+        {rateLimits && (
+          <Stack spacing={1.25}>
+            <Stack className="dense-metric-grid" spacing={1}>
+              <RateLimitWindow label="Primary window" window={rateLimits.primary} />
+              <RateLimitWindow label="Secondary window" window={rateLimits.secondary} />
             </Stack>
             <Divider />
             <Stack spacing={0.5}>
@@ -142,19 +137,19 @@ function UsageLimits({ accountsState }) {
               )}
             </Stack>
           </Stack>
-        </Box>
-      )}
-      {rateLimitsFetchedAt && (
-        <Typography variant="caption" color="text.secondary">
-          Last checked {formatTimestamp(rateLimitsFetchedAt)}
-        </Typography>
-      )}
-      {triggerUsageTriggeredAt && (
-        <Typography variant="caption" color="text.secondary">
-          Last usage trigger {formatTimestamp(triggerUsageTriggeredAt)}
-        </Typography>
-      )}
-    </Stack>
+        )}
+        {rateLimitsFetchedAt && (
+          <Typography variant="caption" color="text.secondary">
+            Last checked {formatTimestamp(rateLimitsFetchedAt)}
+          </Typography>
+        )}
+        {triggerUsageTriggeredAt && (
+          <Typography variant="caption" color="text.secondary">
+            Last usage trigger {formatTimestamp(triggerUsageTriggeredAt)}
+          </Typography>
+        )}
+      </Stack>
+    </Box>
   );
 }
 

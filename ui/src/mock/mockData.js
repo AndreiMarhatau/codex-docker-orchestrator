@@ -198,6 +198,30 @@ const taskDetails = {
             raw: 'entry-1'
           },
           {
+            id: 'entry-1b',
+            type: 'item.completed',
+            parsed: {
+              type: 'item.completed',
+              item: {
+                type: 'tool_call',
+                text: 'Scanned the app shell, task surfaces, and screenshot script to map layout breakpoints.'
+              }
+            },
+            raw: 'entry-1b'
+          },
+          {
+            id: 'entry-1c',
+            type: 'item.completed',
+            parsed: {
+              type: 'item.completed',
+              item: {
+                type: 'exec_command',
+                text: 'Ran the mock screenshot flow and compared desktop/mobile captures to spot overflow and hierarchy failures.'
+              }
+            },
+            raw: 'entry-1c'
+          },
+          {
             id: 'entry-2',
             type: 'item.completed',
             parsed: {
@@ -208,6 +232,18 @@ const taskDetails = {
               }
             },
             raw: 'entry-2'
+          },
+          {
+            id: 'entry-2b',
+            type: 'item.completed',
+            parsed: {
+              type: 'item.completed',
+              item: {
+                type: 'tool_call',
+                text: 'Reworked the board and detail shell into a shared two-surface layout with collapsed secondary sections.'
+              }
+            },
+            raw: 'entry-2b'
           }
         ],
         artifacts: [
@@ -298,34 +334,24 @@ const taskDetails = {
     status: 'failed',
     createdAt: '2026-04-16T18:05:00Z',
     threadId: 'thread-3',
-    contextRepos: [],
-    runLogs: [
+    contextRepos: [
       {
-        runId: 'run-3',
-        model: 'gpt-5.1-codex-mini',
-        reasoningEffort: 'low',
-        prompt: 'Refresh the settings copy.',
-        status: 'failed',
-        startedAt: '2026-04-16T18:05:00Z',
-        finishedAt: '2026-04-16T18:14:00Z',
-        entries: [
-          {
-            id: 'entry-3',
-            type: 'item.completed',
-            parsed: {
-              type: 'item.completed',
-              item: {
-                type: 'agent_message',
-                text: 'Run stopped after hitting a validation error in the config form.'
-              }
-            },
-            raw: 'entry-3'
-          }
-        ],
-        artifacts: []
+        envId: 'env-2',
+        repoUrl: 'https://github.com/openai/openai-cookbook.git',
+        ref: 'release/docs',
+        worktreePath: '/workspace/reference/openai-cookbook'
       }
     ],
-    attachments: [],
+    runLogs: [],
+    attachments: [
+      {
+        name: 'settings-note.md',
+        originalName: 'settings-note.md',
+        path: '/tmp/task-uploads/settings-note.md',
+        size: 918
+      }
+    ],
+    error: 'Task failed before codex-docker spawned.',
     gitStatus: {
       hasChanges: false,
       pushed: true,

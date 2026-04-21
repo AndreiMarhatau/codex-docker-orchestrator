@@ -87,6 +87,29 @@ function formatLogSummary(entry) {
   return type;
 }
 
+function isAgentMessageEntry(entry) {
+  const parsed = entry?.parsed;
+  if (!parsed || typeof parsed !== 'object') {
+    return false;
+  }
+  const item = parsed.item;
+  const itemType = toLowerString(getItemType(item));
+  const itemRole = toLowerString(item?.role);
+  const parsedType = toLowerString(parsed.type);
+
+  const looksLikeMessage =
+    itemRole === 'assistant' ||
+    itemRole === 'agent' ||
+    itemRole === 'model' ||
+    itemType === 'agent_message' ||
+    itemType === 'assistant_message' ||
+    itemType === 'agent' ||
+    itemType === 'assistant';
+
+  const isToolLike = itemType.includes('tool') || parsedType.includes('tool');
+  return looksLikeMessage && !isToolLike;
+}
+
 function collectAgentMessages(entries) {
   if (!entries || entries.length === 0) {
     return [];
@@ -98,26 +121,13 @@ function collectAgentMessages(entries) {
       return messages;
     }
 
-    const item = parsed.item;
-    const text = extractText(item) || extractText(parsed);
-    if (!text) {
+    if (!isAgentMessageEntry(entry)) {
       return messages;
     }
 
-    const itemType = toLowerString(getItemType(item));
-    const itemRole = toLowerString(item?.role);
-    const parsedType = toLowerString(parsed.type);
-    const looksLikeMessage =
-      itemRole === 'assistant' ||
-      itemRole === 'agent' ||
-      itemRole === 'model' ||
-      itemType === 'agent_message' ||
-      itemType === 'assistant_message' ||
-      itemType === 'agent' ||
-      itemType === 'assistant';
-
-    const isToolLike = itemType.includes('tool') || parsedType.includes('tool');
-    if (looksLikeMessage && !isToolLike) {
+    const item = parsed.item;
+    const text = extractText(item) || extractText(parsed);
+    if (text) {
       messages.push(text);
     }
 
@@ -125,4 +135,88 @@ function collectAgentMessages(entries) {
   }, []);
 }
 
-export { collectAgentMessages, formatLogEntry, formatLogSummary };
+function summarizeEntry(entry) {
+  const parsed = entry?.parsed;
+  const item = parsed?.item;
+  const itemType = getItemType(item);
+  const type = getEntryType(entry);
+  const text = extractText(item) || extractText(parsed);
+
+  if (isAgentMessageEntry(entry)) {
+    return null;
+  }
+
+  if (itemType === 'tool_call') {
+    return {
+      label: 'Tool call',
+      detail: text || formatLogSummary(entry)
+    };
+  }
+
+  if (itemType === 'exec_command') {
+    return {
+      label: 'Command',
+      detail: text || formatLogSummary(entry)
+    };
+  }
+
+  if (itemType) {
+    return {
+      label: itemType.replace(/_/g, ' '),
+      detail: text || formatLogSummary(entry)
+    };
+  }
+
+  return {
+    label: type || 'event',
+    detail: text || formatLogSummary(entry) || formatLogEntry(entry)
+  };
+}
+
+function buildTimeline(entries) {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return [];
+  }
+
+  const timeline = [];
+  let pendingEvents = [];
+
+  const flushEvents = () => {
+    if (pendingEvents.length === 0) {
+      return;
+    }
+    const summaries = pendingEvents
+      .map((entry) => ({ entry, summary: summarizeEntry(entry) }))
+      .filter((item) => item.summary);
+    if (summaries.length > 0) {
+      timeline.push({
+        type: 'events',
+        entries: summaries.map((item) => item.entry),
+        summaries: summaries.map((item) => item.summary)
+      });
+    }
+    pendingEvents = [];
+  };
+
+  entries.forEach((entry) => {
+    if (isAgentMessageEntry(entry)) {
+      flushEvents();
+      const parsed = entry?.parsed;
+      const text = extractText(parsed?.item) || extractText(parsed);
+      if (text) {
+        timeline.push({
+          type: 'message',
+          entry,
+          text
+        });
+      }
+      return;
+    }
+    pendingEvents.push(entry);
+  });
+
+  flushEvents();
+  return timeline;
+}
+
+export { buildTimeline, collectAgentMessages, formatLogEntry, formatLogSummary, summarizeEntry };

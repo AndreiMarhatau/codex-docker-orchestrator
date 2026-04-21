@@ -11,14 +11,14 @@ function SectionHeader({
 }) {
   return (
     <Box className="section-hero">
-      <Stack spacing={2.5}>
+      <Stack spacing={2}>
         <Stack
           direction={{ xs: 'column', lg: 'row' }}
           spacing={2}
           justifyContent="space-between"
           alignItems={{ xs: 'flex-start', lg: 'flex-start' }}
         >
-          <Stack spacing={1.25} sx={{ maxWidth: 720 }}>
+          <Stack spacing={0.9} sx={{ maxWidth: 760 }}>
             {eyebrow && (
               <Typography className="section-eyebrow">
                 {eyebrow}
@@ -26,7 +26,7 @@ function SectionHeader({
             )}
             <Stack direction="row" spacing={1.25} alignItems="center">
               {icon && <Box className="section-icon">{icon}</Box>}
-              <Typography variant="h4" className="section-title">
+              <Typography component="h2" variant="h4" className="section-title">
                 {title}
               </Typography>
             </Stack>

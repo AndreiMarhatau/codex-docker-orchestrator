@@ -1,14 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Box,
-  Button,
-  Stack,
-  TextField,
-  Typography
-} from '@mui/material';
+import { Box, Button, Collapse, Stack, TextField, Typography } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { apiRequest } from '../../../api.js';
 
@@ -66,40 +57,67 @@ function ConfigFileEditor() {
   }
 
   return (
-    <Accordion expanded={configExpanded} onChange={(_event, expanded) => setConfigExpanded(expanded)}>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography variant="h6">Config file (config.toml)</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Stack spacing={1.5}>
-          <Typography color="text.secondary">
-            This editor updates <code>config.toml</code> in your Codex home directory.
-          </Typography>
-          {configError && <Typography color="error">{configError}</Typography>}
-          {configNotice && <Typography color="text.secondary">{configNotice}</Typography>}
-          {configExpanded && (configLoading ? (
-            <Typography>Loading config...</Typography>
-          ) : (
-            <Box component="form" onSubmit={handleConfigSubmit}>
-              <Stack spacing={1.5}>
-                <TextField
-                  label="config.toml"
-                  multiline
-                  minRows={12}
-                  value={configContent}
-                  onChange={(event) => setConfigContent(event.target.value)}
-                  fullWidth
-                  variant="outlined"
-                />
-                <Button type="submit" variant="contained" disabled={configSaving || configLoading}>
-                  {configSaving ? 'Saving...' : 'Save config'}
-                </Button>
-              </Stack>
-            </Box>
-          ))}
+    <Box className="dense-panel dense-panel--list">
+      <Stack spacing={1.5}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1}
+          alignItems={{ xs: 'flex-start', sm: 'center' }}
+          justifyContent="space-between"
+        >
+          <Stack spacing={0.35}>
+            <Typography variant="h6" className="dense-panel-title">Local config</Typography>
+            <Typography color="text.secondary" className="dense-panel-copy">
+              Edit <code>config.toml</code> in your Codex home directory when you need to override
+              local defaults.
+            </Typography>
+          </Stack>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<ExpandMoreIcon />}
+            onClick={() => setConfigExpanded((expanded) => !expanded)}
+          >
+            {configExpanded ? 'Hide editor' : 'Open editor'}
+          </Button>
         </Stack>
-      </AccordionDetails>
-    </Accordion>
+        {configError && <Typography color="error">{configError}</Typography>}
+        {configNotice && <Typography color="text.secondary">{configNotice}</Typography>}
+        <Typography variant="body2" color="text.secondary" className="dense-panel-copy">
+          Load the current file before saving so you can review what changed.
+        </Typography>
+        <Collapse in={configExpanded} unmountOnExit>
+          <Stack spacing={1.25}>
+            {configLoading ? (
+              <Typography>Loading config...</Typography>
+            ) : (
+              <Box component="form" onSubmit={handleConfigSubmit}>
+                <Stack spacing={1.25}>
+                  <TextField
+                    label="config.toml"
+                    multiline
+                    minRows={12}
+                    value={configContent}
+                    onChange={(event) => setConfigContent(event.target.value)}
+                    fullWidth
+                    variant="outlined"
+                    inputProps={{ className: 'mono' }}
+                  />
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={configSaving || configLoading}
+                    sx={{ alignSelf: 'flex-start' }}
+                  >
+                    {configSaving ? 'Saving...' : 'Save config'}
+                  </Button>
+                </Stack>
+              </Box>
+            )}
+          </Stack>
+        </Collapse>
+      </Stack>
+    </Box>
   );
 }
 

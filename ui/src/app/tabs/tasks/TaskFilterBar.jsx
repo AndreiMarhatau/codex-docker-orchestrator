@@ -1,13 +1,13 @@
 import { Box, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { formatRepoDisplay } from '../../repo-helpers.js';
 
-function TaskFilterBar({ data, tasksState }) {
+function TaskFilterBar({ compact = false, data, tasksState }) {
   const { envs } = data;
   const { selection } = tasksState;
   const selectedEnv = envs.find((env) => env.envId === selection.taskFilterEnvId);
 
   return (
-    <Box className="subpanel-card">
+    <Box className={`subpanel-card${compact ? ' subpanel-card--compact' : ''}`}>
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         spacing={1.5}

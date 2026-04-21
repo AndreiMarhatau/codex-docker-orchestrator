@@ -33,20 +33,22 @@ function GitSettingsForm({ refreshAll, setupState }) {
   }
 
   return (
-    <Box className="subpanel-card">
-      <Stack spacing={2}>
-        <Typography variant="h5">Git Setup</Typography>
-        <Typography color="text.secondary">
-          Provide a GitHub token before creating environments or tasks. Commits use the built-in
-          identity: <code>{setupState?.gitUserName || 'Codex Agent'}</code> {' <'}
-          <code>{setupState?.gitUserEmail || 'codex@openai.com'}</code>
-          {'>'}.
-        </Typography>
-        <Typography color="text.secondary">
-          Token configured: {setupState?.gitTokenConfigured ? 'yes' : 'no'}
+    <Box className="dense-panel dense-panel--form">
+      <Stack spacing={1.5}>
+        <Stack spacing={0.35}>
+          <Typography variant="h6" className="dense-panel-title">Git Setup</Typography>
+          <Typography color="text.secondary" className="dense-panel-copy">
+            Add a token before creating environments or tasks. Commits use{' '}
+            <code>{setupState?.gitUserName || 'Codex Agent'}</code> {'<'}
+            <code>{setupState?.gitUserEmail || 'codex@openai.com'}</code>
+            {'>'}.
+          </Typography>
+        </Stack>
+        <Typography color="text.secondary" className="dense-panel-copy">
+          Token status: {setupState?.gitTokenConfigured ? 'configured' : 'missing'}
         </Typography>
         <Box component="form" onSubmit={handleSubmit}>
-          <Stack spacing={2}>
+          <Stack spacing={1.25}>
             <TextField
               label="GitHub token"
               type="password"
@@ -56,7 +58,7 @@ function GitSettingsForm({ refreshAll, setupState }) {
             />
             {error && <Typography color="error">{error}</Typography>}
             {notice && <Typography color="text.secondary">{notice}</Typography>}
-            <Stack direction="row" spacing={1.5}>
+            <Stack className="dense-actions" direction="row" spacing={0.75} flexWrap="wrap">
               <Button type="submit" variant="contained" disabled={saving || !token.trim()}>
                 {saving ? 'Saving...' : 'Save token'}
               </Button>

@@ -12,6 +12,7 @@ export default defineConfig(({ command, mode }) => {
     command !== 'build' ||
     isMockFlagEnabled(env.VITE_ENABLE_MOCK_DATA) ||
     isMockFlagEnabled(env.VITE_MOCK_API);
+  const outDir = env.VITE_BUILD_OUT_DIR || 'dist';
 
   return {
     plugins: [react()],
@@ -25,7 +26,7 @@ export default defineConfig(({ command, mode }) => {
       }
     },
     build: {
-      outDir: 'dist'
+      outDir
     },
     test: {
       environment: 'jsdom',

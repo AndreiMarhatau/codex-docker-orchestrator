@@ -1,20 +1,20 @@
-import { Button, Stack, Typography } from '@mui/material';
+import { Box, Button, Stack, Typography } from '@mui/material';
 
 function RotationQueue({ accountsState, data }) {
   const { loading, accountState } = data;
 
   return (
-    <Stack
-        className="subpanel-card"
+    <Box className="dense-panel dense-panel--compact">
+      <Stack
         direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
+        spacing={1.5}
         alignItems={{ xs: 'flex-start', sm: 'center' }}
         justifyContent="space-between"
       >
-        <Stack spacing={0.5}>
-          <Typography variant="subtitle2">Rotation queue</Typography>
-          <Typography color="text.secondary">
-            Active account is first. Usage-limit failures auto-rotate.
+        <Stack spacing={0.35}>
+          <Typography variant="h6" className="dense-panel-title">Rotation queue</Typography>
+          <Typography color="text.secondary" className="dense-panel-copy">
+            Active account stays first. Limit failures move the queue forward automatically.
           </Typography>
         </Stack>
         <Button
@@ -25,7 +25,8 @@ function RotationQueue({ accountsState, data }) {
         >
           Rotate now
         </Button>
-    </Stack>
+      </Stack>
+    </Box>
   );
 }
 

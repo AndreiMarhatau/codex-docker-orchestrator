@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Stack, Typography } from '@mui/material';
+import { Box, Divider, Stack, Typography } from '@mui/material';
 import AccountCard from './AccountCard.jsx';
 
 function AccountList({ accountsState, data }) {
@@ -50,34 +50,45 @@ function AccountList({ accountsState, data }) {
   };
 
   return (
-    <Stack spacing={1.5} className="subpanel-card">
-      <Typography variant="subtitle2">Stored accounts</Typography>
+    <Box className="dense-panel dense-panel--list">
       <Stack spacing={1.5}>
-        {accountState.accounts.map((account) => (
-          <AccountCard
-            key={account.id}
-            account={account}
-            accountsState={accountsState}
-            authDraft={authDrafts[account.id] ?? account.authJson ?? ''}
-            authExpanded={Boolean(authExpanded[account.id])}
-            labelDraft={labelDrafts[account.id] ?? account.label ?? ''}
-            loading={loading}
-            renameExpanded={Boolean(renameExpanded[account.id])}
-            onAuthChange={(value) => handleAuthChange(account.id, value)}
-            onAuthSave={() => handleAuthSave(account.id)}
-            onToggleAuth={() => toggleAuth(account)}
-            onToggleRename={() => toggleRename(account)}
-            onRenameChange={(value) => handleRenameChange(account.id, value)}
-            onRenameSave={() => handleRenameSave(account.id)}
-          />
-        ))}
-        {accountState.accounts.length === 0 && (
-          <Typography color="text.secondary">
-            No accounts yet. Add one to enable rotation.
+        <Stack spacing={0.35}>
+          <Typography variant="h6" className="dense-panel-title">Stored accounts</Typography>
+          <Typography variant="body2" color="text.secondary" className="dense-panel-copy">
+            Rename labels, update auth.json, or promote a different account when the queue shifts.
           </Typography>
-        )}
+        </Stack>
+        <Stack
+          className="dense-divider-list"
+          spacing={0}
+          divider={accountState.accounts.length > 1 ? <Divider flexItem /> : undefined}
+        >
+          {accountState.accounts.map((account) => (
+            <AccountCard
+              key={account.id}
+              account={account}
+              accountsState={accountsState}
+              authDraft={authDrafts[account.id] ?? account.authJson ?? ''}
+              authExpanded={Boolean(authExpanded[account.id])}
+              labelDraft={labelDrafts[account.id] ?? account.label ?? ''}
+              loading={loading}
+              renameExpanded={Boolean(renameExpanded[account.id])}
+              onAuthChange={(value) => handleAuthChange(account.id, value)}
+              onAuthSave={() => handleAuthSave(account.id)}
+              onToggleAuth={() => toggleAuth(account)}
+              onToggleRename={() => toggleRename(account)}
+              onRenameChange={(value) => handleRenameChange(account.id, value)}
+              onRenameSave={() => handleRenameSave(account.id)}
+            />
+          ))}
+          {accountState.accounts.length === 0 && (
+            <Typography color="text.secondary" className="dense-empty-copy">
+              No accounts yet. Add one to enable rotation and usage checks.
+            </Typography>
+          )}
+        </Stack>
       </Stack>
-    </Stack>
+    </Box>
   );
 }
 

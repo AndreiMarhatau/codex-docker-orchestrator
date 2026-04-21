@@ -2,8 +2,7 @@
 import { memo } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
+  Divider,
   IconButton,
   Stack,
   Tooltip,
@@ -207,12 +206,12 @@ function TaskRow({ handleDeleteTask, handleStopTask, now, selectedTaskId, setSel
     : null;
 
   return (
-    <Card
+    <Box
       className={`task-card task-card--interactive${task.taskId === selectedTaskId ? ' task-card--selected' : ''}`}
       onClick={() => setSelectedTaskId(task.taskId)}
     >
-      <CardContent className="task-card-content">
-        <Stack spacing={1.5}>
+      <Box className="task-card-content">
+        <Stack spacing={1.1}>
           <TaskRowHeader task={task} />
           <TaskRowSummary artifactCount={artifactCount} elapsedLabel={elapsedLabel} task={task} />
           <TaskRowActions
@@ -222,8 +221,8 @@ function TaskRow({ handleDeleteTask, handleStopTask, now, selectedTaskId, setSel
             task={task}
           />
         </Stack>
-      </CardContent>
-    </Card>
+      </Box>
+    </Box>
   );
 }
 
@@ -241,7 +240,7 @@ function TaskList({
     <Stack spacing={1.5}>
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
-        spacing={1.25}
+        spacing={0.75}
         justifyContent="space-between"
         alignItems={{ xs: 'flex-start', sm: 'center' }}
       >
@@ -252,7 +251,8 @@ function TaskList({
           Open a task to inspect live output, artifacts, and git changes.
         </Typography>
       </Stack>
-      <Stack spacing={1.5}>
+      <Box className="task-list-shell">
+        <Stack spacing={0} divider={visibleTasks.length > 1 ? <Divider flexItem /> : undefined}>
         {visibleTasks.map((task) => (
           <TaskRow
             key={task.taskId}
@@ -266,13 +266,14 @@ function TaskList({
           />
         ))}
         {visibleTasks.length === 0 && (
-          <Box className="empty-state">
+          <Box className="empty-state" sx={{ py: 2 }}>
             <Typography color="text.secondary">
               No tasks yet. Create one to get started.
             </Typography>
           </Box>
         )}
-      </Stack>
+        </Stack>
+      </Box>
     </Stack>
   );
 }

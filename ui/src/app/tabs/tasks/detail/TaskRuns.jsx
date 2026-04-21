@@ -11,26 +11,23 @@ function TaskRuns({ tasksState }) {
 
   return (
     <Box className="detail-section">
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={1}
-        alignItems={{ xs: 'flex-start', sm: 'center' }}
-        justifyContent="space-between"
-      >
-        <Typography variant="subtitle2">Runs</Typography>
-        <Typography color="text.secondary" variant="body2">
-          {runLogs.length} {runLogs.length === 1 ? 'run' : 'runs'}
-        </Typography>
-      </Stack>
+      {runLogs.length > 1 && (
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1}
+          alignItems={{ xs: 'flex-start', sm: 'center' }}
+          justifyContent="space-between"
+        >
+          <Typography variant="subtitle2">Runs</Typography>
+          <Typography color="text.secondary" variant="body2">
+            {runLogs.length} runs
+          </Typography>
+        </Stack>
+      )}
       <Stack spacing={1.25}>
         {runLogs.map((run) => (
           <RunLog
             key={run.runId}
-            emptyEntriesMessage={
-              run.failedBeforeSpawn === true
-                ? 'Run logs are unavailable because startup failed before codex-docker was spawned.'
-                : undefined
-            }
             now={now}
             run={run}
             taskId={detail.taskDetail.taskId}

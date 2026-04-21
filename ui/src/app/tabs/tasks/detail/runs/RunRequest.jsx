@@ -1,23 +1,15 @@
-import { Box, Chip, Stack, Typography } from '@mui/material';
-import { formatEffortDisplay, formatModelDisplay } from '../../../../model-helpers.js';
+import { Box, Typography } from '@mui/material';
 
 function RunRequest({ run }) {
   const prompt = typeof run.prompt === 'string' && run.prompt.trim() ? run.prompt : 'unknown';
 
   return (
-    <Box className="run-section-card run-section-card--request">
-      <Stack spacing={1}>
-        <Typography variant="subtitle2">Request</Typography>
-        {(run.model || run.reasoningEffort) && (
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-            <Chip size="small" label={`model: ${formatModelDisplay(run.model)}`} />
-            <Chip size="small" label={`effort: ${formatEffortDisplay(run.reasoningEffort)}`} />
-          </Stack>
-        )}
-        <Box className="log-box log-box--full">
-          <pre>{prompt}</pre>
-        </Box>
-      </Stack>
+    <Box className="run-section-card run-section-card--request run-step">
+      <Typography className="run-request-text" component="div">
+        <span className="run-request-highlight-shell">
+          <span className="run-request-highlight">{prompt}</span>
+        </span>
+      </Typography>
     </Box>
   );
 }

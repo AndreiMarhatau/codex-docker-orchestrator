@@ -1,9 +1,8 @@
-import { Button } from '@mui/material';
+import { Button, Stack } from '@mui/material';
 import FolderOpenOutlinedIcon from '@mui/icons-material/FolderOpenOutlined';
 import SectionHeader from '../../components/SectionHeader.jsx';
-import { formatRepoDisplay } from '../../repo-helpers.js';
 
-function EnvironmentHeader({ envs, loading, refreshAll, selectedEnv }) {
+function EnvironmentHeader({ envs, loading, openCreateDialog, refreshAll }) {
   return (
     <SectionHeader
       eyebrow="Sources"
@@ -11,17 +10,17 @@ function EnvironmentHeader({ envs, loading, refreshAll, selectedEnv }) {
       title="Environments"
       description="Create and manage repo sources for Codex runs."
       chips={[
-        { label: `${envs.length} environments`, tone: 'neutral' },
-        {
-          label: `Selected ${selectedEnv ? formatRepoDisplay(selectedEnv.repoUrl) : 'none'}`,
-          tone: 'muted',
-          variant: 'outlined'
-        }
+        { label: `${envs.length} environments`, tone: 'neutral' }
       ]}
       actions={(
-        <Button variant="outlined" size="small" onClick={refreshAll} disabled={loading}>
-          Sync now
-        </Button>
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          <Button variant="contained" size="small" onClick={openCreateDialog}>
+            New source
+          </Button>
+          <Button variant="outlined" size="small" onClick={refreshAll} disabled={loading}>
+            Sync now
+          </Button>
+        </Stack>
       )}
     />
   );

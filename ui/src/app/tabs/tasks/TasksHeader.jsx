@@ -1,40 +1,29 @@
-import { Box, Button, Stack, Typography } from '@mui/material';
+import { Button, Stack, Typography } from '@mui/material';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 
-function TasksHeader({ tasksState }) {
+function TasksHeader({ compact = false, tasksState }) {
   const { formState, hasActiveRuns, taskStats } = tasksState;
 
   return (
-    <Box className="subpanel-card">
+    <Stack spacing={compact ? 1 : 1.25}>
       <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        spacing={2}
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1}
+        alignItems={{ xs: 'flex-start', sm: 'center' }}
         justifyContent="space-between"
-        alignItems={{ xs: 'flex-start', md: 'center' }}
       >
-        <Stack spacing={0.65} sx={{ minWidth: 0 }}>
-          <Typography variant="h5" className="panel-title">
+        <Stack direction="row" spacing={1.25} flexWrap="wrap" useFlexGap alignItems="center">
+          <Typography variant="h6" className="panel-title">
             Tasks
           </Typography>
           <Typography color="text.secondary" variant="body2">
-            Track active work, inspect outputs, and move between prompt, run state, and git changes
-            without losing the thread.
+            {taskStats.total} total
           </Typography>
-          <Stack direction="row" spacing={1.25} flexWrap="wrap" useFlexGap>
-            <Typography color="text.secondary" variant="body2">
-              {taskStats.total} total
-            </Typography>
-            <Typography color="text.secondary" variant="body2">
-              {taskStats.running} running
-            </Typography>
-            <Typography color="text.secondary" variant="body2">
-              {Math.max(taskStats.failed, 0)} failed
-            </Typography>
-          </Stack>
           <Typography color="text.secondary" variant="body2">
-            {hasActiveRuns
-              ? 'Live activity is streaming through the board.'
-              : 'No active runs are streaming output.'}
+            {taskStats.running} running
+          </Typography>
+          <Typography color="text.secondary" variant="body2">
+            {Math.max(taskStats.failed, 0)} failed
           </Typography>
         </Stack>
         <Button
@@ -46,7 +35,19 @@ function TasksHeader({ tasksState }) {
           New task
         </Button>
       </Stack>
-    </Box>
+      {!compact && (
+        <>
+          <Typography color="text.secondary" variant="body2">
+            Track active work, inspect outputs, and move between prompt, run state, and git changes without losing the thread.
+          </Typography>
+          <Typography color="text.secondary" variant="body2">
+            {hasActiveRuns
+              ? 'Live activity is streaming through the board.'
+              : 'No active runs are streaming output.'}
+          </Typography>
+        </>
+      )}
+    </Stack>
   );
 }
 

@@ -4,10 +4,11 @@ import TaskForm from './TaskForm.jsx';
 import TaskList from './TaskList.jsx';
 import TasksHeader from './TasksHeader.jsx';
 
-function TasksOverview({ data, tasksState }) {
+function TasksOverview({ compact = false, data, tasksState }) {
   return (
     <Stack spacing={2.5}>
-      <TasksHeader tasksState={tasksState} />
+      <TasksHeader tasksState={tasksState} compact={compact} />
+      <TaskFilterBar data={data} tasksState={tasksState} compact={compact} />
       <TaskList
         data={data}
         handleDeleteTask={tasksState.listActions.handleDeleteTask}
@@ -17,7 +18,6 @@ function TasksOverview({ data, tasksState }) {
         setSelectedTaskId={tasksState.selection.setSelectedTaskId}
         visibleTasks={tasksState.visibleTasks}
       />
-      <TaskFilterBar data={data} tasksState={tasksState} />
       <TaskForm data={data} tasksState={tasksState} />
     </Stack>
   );

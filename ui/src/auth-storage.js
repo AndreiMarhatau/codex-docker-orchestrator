@@ -2,6 +2,7 @@ const STORAGE_KEY = 'orchestrator-ui-password';
 const COOKIE_NAME = 'orch_ui_pw';
 const AUTH_EVENT = 'orch-auth-required';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 10;
+let memoryPassword = '';
 
 function setCookie(password) {
   if (typeof document === 'undefined') {
@@ -20,35 +21,38 @@ function clearCookie() {
 
 function getStoredPassword() {
   if (typeof window === 'undefined') {
-    return '';
+    return memoryPassword;
   }
   try {
-    return window.localStorage.getItem(STORAGE_KEY) || '';
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    return stored || memoryPassword;
   } catch (err) {
-    return '';
+    return memoryPassword;
   }
 }
 
 function setStoredPassword(password) {
+  memoryPassword = password;
   if (typeof window === 'undefined') {
     return;
   }
   try {
     window.localStorage.setItem(STORAGE_KEY, password);
   } catch (err) {
-    return;
+    // Fall back to memory-only storage in restricted environments.
   }
   setCookie(password);
 }
 
 function clearStoredPassword() {
+  memoryPassword = '';
   if (typeof window === 'undefined') {
     return;
   }
   try {
     window.localStorage.removeItem(STORAGE_KEY);
   } catch (err) {
-    return;
+    // Fall back to memory-only storage in restricted environments.
   }
   clearCookie();
 }

@@ -72,7 +72,7 @@ it(
     await user.click(await screen.findByText('feature/silent-failure'));
     expect(await screen.findByText('Task failed')).toBeInTheDocument();
     expect(screen.getByText('codex-docker exited early.')).toBeInTheDocument();
-    expect(screen.getByText('No logs yet.')).toBeInTheDocument();
+    expect(screen.getByText('Use Docker')).toBeInTheDocument();
     expect(
       screen.queryByText('Startup failed before codex-docker spawned')
     ).not.toBeInTheDocument();

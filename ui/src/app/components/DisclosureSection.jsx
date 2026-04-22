@@ -23,7 +23,7 @@ function DisclosureSection({
         onClick={() => setIsOpen((open) => !open)}
         aria-expanded={isOpen}
       >
-        <span>{title}</span>
+        <span className="disclosure-title">{title}</span>
         {meta ? <span className="disclosure-meta">{meta}</span> : null}
       </button>
       <Box className="disclosure-body" hidden={!isOpen}>

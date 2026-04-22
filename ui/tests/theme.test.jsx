@@ -7,9 +7,9 @@ describe('theme', () => {
     const dark = createAppTheme('dark');
 
     expect(light.palette.mode).toBe('light');
-    expect(light.palette.primary.main).toBe('#1d6b57');
+    expect(light.palette.primary.main).toBe('#2563eb');
     expect(dark.palette.mode).toBe('dark');
-    expect(dark.palette.background.default).toBe('#0f120f');
-    expect(light.shape.borderRadius).toBe(20);
+    expect(dark.palette.background.default).toBe('#0d131c');
+    expect(light.shape.borderRadius).toBe(12);
   });
 });

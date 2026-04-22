@@ -3,7 +3,7 @@ import { createMockState } from '../src/mock/mockData.js';
 
 describe('mock data', () => {
   it('embeds self-contained urls for seeded artifacts', () => {
-    const artifacts = createMockState().taskDetails['task-1'].runLogs[0].artifacts;
+    const artifacts = createMockState().taskDetails['task-4'].runLogs[0].artifacts;
 
     expect(artifacts).toEqual(
       expect.arrayContaining([

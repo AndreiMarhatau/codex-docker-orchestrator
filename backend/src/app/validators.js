@@ -45,6 +45,23 @@ function normalizeAttachmentUploadsInput(fileUploads) {
   });
 }
 
+function normalizeAttachmentNamesInput(names, fieldName = 'attachmentNames') {
+  if (names === undefined) {
+    return null;
+  }
+  if (!Array.isArray(names)) {
+    throw new Error(`${fieldName} must be an array`);
+  }
+  const normalized = names.map((entry, index) => {
+    const value = typeof entry === 'string' ? entry.trim() : '';
+    if (!value) {
+      throw new Error(`${fieldName}[${index}] must be a non-empty string`);
+    }
+    return value;
+  });
+  return normalized;
+}
+
 function normalizeEnvVarsInput(envVars) {
   if (envVars === undefined) {
     return null;
@@ -88,6 +105,7 @@ function normalizeEnvVarsInput(envVars) {
 
 module.exports = {
   normalizeAttachmentUploadsInput,
+  normalizeAttachmentNamesInput,
   normalizeContextReposInput,
   normalizeEnvVarsInput
 };

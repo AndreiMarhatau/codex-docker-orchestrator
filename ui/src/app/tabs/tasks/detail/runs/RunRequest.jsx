@@ -4,11 +4,10 @@ function RunRequest({ run }) {
   const prompt = typeof run.prompt === 'string' && run.prompt.trim() ? run.prompt : 'unknown';
 
   return (
-    <Box className="run-section-card run-section-card--request run-step">
-      <Typography className="run-request-text" component="div">
-        <span className="run-request-highlight-shell">
-          <span className="run-request-highlight">{prompt}</span>
-        </span>
+    <Box className="run-message run-message--user">
+      <Typography className="run-message-author">You</Typography>
+      <Typography className="run-message-text" component="div">
+        {prompt}
       </Typography>
     </Box>
   );

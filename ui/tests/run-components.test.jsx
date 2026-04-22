@@ -57,9 +57,10 @@ describe('run detail components', () => {
     render(<TaskRuns tasksState={tasksState} />);
 
     expect(screen.getByText('Runs')).toBeInTheDocument();
-    expect(screen.getByText('2 runs')).toBeInTheDocument();
-    expect(screen.getByText('run-1')).toBeInTheDocument();
-    expect(screen.getByText('run-2')).toBeInTheDocument();
+    expect(screen.getByText('Run #1')).toBeInTheDocument();
+    expect(screen.getByText('Run #2')).toBeInTheDocument();
+    expect(screen.getByText('First request')).toBeInTheDocument();
+    expect(screen.getByText('Second request')).toBeInTheDocument();
   });
 
   it('renders inline agent messages and expandable action groups', async () => {
@@ -84,9 +85,10 @@ describe('run detail components', () => {
     expect(screen.getByText('Agent update')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '2 actions' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '2 actions' }));
-    expect(screen.getByText('npm test · Updated task detail layout')).toBeInTheDocument();
-    expect(screen.getByText('Command')).toBeInTheDocument();
-    expect(screen.getByText('File edit')).toBeInTheDocument();
+    expect(screen.getByText('npm test')).toBeInTheDocument();
+    expect(screen.getByText('Updated task detail layout')).toBeInTheDocument();
+    expect(screen.getByText('1. Command')).toBeInTheDocument();
+    expect(screen.getByText('2. File edit')).toBeInTheDocument();
   });
 
   it('renders empty and populated raw event logs', async () => {

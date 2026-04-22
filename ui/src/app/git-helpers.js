@@ -23,7 +23,7 @@ function getGitStatusDisplay(gitStatus) {
     return {
       label: 'Uncommitted',
       icon: EditNoteOutlinedIcon,
-      color: 'warning',
+      color: 'info',
       tone: 'dirty',
       tooltip: `Worktree has uncommitted changes. ${dirtyNote}`
     };
@@ -39,9 +39,9 @@ function getGitStatusDisplay(gitStatus) {
   }
   if (gitStatus.pushed === false) {
     return {
-      label: 'Needs push',
+      label: 'Committed',
       icon: CloudUploadOutlinedIcon,
-      color: 'warning',
+      color: 'secondary',
       tone: 'unpushed',
       tooltip: `Local commits not on origin. ${dirtyNote}`
     };

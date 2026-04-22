@@ -7,6 +7,10 @@ import { encodeArtifactPath, isImageArtifact } from '../../../../task-helpers.js
 function RunArtifacts({ run, taskId }) {
   const artifacts = run.artifacts || [];
 
+  if (artifacts.length === 0) {
+    return null;
+  }
+
   const renderArtifactRow = (artifact, showImage) => {
     const artifactUrl =
       artifact.url ||
@@ -35,13 +39,10 @@ function RunArtifacts({ run, taskId }) {
   return (
     <DisclosureSection
       className="run-section-card run-section-card--artifacts agent-inline-summary agent-inline-summary--subtle"
-      title={`Artifacts${artifacts.length ? ` ${artifacts.length}` : ''}`}
+      title={`Artifacts ${artifacts.length}`}
     >
       <Box>
-        {artifacts.length === 0 && (
-          <Typography color="text.secondary">No artifacts for this run.</Typography>
-        )}
-        {artifacts.length > 0 && imageArtifacts.length > 0 && fileArtifacts.length > 0 && (
+        {imageArtifacts.length > 0 && fileArtifacts.length > 0 && (
           <Stack spacing={2}>
             <Box>
               <Typography variant="subtitle2">Images</Typography>
@@ -55,7 +56,7 @@ function RunArtifacts({ run, taskId }) {
             </Box>
           </Stack>
         )}
-        {artifacts.length > 0 && !(imageArtifacts.length > 0 && fileArtifacts.length > 0) && (
+        {!(imageArtifacts.length > 0 && fileArtifacts.length > 0) && (
           <Box className="artifact-list">
             {artifacts.map((artifact) => renderArtifactRow(artifact, isImageArtifact(artifact.path)))}
           </Box>

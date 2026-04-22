@@ -7,41 +7,45 @@ import { exerciseAccountsTab, exerciseEnvironmentsTab } from './app-integration-
 import mockApi from './helpers/mock-api.js';
 
 async function configureNewTask(user) {
-  expect(await screen.findByText('3 total')).toBeInTheDocument();
+  expect(await screen.findByLabelText('Environment filter')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'New task' }));
-  const createDialog = await screen.findByRole('dialog', { name: 'New task' });
+  const createDialog = await screen.findByRole('dialog');
+  expect(within(createDialog).getByText('Create New Task')).toBeInTheDocument();
 
   const primaryEnvSelect = within(createDialog).getAllByLabelText('Environment')[0];
   await user.click(primaryEnvSelect);
   await user.click(await screen.findByRole('option', { name: 'openai/codex' }));
-  await user.type(within(createDialog).getByLabelText('Task prompt'), 'Refactor UI');
+  await user.type(within(createDialog).getByLabelText('Prompt'), 'Refactor UI');
 
-  await user.click(within(createDialog).getByLabelText('Advanced task settings'));
-  const modelSelect = within(createDialog).getByLabelText('Model');
+  const modelSelect = within(createDialog).getByLabelText('Model (optional)');
   await user.click(modelSelect);
   await user.click(await screen.findByRole('option', { name: 'gpt-5.2' }));
 
-  const reasoningSelect = within(createDialog).getByLabelText('Reasoning effort');
+  const reasoningSelect = within(createDialog).getByLabelText('Effort (optional)');
   await user.click(reasoningSelect);
   await user.click(await screen.findByRole('option', { name: 'high' }));
 
   await user.click(modelSelect);
   await user.click(await screen.findByRole('option', { name: 'Custom model...' }));
   await user.type(within(createDialog).getByLabelText('Custom model'), 'gpt-custom');
-  await user.type(within(createDialog).getByLabelText('Custom reasoning effort'), 'xhigh');
+  const customEffortInput = within(createDialog).getByLabelText('Effort (optional)');
+  await user.clear(customEffortInput);
+  await user.type(customEffortInput, 'xhigh');
 
-  await user.click(within(createDialog).getByLabelText('Use host Docker socket'));
+  await user.click(within(createDialog).getByLabelText('Enable Docker'));
 
   const envSelect = within(createDialog).getAllByLabelText('Environment')[0];
   await user.click(envSelect);
   await user.click(await screen.findByRole('option', { name: 'openai/codex' }));
-  expect(within(createDialog).getByLabelText('Branch / tag / ref')).toHaveAttribute('placeholder', 'main');
+  expect(within(createDialog).getByLabelText('Branch / tag / ref').getAttribute('placeholder')).toContain('main');
+
+  await user.click(within(createDialog).getByRole('button', { name: 'Add repository' }));
   expect(within(createDialog).getAllByLabelText('Environment').length).toBeGreaterThanOrEqual(2);
 
   const secondEnvSelect = within(createDialog).getAllByLabelText('Environment')[1];
   await user.click(secondEnvSelect);
   await user.click(await screen.findByRole('option', { name: 'openai/reference' }));
-  await user.click(within(createDialog).getAllByLabelText('Remove reference repo')[1]);
+  await user.click(within(createDialog).getByLabelText('Remove reference repo'));
 
   const fileInput = createDialog.querySelector('input[type="file"]');
   const textFile = new File(['brief'], 'brief.txt', { type: 'text/plain' });
@@ -49,45 +53,43 @@ async function configureNewTask(user) {
 
   expect(screen.getByText(/brief.txt/)).toBeInTheDocument();
 
-  const runButton = within(createDialog).getByRole('button', { name: 'Run task' });
-  await waitFor(() => expect(runButton).toBeEnabled());
-  await user.click(runButton);
-  await waitFor(() =>
-    expect(screen.queryByRole('dialog', { name: 'New task' })).not.toBeInTheDocument()
-  );
+  const createButton = within(createDialog).getByRole('button', { name: 'Create Task' });
+  await waitFor(() => expect(createButton).toBeEnabled());
+  await user.click(createButton);
+  await waitFor(() => expect(screen.queryByText('Create New Task')).not.toBeInTheDocument());
 }
 
 async function exerciseTaskDetail(user) {
-  await user.click(screen.getByLabelText('Stop task task-2'));
-  await user.click(screen.getByLabelText('Remove task task-2'));
-
   await user.click(screen.getByText('feature/refactor'));
   expect(screen.getByText('Hello from agent')).toBeInTheDocument();
   expect(screen.getByText('Second agent update')).toBeInTheDocument();
-  expect(document.querySelectorAll('.agent-message-item')).toHaveLength(2);
-  expect(screen.getAllByText('output.png').length).toBeGreaterThan(0);
-  expect(screen.getAllByText('report.txt').length).toBeGreaterThan(0);
+  await user.click(screen.getByRole('button', { name: /Artifacts 2/ }));
+  expect(screen.queryAllByText('output.png').length).toBeGreaterThan(0);
+  expect(screen.queryAllByText('report.txt').length).toBeGreaterThan(0);
 
-    await user.click(screen.getByRole('tab', { name: 'Diff' }));
+  await user.click(screen.getByRole('tab', { name: 'Diff' }));
   await user.click(await screen.findByRole('button', { name: 'Show diff' }));
   expect(screen.getByText('diff content')).toBeInTheDocument();
 
   await user.click(screen.getByRole('tab', { name: 'Overview' }));
+  await user.click(screen.getByRole('button', { name: 'Ask for changes' }));
+  const resumeDialog = screen.getByRole('dialog');
+  expect(within(resumeDialog).getByText('Ask for Changes')).toBeInTheDocument();
 
-  const modelOverrideSelect = screen.getByLabelText('Model override');
-  await user.click(modelOverrideSelect);
+  const resumeModelSelect = within(resumeDialog).getByLabelText('Model (optional)');
+  await user.click(resumeModelSelect);
   await user.click(await screen.findByRole('option', { name: 'gpt-5.2' }));
-  const resumeEffortSelect = screen.getByLabelText('Reasoning effort');
+  const resumeEffortSelect = within(resumeDialog).getByLabelText('Effort (optional)');
   await user.click(resumeEffortSelect);
   await user.click(await screen.findByRole('option', { name: 'high' }));
 
-  await user.click(modelOverrideSelect);
+  await user.click(resumeModelSelect);
   await user.click(await screen.findByRole('option', { name: 'Custom model...' }));
-  await user.type(screen.getByLabelText('Custom model'), 'resume-model');
-  await user.type(screen.getByLabelText('Custom reasoning effort'), 'low');
+  await user.type(within(resumeDialog).getByLabelText('Custom model'), 'resume-model');
+  const customResumeEffortInput = within(resumeDialog).getByLabelText('Effort (optional)');
+  await user.clear(customResumeEffortInput);
+  await user.type(customResumeEffortInput, 'low');
 
-  await user.click(screen.getByRole('button', { name: 'Ask for changes' }));
-  const resumeDialog = screen.getByRole('dialog', { name: 'Ask for changes' });
   const resumePromptInput = within(resumeDialog).getByRole('textbox', {
     name: 'Continuation prompt'
   });
@@ -95,35 +97,26 @@ async function exerciseTaskDetail(user) {
     target: { value: 'Continue with more detail.' }
   });
   expect(resumePromptInput).toHaveValue('Continue with more detail.');
-  await user.click(within(resumeDialog).getByLabelText('Additional settings'));
-  const resumeRefInputs = screen.getAllByLabelText('Branch / tag / ref');
-  await user.clear(resumeRefInputs[0]);
-  await user.type(resumeRefInputs[0], 'release');
+  const resumeRefInput = within(resumeDialog).getByLabelText('Branch / tag / ref');
+  await user.clear(resumeRefInput);
+  await user.type(resumeRefInput, 'release');
   const resumeFileInput = resumeDialog.querySelector('input[type="file"]');
   const resumeFile = new File(['notes'], 'notes.txt', { type: 'text/plain' });
   await user.upload(resumeFileInput, [resumeFile]);
-  await user.click(screen.getByLabelText('Use host Docker socket'));
-  await user.click(screen.getByLabelText('Close settings'));
-  await user.click(within(resumeDialog).getByRole('button', { name: /requirements\.txt/i }));
-  const continueButton = within(resumeDialog).getByRole('button', { name: 'Continue task' });
+  await user.click(within(resumeDialog).getByLabelText('Enable Docker'));
+  const existingAttachment = within(resumeDialog).getByText('requirements.txt').closest('.task-compose-file-item');
+  await user.click(within(existingAttachment).getByRole('button', { name: 'Remove' }));
+  const continueButton = within(resumeDialog).getByRole('button', { name: 'Continue Task' });
   await waitFor(() => expect(continueButton).toBeEnabled());
   await user.click(continueButton);
-  const openResumeDialog = screen.queryByRole('dialog', { name: 'Ask for changes' });
-  if (openResumeDialog) {
-    const cancelButton = within(openResumeDialog).getByRole('button', { name: 'Cancel' });
-    await waitFor(() => expect(cancelButton).toBeEnabled());
-    await user.click(cancelButton);
-  }
-  await waitFor(() =>
-    expect(screen.queryByRole('dialog', { name: 'Ask for changes' })).not.toBeInTheDocument()
-  );
+  await waitFor(() => expect(screen.queryByText('Ask for Changes')).not.toBeInTheDocument());
   await user.click(screen.getByRole('button', { name: 'Push' }));
   await user.click(screen.getByLabelText('Back to tasks'));
   await user.click(screen.getByText('feature/preflight'));
-  await user.click(screen.getByText('Task context'));
-  expect(screen.getAllByText('Task files').length).toBeGreaterThan(0);
+  await user.click(screen.getByRole('button', { name: /Task context/ }));
+  await user.click(screen.getByRole('button', { name: /Task files 1/ }));
   expect(screen.getByText('brief.md')).toBeInTheDocument();
-  expect(screen.getAllByText('Reference repos').length).toBeGreaterThan(0);
+  await user.click(screen.getByRole('button', { name: /Reference repos 1/ }));
   expect(screen.getByText('openai/reference')).toBeInTheDocument();
   await user.click(screen.getByLabelText('Back to tasks'));
   const removeTaskButtons = screen.getAllByLabelText(/Remove task/);
@@ -134,6 +127,8 @@ it(
   'renders the orchestrator sections and task details',
   async () => {
     let envsState = envs.map((env) => ({ ...env }));
+    let nextUploadId = 1;
+    let resumeRequestBody = null;
     let accountState = {
       activeAccountId: accounts.activeAccountId,
       accounts: accounts.accounts.map((account) => ({ ...account }))
@@ -182,20 +177,24 @@ it(
       '/api/envs': () => envsState,
       '/api/tasks': tasks,
       '/api/accounts': () => accountState,
-      'POST /api/uploads/files': {
-        uploads: [
-          {
-            path: '/tmp/brief.txt',
-            originalName: 'brief.txt',
-            size: 128,
-            mimeType: 'text/plain'
-          }
-        ]
+      'POST /api/uploads/files': ({ options }) => {
+        const uploads = [];
+        for (const [, value] of options.body.entries()) {
+          uploads.push({
+            path: `/tmp/upload-${nextUploadId}`,
+            originalName: value.name,
+            size: value.size,
+            mimeType: value.type
+          });
+          nextUploadId += 1;
+        }
+        return { uploads };
       },
       'POST /api/tasks': {},
-      'POST /api/tasks/task-1/attachments': { attachments: [] },
-      'DELETE /api/tasks/task-1/attachments': { attachments: [] },
-      'POST /api/tasks/task-1/resume': {},
+      'POST /api/tasks/task-1/resume': ({ body }) => {
+        resumeRequestBody = body;
+        return {};
+      },
       'POST /api/tasks/task-1/push': {},
       'POST /api/tasks/task-2/stop': {},
       'DELETE /api/tasks/task-2': {},
@@ -297,6 +296,9 @@ it(
 
     await configureNewTask(user);
     await exerciseTaskDetail(user);
+    expect(resumeRequestBody.attachmentRemovals).toEqual(['requirements.txt']);
+    expect(resumeRequestBody.fileUploads).toHaveLength(1);
+    expect(resumeRequestBody.fileUploads[0].originalName).toBe('notes.txt');
     await exerciseEnvironmentsTab(user);
     await exerciseAccountsTab(user);
 

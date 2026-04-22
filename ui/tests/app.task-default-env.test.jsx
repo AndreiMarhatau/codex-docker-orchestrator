@@ -61,10 +61,11 @@ it(
       expect(screen.queryByText('Orchestrator locked')).not.toBeInTheDocument()
     );
 
-    expect(await screen.findByText('2 total')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Environment filter')).toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: 'New task' }));
 
-    const createDialog = await screen.findByRole('dialog', { name: 'New task' });
+    const createDialog = await screen.findByRole('dialog');
+    expect(within(createDialog).getByText('Create New Task')).toBeInTheDocument();
     expect(within(createDialog).getAllByLabelText('Environment')[0]).toHaveTextContent('openai/agents');
   },
   15000

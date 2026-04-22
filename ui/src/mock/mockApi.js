@@ -353,6 +353,21 @@ function handleApiRequest(state, url, method, body) {
     if (!detail) {
       return { status: 404, text: 'Task not found' };
     }
+    const attachmentRemovals = Array.isArray(body?.attachmentRemovals)
+      ? new Set(body.attachmentRemovals)
+      : new Set();
+    const retainedAttachments = Array.isArray(detail.attachments)
+      ? detail.attachments.filter((file) => !attachmentRemovals.has(file.name))
+      : [];
+    const uploadedAttachments = Array.isArray(body?.fileUploads)
+      ? body.fileUploads.map((file, index) => ({
+          name: file.originalName || `resume-upload-${index + 1}`,
+          originalName: file.originalName || `resume-upload-${index + 1}`,
+          path: file.path || `/tmp/mock-uploads/resume-${index + 1}`,
+          size: file.size || 0
+        }))
+      : [];
+    detail.attachments = [...retainedAttachments, ...uploadedAttachments];
     detail.status = 'completed';
     detail.runLogs.push({
       runId: `run-${taskId}-resume`,

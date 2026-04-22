@@ -6,11 +6,7 @@ import {
   createHandlePushTask,
   createHandleStopTask
 } from './task-action-ops.js';
-import {
-  addTaskAttachments,
-  removeTaskAttachments,
-  uploadTaskFiles
-} from './task-upload-helpers.js';
+import { uploadTaskFiles } from './task-upload-helpers.js';
 
 function buildContextRepos(contextRepos) {
   return (contextRepos || [])
@@ -106,23 +102,19 @@ function createHandleResumeTask({
     setError('');
     setLoading(true);
     try {
-      if (resumeAttachmentRemovals.length > 0) {
-        await removeTaskAttachments(selectedTaskId, resumeAttachmentRemovals);
-      }
-      if (resumeFiles.taskFiles.length > 0) {
-        await addTaskAttachments(
-          selectedTaskId,
-          resumeFiles.taskFiles,
-          resumeFiles.setTaskFileUploading,
-          resumeFiles.setTaskFileUploadProgress
-        );
-      }
+      const fileUploads = await uploadTaskFiles(
+        resumeFiles.taskFiles,
+        resumeFiles.setTaskFileUploading,
+        resumeFiles.setTaskFileUploadProgress
+      );
       const modelValue = resolveModelValue(resumeConfig.modelChoice, resumeConfig.customModel);
       const reasoningEffortValue = resolveReasoningEffortValue(resumeConfig);
       const contextRepos = buildContextRepos(resumeContextRepos);
       await apiRequest(`/api/tasks/${selectedTaskId}/resume`, {
         method: 'POST',
         body: JSON.stringify({
+          attachmentRemovals: resumeAttachmentRemovals.length > 0 ? resumeAttachmentRemovals : undefined,
+          fileUploads: fileUploads.length > 0 ? fileUploads : undefined,
           prompt: resumePrompt,
           model: modelValue || undefined,
           reasoningEffort: reasoningEffortValue || undefined,
@@ -142,6 +134,11 @@ function createHandleResumeTask({
       return true;
     } catch (err) {
       setError(err.message);
+      try {
+        await refreshTaskDetail(selectedTaskId);
+      } catch (_error) {
+        // Keep the original submit error visible even if the refresh also fails.
+      }
       return false;
     } finally {
       setLoading(false);

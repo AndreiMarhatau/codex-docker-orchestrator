@@ -5,6 +5,7 @@ import { CssBaseline, ThemeProvider, useMediaQuery } from '@mui/material';
 import App from './App.jsx';
 import createAppTheme from './theme.js';
 import './styles.css';
+import './redesign.css';
 
 const normalizedMockDataFlag = String(import.meta.env.VITE_ENABLE_MOCK_DATA || '').trim().toLowerCase();
 const normalizedLegacyMockFlag = String(import.meta.env.VITE_MOCK_API || '').trim().toLowerCase();

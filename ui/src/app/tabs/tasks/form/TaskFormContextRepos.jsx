@@ -1,65 +1,60 @@
-import { IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { Button, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { emptyContextRepo } from '../../../constants.js';
 import { formatRepoDisplay } from '../../../repo-helpers.js';
 
 function TaskFormContextRepos({ envs, formState, loading }) {
   const canAddContextRepo = formState.usedContextEnvIds.length < envs.length;
-  const displayedContextRepos = [...formState.taskForm.contextRepos];
-  const shouldShowEmptyContextRepo =
-    canAddContextRepo &&
-    (displayedContextRepos.length === 0 ||
-      Boolean(displayedContextRepos[displayedContextRepos.length - 1].envId));
-  if (shouldShowEmptyContextRepo) {
-    displayedContextRepos.push(emptyContextRepo);
-  }
-
-  function handleContextEnvChange(index, event) {
-    const nextEnvId = event.target.value;
-    formState.handleContextRepoChange(index, 'envId', nextEnvId);
-  }
+  const contextRepos = formState.taskForm.contextRepos;
 
   return (
-    <>
-      <Typography variant="subtitle2">Reference repos (read-only)</Typography>
-      <Stack spacing={1}>
-        <Typography color="text.secondary">Attach existing environments as read-only context.</Typography>
-        {!formState.taskForm.contextRepos.length && displayedContextRepos.length === 0 && (
-          <Typography color="text.secondary">No reference repos attached.</Typography>
-        )}
-        {displayedContextRepos.map((entry, index) => {
-          const selectedContextEnv = envs.find((env) => env.envId === entry.envId);
-          const isPlaceholder = !entry.envId && index >= formState.taskForm.contextRepos.length;
-          const branchDefault = (selectedContextEnv?.defaultBranch || 'main').trim();
-          return (
-            <Stack
-              key={`context-repo-${index}`}
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={1}
-              alignItems="center"
+    <Stack spacing={1.1}>
+      {contextRepos.length === 0 && (
+        <BoxPlaceholder
+          label="No additional repositories"
+          action={canAddContextRepo ? (
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<AddOutlinedIcon fontSize="small" />}
+              onClick={formState.handleAddContextRepo}
+              disabled={loading}
             >
-              <TextField
-                select
-                size="small"
-                label="Environment"
-                value={entry.envId}
-                onChange={(event) => handleContextEnvChange(index, event)}
-                disabled={loading}
-                sx={{ minWidth: 220, flex: 1 }}
-              >
-                {envs.map((env) => (
-                  <MenuItem
-                    key={env.envId}
-                    value={env.envId}
-                    disabled={
-                      formState.usedContextEnvIds.includes(env.envId) && env.envId !== entry.envId
-                    }
-                  >
-                    {formatRepoDisplay(env.repoUrl) || env.repoUrl}
-                  </MenuItem>
-                ))}
-              </TextField>
-              {entry.envId && (
+              Add repository
+            </Button>
+          ) : null}
+        />
+      )}
+
+      {contextRepos.map((entry, index) => {
+        const selectedContextEnv = envs.find((env) => env.envId === entry.envId);
+        const branchDefault = (selectedContextEnv?.defaultBranch || 'main').trim();
+
+        return (
+          <Stack key={`context-repo-${index}`} spacing={1.1} className="task-compose-nested-panel">
+            <Stack direction="row" spacing={1} alignItems="flex-start">
+              <Stack spacing={1} sx={{ flex: 1 }}>
+                <TextField
+                  select
+                  size="small"
+                  label="Environment"
+                  value={entry.envId}
+                  onChange={(event) => formState.handleContextRepoChange(index, 'envId', event.target.value)}
+                  disabled={loading}
+                  className="task-compose-field"
+                >
+                  {envs.map((env) => (
+                    <MenuItem
+                      key={env.envId}
+                      value={env.envId}
+                      disabled={
+                        formState.usedContextEnvIds.includes(env.envId) && env.envId !== entry.envId
+                      }
+                    >
+                      {formatRepoDisplay(env.repoUrl) || env.repoUrl}
+                    </MenuItem>
+                  ))}
+                </TextField>
                 <TextField
                   size="small"
                   label="Branch / tag / ref"
@@ -67,30 +62,45 @@ function TaskFormContextRepos({ envs, formState, loading }) {
                   onChange={(event) =>
                     formState.handleContextRepoChange(index, 'ref', event.target.value)
                   }
-                  onBlur={() => {
-                    if (!entry.ref.trim()) {
-                      formState.handleContextRepoChange(index, 'ref', branchDefault);
-                    }
-                  }}
                   placeholder={branchDefault}
-                  sx={{ flex: 1 }}
+                  className="task-compose-field"
                 />
-              )}
-              {!isPlaceholder && (
-                <IconButton
-                  size="small"
-                  onClick={() => formState.handleRemoveContextRepo(index)}
-                  aria-label="Remove reference repo"
-                  disabled={loading}
-                >
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
-              )}
+              </Stack>
+              <IconButton
+                size="small"
+                onClick={() => formState.handleRemoveContextRepo(index)}
+                aria-label="Remove reference repo"
+                disabled={loading}
+              >
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
             </Stack>
-          );
-        })}
-      </Stack>
-    </>
+          </Stack>
+        );
+      })}
+
+      {contextRepos.length > 0 && canAddContextRepo && (
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<AddOutlinedIcon fontSize="small" />}
+          onClick={formState.handleAddContextRepo}
+          disabled={loading}
+          sx={{ alignSelf: 'flex-start' }}
+        >
+          Add repository
+        </Button>
+      )}
+    </Stack>
+  );
+}
+
+function BoxPlaceholder({ action = null, label }) {
+  return (
+    <Stack spacing={1.15} className="task-compose-repo-placeholder">
+      <Typography color="text.secondary">{label}</Typography>
+      {action}
+    </Stack>
   );
 }
 

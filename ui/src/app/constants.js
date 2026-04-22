@@ -52,44 +52,44 @@ const STATUS_CONFIG = {
   running: {
     label: 'Running',
     icon: 'PlayCircleOutlineIcon',
-    fg: '#9a3412',
-    bg: '#ffedd5',
-    border: '#fdba74'
+    fg: '#16a34a',
+    bg: 'rgba(34, 197, 94, 0.12)',
+    border: '#22c55e'
   },
   stopping: {
     label: 'Stopping',
     icon: 'HourglassTopIcon',
-    fg: '#854d0e',
-    bg: '#fef9c3',
-    border: '#fde047'
+    fg: '#ca8a04',
+    bg: 'rgba(245, 158, 11, 0.12)',
+    border: '#f59e0b'
   },
   completed: {
     label: 'Completed',
     icon: 'CheckCircleOutlineIcon',
-    fg: '#166534',
-    bg: '#dcfce7',
-    border: '#86efac'
+    fg: '#16a34a',
+    bg: 'rgba(34, 197, 94, 0.12)',
+    border: '#22c55e'
   },
   failed: {
     label: 'Failed',
     icon: 'ErrorOutlineIcon',
-    fg: '#b91c1c',
-    bg: '#fee2e2',
-    border: '#fca5a5'
+    fg: '#dc2626',
+    bg: 'rgba(239, 68, 68, 0.12)',
+    border: '#ef4444'
   },
   stopped: {
     label: 'Stopped',
     icon: 'PauseCircleOutlineIcon',
-    fg: '#374151',
-    bg: '#e5e7eb',
-    border: '#d1d5db'
+    fg: '#6b7280',
+    bg: 'rgba(100, 116, 139, 0.12)',
+    border: '#94a3b8'
   },
   unknown: {
     label: 'Unknown',
     icon: 'HelpOutlineIcon',
-    fg: '#475569',
-    bg: '#e2e8f0',
-    border: '#cbd5f5'
+    fg: '#64748b',
+    bg: 'rgba(100, 116, 139, 0.12)',
+    border: '#94a3b8'
   }
 };
 

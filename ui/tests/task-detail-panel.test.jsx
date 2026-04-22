@@ -12,6 +12,11 @@ vi.mock('../src/app/tabs/tasks/detail/TaskDetailHeader.jsx', () => ({
   default: () => <div>task header</div>
 }));
 
+vi.mock('../src/app/tabs/tasks/detail/TaskDetailSummaryCard.jsx', () => ({
+  __esModule: true,
+  default: () => <div>task summary</div>
+}));
+
 vi.mock('../src/app/tabs/tasks/detail/TaskDiff.jsx', () => ({
   __esModule: true,
   default: () => <div>task diff</div>
@@ -102,7 +107,10 @@ describe('TaskDetailPanel', () => {
     );
 
     expect(screen.getByText('task diff')).toBeInTheDocument();
-    expect(screen.queryByText('task header')).not.toBeInTheDocument();
+    expect(screen.getByText('task header')).toBeInTheDocument();
+    expect(screen.getByText('task summary')).toBeInTheDocument();
+    expect(screen.queryByText('run overrides')).not.toBeInTheDocument();
+    expect(screen.queryByText('run logs')).not.toBeInTheDocument();
   });
 
   it('starts running tasks at the live tail and stops auto-follow after manual scroll away', async () => {
@@ -170,5 +178,18 @@ describe('TaskDetailPanel', () => {
     );
 
     await waitFor(() => expect(metrics.scrollTop).toBe(900));
+  });
+
+  it('supports keyboard navigation between detail tabs', async () => {
+    render(
+      <TaskDetailPanel
+        data={{ envs: [], loading: false }}
+        tasksState={createTasksState()}
+      />
+    );
+
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Overview' }), { key: 'ArrowRight' });
+
+    await waitFor(() => expect(screen.getByText('task diff')).toBeInTheDocument());
   });
 });

@@ -1,15 +1,5 @@
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Box,
-  Button,
-  Chip,
-  Stack,
-  Typography
-} from '@mui/material';
+import { Box, Stack, Typography } from '@mui/material';
 import AttachFileOutlinedIcon from '@mui/icons-material/AttachFileOutlined';
-import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined';
 import UploadProgress from '../../../components/UploadProgress.jsx';
 import { MAX_TASK_FILES } from '../../../constants.js';
 import { formatBytes } from '../../../formatters.js';
@@ -17,176 +7,114 @@ import TaskFormBasics from './TaskFormBasics.jsx';
 import TaskFormContextRepos from './TaskFormContextRepos.jsx';
 import TaskFormModel from './TaskFormModel.jsx';
 
-const tagBaseSx = {
-  height: 24,
-  fontWeight: 600,
-  borderRadius: '8px',
-  '.MuiChip-label': {
-    px: 1
-  },
-  '.MuiChip-deleteIcon': {
-    color: 'inherit',
-    opacity: 0.92
-  },
-  '.MuiChip-deleteIcon:hover': {
-    color: 'inherit',
-    opacity: 1
-  }
-};
-
-function FileTags({ files }) {
+function TaskFileList({ files }) {
   if (files.taskFiles.length === 0) {
     return null;
   }
 
   return (
-    <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+    <Stack spacing={0.85} className="task-compose-file-list">
       {files.taskFiles.map((file, index) => (
-        <Chip
-          key={`${file.name}-${index}`}
-          label={`${file.name} (${formatBytes(file.size)})`}
-          size="small"
-          onDelete={() => files.handleRemoveTaskFile(index)}
-          sx={{ ...tagBaseSx, bgcolor: '#e5e7eb', color: '#111827' }}
-        />
+        <Box key={`${file.name}-${index}`} className="task-compose-file-item">
+          <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center">
+            <Stack spacing={0.15} sx={{ minWidth: 0 }}>
+              <Typography className="task-compose-file-name">{file.name}</Typography>
+              <Typography className="task-compose-helper">{formatBytes(file.size)}</Typography>
+            </Stack>
+            <button
+              type="button"
+              className="task-compose-link-button"
+              onClick={() => files.handleRemoveTaskFile(index)}
+            >
+              Remove
+            </button>
+          </Stack>
+        </Box>
       ))}
     </Stack>
   );
 }
 
-function AdvancedSummary({ formState, hasAdvancedSettings, modelValue, reasoningEffortValue }) {
-  const contextCount = formState.taskForm.contextRepos.filter((repo) => repo.envId).length;
+function TaskCreateBody({ envs, files, formState, loading, selectedEnv }) {
+  const dropzoneDisabled =
+    loading || files.taskFileUploading || files.taskFiles.length >= MAX_TASK_FILES;
+
+  function handleDropzoneKeyDown(event) {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+    event.preventDefault();
+    files.taskFileInputRef.current?.click();
+  }
+
+  function handleDropzoneDrop(event) {
+    event.preventDefault();
+    if (dropzoneDisabled) {
+      return;
+    }
+    files.handleTaskFilesDropped(event.dataTransfer?.files);
+  }
 
   return (
-    <Stack
-      direction={{ xs: 'column', sm: 'row' }}
-      spacing={1.25}
-      justifyContent="space-between"
-      alignItems={{ xs: 'flex-start', sm: 'center' }}
-      sx={{ width: '100%', pr: 1 }}
-    >
-      <Stack spacing={0.35}>
-        <Typography variant="subtitle2">Advanced task settings</Typography>
-        <Typography color="text.secondary" variant="body2">
-          Model, reasoning effort, Docker access, and read-only reference repos.
-        </Typography>
-      </Stack>
-      {hasAdvancedSettings && (
-        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-          {modelValue && <Chip size="small" label={modelValue} variant="outlined" />}
-          {reasoningEffortValue && (
-            <Chip size="small" label={`effort ${reasoningEffortValue}`} variant="outlined" />
-          )}
-          {formState.taskForm.useHostDockerSocket && (
-            <Chip size="small" label="docker enabled" variant="outlined" />
-          )}
-          {contextCount > 0 && (
-            <Chip size="small" label={`${contextCount} refs`} variant="outlined" />
-          )}
-        </Stack>
-      )}
-    </Stack>
-  );
-}
-
-function TaskCreateBody(props) {
-  const {
-    envs,
-    files,
-    formState,
-    hasAdvancedSettings,
-    loading,
-    modelValue,
-    selectedEnv,
-    reasoningEffortValue,
-    setShowAdvancedSettings,
-    showAdvancedSettings
-  } = props;
-
-  return (
-    <Stack spacing={2.25} sx={{ mt: 0.5 }}>
-      <Stack spacing={1}>
-        <Typography variant="subtitle2">Primary repo</Typography>
-        <Typography color="text.secondary" variant="body2">
-          Pick the working environment, confirm the target ref, then write the task request.
-        </Typography>
+    <Box className="task-compose-grid">
+      <Stack spacing={2.25} className="task-compose-column">
         <TaskFormBasics
           envs={envs}
           selectedEnv={selectedEnv}
           setTaskForm={formState.setTaskForm}
           taskForm={formState.taskForm}
         />
-      </Stack>
 
-      <Box className="subpanel-card">
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={1.25}
-          justifyContent="space-between"
-          alignItems={{ xs: 'flex-start', sm: 'center' }}
-        >
-          <Stack spacing={0.35}>
-            <Typography variant="subtitle2">Attachments</Typography>
-            <Typography color="text.secondary" variant="body2">
-              Add briefs, screenshots, or notes so the task starts with the right context.
-            </Typography>
-          </Stack>
-          <Button
-            component="label"
-            size="small"
-            variant="outlined"
-            startIcon={<AttachFileOutlinedIcon />}
-            disabled={loading || files.taskFileUploading || files.taskFiles.length >= MAX_TASK_FILES}
+        <Box className="task-compose-section">
+          <Typography className="task-compose-label">Attach files (optional)</Typography>
+          <label
+            className="task-compose-dropzone"
+            role="button"
+            tabIndex={dropzoneDisabled ? -1 : 0}
+            aria-disabled={dropzoneDisabled}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={handleDropzoneDrop}
+            onKeyDown={handleDropzoneKeyDown}
           >
-            Add attachments
             <input
               ref={files.taskFileInputRef}
               type="file"
               hidden
               multiple
               onChange={files.handleTaskFilesSelected}
+              disabled={dropzoneDisabled}
             />
-          </Button>
-        </Stack>
-        <Stack spacing={1.25} sx={{ mt: 1.5 }}>
+            <AttachFileOutlinedIcon fontSize="small" />
+            <span className="task-compose-dropzone-title">Drag &amp; drop files here</span>
+            <span className="task-compose-dropzone-subtitle">or click to browse</span>
+          </label>
+          <Typography className="task-compose-helper">
+            Max {MAX_TASK_FILES} files • 50 MB per file
+          </Typography>
           {files.taskFileError && <Typography color="error">{files.taskFileError}</Typography>}
           <UploadProgress progress={files.taskFileUploadProgress} />
-          <FileTags files={files} />
-          {files.taskFiles.length === 0 && (
-            <Typography color="text.secondary" variant="body2">
-              Up to {MAX_TASK_FILES} files can be attached to a task.
-            </Typography>
-          )}
-        </Stack>
-      </Box>
+          <TaskFileList files={files} />
+        </Box>
+      </Stack>
 
-      <Accordion
-        expanded={showAdvancedSettings}
-        onChange={(_event, expanded) => setShowAdvancedSettings(expanded)}
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreOutlinedIcon />}
-          aria-label="Advanced task settings"
-        >
-          <AdvancedSummary
-            formState={formState}
-            hasAdvancedSettings={hasAdvancedSettings}
-            modelValue={modelValue}
-            reasoningEffortValue={reasoningEffortValue}
-          />
-        </AccordionSummary>
-        <AccordionDetails>
-          <Stack spacing={2.25}>
-            <TaskFormModel
-              handleTaskModelChoiceChange={formState.handleTaskModelChoiceChange}
-              setTaskForm={formState.setTaskForm}
-              taskForm={formState.taskForm}
-            />
-            <TaskFormContextRepos envs={envs} formState={formState} loading={loading} />
-          </Stack>
-        </AccordionDetails>
-      </Accordion>
-    </Stack>
+      <Stack spacing={2.25} className="task-compose-column">
+        <TaskFormModel
+          handleTaskModelChoiceChange={formState.handleTaskModelChoiceChange}
+          setTaskForm={formState.setTaskForm}
+          taskForm={formState.taskForm}
+        />
+
+        <Box className="task-compose-section">
+          <Typography className="task-compose-label">
+            Additional read-only repositories (optional)
+          </Typography>
+          <Typography className="task-compose-helper task-compose-helper--section">
+            Repositories the agent can read from but cannot modify.
+          </Typography>
+          <TaskFormContextRepos envs={envs} formState={formState} loading={loading} />
+        </Box>
+      </Stack>
+    </Box>
   );
 }
 

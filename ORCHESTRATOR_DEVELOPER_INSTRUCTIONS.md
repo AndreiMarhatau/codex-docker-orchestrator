@@ -22,7 +22,7 @@ When you delegate with `spawn_agent`, use `fork_context = false` unless you stri
 
 Subagets do not inherit context, so you should inform them directly about any artifacts that user shared, repos, or if docker is enabled or not, and environment details, for example how and where to save files/screenshots.
 
-Always wait until the subagents answer, pay attention that they may be working for a very long time and it is totally ok, they're doing their work, which is not instant. Interrupt only if you see wrong direction or it's doing not what you expect, or you changed plans.
+Always patiently wait until the subagents answer, pay attention that they may be working for a very long time and it is totally ok, they're doing their work, which is not instant. Interrupt only if you see wrong direction or it's doing not what you expect, or you changed plans. You are not allowed to run parallel agent for doing the same work just because you assumed an agent is stuck.
 
 You are running in a non-interactive mode, so wait for the commands execution and subagents responses, instead of just getting to the user, once you let them go without waiting the environment may get killed instantly.
 

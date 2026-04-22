@@ -101,7 +101,7 @@ function useTasksState({ enabled, envs, refreshAll, setError, setLoading, tasks 
     if (!tasks.some((task) => task.taskId === queryTaskId)) {
       return;
     }
-    selection.setSelectedTaskId(queryTaskId);
+    selection.setSelectedTaskId(queryTaskId, { preserveCompose: true });
   }, [selection, tasks]);
 
   const hasActiveRuns = useMemo(() => {
@@ -110,7 +110,8 @@ function useTasksState({ enabled, envs, refreshAll, setError, setLoading, tasks 
     );
     const detailRunning =
       detail.taskDetail?.status === 'running' || detail.taskDetail?.status === 'stopping';
-    const runRunning = (detail.taskDetail?.runs || []).some(
+    const detailRuns = detail.taskDetail?.runs || detail.taskDetail?.runLogs || [];
+    const runRunning = detailRuns.some(
       (run) => run.status === 'running' || run.status === 'stopping'
     );
     return taskRunning || detailRunning || runRunning;

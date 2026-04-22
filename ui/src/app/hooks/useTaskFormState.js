@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MODEL_CUSTOM_VALUE, emptyContextRepo, emptyTaskForm } from '../constants.js';
 import { getEffortOptionsForModel } from '../model-helpers.js';
+import { readComposeQuery, writeComposeQuery } from '../query-state.js';
 
 function useTaskFormState({ envs, selectedTaskId, tasks }) {
   const [taskForm, setTaskForm] = useState(emptyTaskForm);
-  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [showTaskFormState, setShowTaskFormState] = useState(() => readComposeQuery() === 'create');
   const wasTaskFormOpen = useRef(false);
 
   const latestTaskEnvId = useMemo(() => {
@@ -24,13 +25,16 @@ function useTaskFormState({ envs, selectedTaskId, tasks }) {
 
   useEffect(() => {
     if (selectedTaskId) {
-      setShowTaskForm(false);
+      setShowTaskFormState(false);
+      if (readComposeQuery() === 'create') {
+        writeComposeQuery('');
+      }
     }
   }, [selectedTaskId]);
 
   useEffect(() => {
-    const isOpening = showTaskForm && !wasTaskFormOpen.current;
-    wasTaskFormOpen.current = showTaskForm;
+    const isOpening = showTaskFormState && !wasTaskFormOpen.current;
+    wasTaskFormOpen.current = showTaskFormState;
     if (!isOpening) {
       return;
     }
@@ -42,7 +46,15 @@ function useTaskFormState({ envs, selectedTaskId, tasks }) {
         ? latestTaskEnvId
         : envs[0].envId;
     setTaskForm((prev) => (prev.envId === defaultEnvId ? prev : { ...prev, envId: defaultEnvId }));
-  }, [envs, latestTaskEnvId, showTaskForm]);
+  }, [envs, latestTaskEnvId, showTaskFormState]);
+
+  function setShowTaskForm(value) {
+    setShowTaskFormState((prev) => {
+      const nextValue = typeof value === 'function' ? Boolean(value(prev)) : Boolean(value);
+      writeComposeQuery(nextValue ? 'create' : '');
+      return nextValue;
+    });
+  }
 
   function handleTaskModelChoiceChange(value) {
     setTaskForm((prev) => {
@@ -112,7 +124,7 @@ function useTaskFormState({ envs, selectedTaskId, tasks }) {
     handleTaskModelChoiceChange,
     setShowTaskForm,
     setTaskForm,
-    showTaskForm,
+    showTaskForm: showTaskFormState,
     taskForm,
     usedContextEnvIds
   };

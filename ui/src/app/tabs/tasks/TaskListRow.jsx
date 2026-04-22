@@ -1,11 +1,11 @@
 import { Box, Button, IconButton, Stack, Typography } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import GitHubIcon from '@mui/icons-material/GitHub';
-import EastOutlinedIcon from '@mui/icons-material/EastOutlined';
 import StopOutlinedIcon from '@mui/icons-material/StopOutlined';
+import { formatDuration } from '../../formatters.js';
 import { formatRepoDisplay } from '../../repo-helpers.js';
+import { getTaskRuntimeMs } from '../../task-helpers.js';
 import { GitDiffStats, GitStatusPill, StatusPill } from './TaskStatusPrimitives.jsx';
-
 const desktopSummarySx = {
   gridColumn: '1 / span 5',
   display: 'grid',
@@ -21,7 +21,6 @@ const desktopSummarySx = {
     borderRadius: '10px'
   }
 };
-
 const mobileSummarySx = {
   flex: 1,
   minWidth: 0,
@@ -34,67 +33,59 @@ const mobileSummarySx = {
   }
 };
 
-function openTask(setSelectedTaskId, taskId) {
-  setSelectedTaskId(taskId);
-}
+function getSummaryButtonProps(setSelectedTaskId, task, loading = false) {
+  const openTask = () => {
+    if (!loading) {
+      setSelectedTaskId(task.taskId);
+    }
+  };
 
-function handleSummaryKeyDown(event, setSelectedTaskId, taskId) {
-  if (event.key !== 'Enter' && event.key !== ' ') {
-    return;
-  }
-  event.preventDefault();
-  openTask(setSelectedTaskId, taskId);
-}
-
-function getSummaryButtonProps(setSelectedTaskId, task) {
   return {
     role: 'button',
-    tabIndex: 0,
+    tabIndex: loading ? -1 : 0,
+    'aria-disabled': loading ? 'true' : undefined,
     'aria-label': `Open task ${task.taskId}`,
-    onClick: () => openTask(setSelectedTaskId, task.taskId),
-    onKeyDown: (event) => handleSummaryKeyDown(event, setSelectedTaskId, task.taskId)
+    onClick: openTask,
+    onKeyDown: (event) => {
+      if (loading || (event.key !== 'Enter' && event.key !== ' ')) {
+        return;
+      }
+      event.preventDefault();
+      openTask();
+    }
   };
 }
 
-function TaskActionButton({ handleStopTask, loading, setSelectedTaskId, task }) {
-  if (task.status === 'running' || task.status === 'stopping') {
-    return (
-      <Button
-        className="task-inline-action"
-        size="small"
-        variant="outlined"
-        startIcon={<StopOutlinedIcon fontSize="small" />}
-        onClick={() => handleStopTask(task.taskId)}
-        disabled={loading}
-      >
-        Stop
-      </Button>
-    );
+function TaskActionButton({ handleStopTask, loading, task }) {
+  if (task.status !== 'running') {
+    return null;
   }
-
   return (
     <Button
       className="task-inline-action"
       size="small"
       variant="outlined"
-      startIcon={<EastOutlinedIcon fontSize="small" />}
-      onClick={() => openTask(setSelectedTaskId, task.taskId)}
+      startIcon={<StopOutlinedIcon fontSize="small" />}
+      onClick={() => handleStopTask(task.taskId)}
       disabled={loading}
     >
-      Open
+      Stop
     </Button>
   );
 }
 
-function TaskRowActions({ handleDeleteTask, handleStopTask, loading, setSelectedTaskId, task }) {
+function TaskRuntimePill({ task, now }) {
+  const runtimeMs = getTaskRuntimeMs(task, now);
+  if (!runtimeMs || (task.status !== 'running' && task.status !== 'stopping')) {
+    return null;
+  }
+  return <span className="task-runtime-pill" aria-label={`Task duration ${formatDuration(runtimeMs)}`}>{formatDuration(runtimeMs)}</span>;
+}
+
+function TaskRowActions({ handleDeleteTask, handleStopTask, loading, task }) {
   return (
     <Stack direction="row" spacing={1} alignItems="center" justifyContent="flex-end">
-      <TaskActionButton
-        handleStopTask={handleStopTask}
-        loading={loading}
-        setSelectedTaskId={setSelectedTaskId}
-        task={task}
-      />
+      <TaskActionButton handleStopTask={handleStopTask} loading={loading} task={task} />
       <IconButton
         className="task-delete-button"
         size="small"
@@ -108,9 +99,9 @@ function TaskRowActions({ handleDeleteTask, handleStopTask, loading, setSelected
   );
 }
 
-function DesktopTaskSummary({ repoLabel, setSelectedTaskId, task }) {
+function DesktopTaskSummary({ loading, now, repoLabel, setSelectedTaskId, task }) {
   return (
-    <Box {...getSummaryButtonProps(setSelectedTaskId, task)} sx={desktopSummarySx}>
+    <Box {...getSummaryButtonProps(setSelectedTaskId, task, loading)} sx={{ ...desktopSummarySx, cursor: loading ? 'default' : desktopSummarySx.cursor }}>
       <Box className="task-table-cell task-table-cell--environment">
         <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
           <GitHubIcon className="task-repo-icon" fontSize="small" />
@@ -123,40 +114,29 @@ function DesktopTaskSummary({ repoLabel, setSelectedTaskId, task }) {
         <Typography className="task-branch-label">{task.branchName}</Typography>
       </Box>
       <Box className="task-table-cell">
-        <StatusPill status={task.status} />
+        <Stack spacing={0.55} alignItems="flex-start"><StatusPill status={task.status} /><TaskRuntimePill task={task} now={now} /></Stack>
       </Box>
-      <Box className="task-table-cell">
-        <GitStatusPill gitStatus={task.gitStatus} />
-      </Box>
-      <Box className="task-table-cell">
-        <GitDiffStats gitStatus={task.gitStatus} />
-      </Box>
+      <Box className="task-table-cell"><GitStatusPill gitStatus={task.gitStatus} /></Box>
+      <Box className="task-table-cell"><GitDiffStats gitStatus={task.gitStatus} /></Box>
     </Box>
   );
 }
 
-function DesktopTaskRow({ handleDeleteTask, handleStopTask, loading, selectedTaskId, setSelectedTaskId, task }) {
+function DesktopTaskRow({ handleDeleteTask, handleStopTask, loading, now, selectedTaskId, setSelectedTaskId, task }) {
   const repoLabel = formatRepoDisplay(task.repoUrl) || task.repoUrl;
-
   return (
     <Box className={`task-table-row${task.taskId === selectedTaskId ? ' is-selected' : ''}`} sx={{ cursor: 'default' }}>
-      <DesktopTaskSummary repoLabel={repoLabel} setSelectedTaskId={setSelectedTaskId} task={task} />
+      <DesktopTaskSummary loading={loading} now={now} repoLabel={repoLabel} setSelectedTaskId={setSelectedTaskId} task={task} />
       <Box className="task-table-cell task-table-cell--actions">
-        <TaskRowActions
-          handleDeleteTask={handleDeleteTask}
-          handleStopTask={handleStopTask}
-          loading={loading}
-          setSelectedTaskId={setSelectedTaskId}
-          task={task}
-        />
+        <TaskRowActions handleDeleteTask={handleDeleteTask} handleStopTask={handleStopTask} loading={loading} task={task} />
       </Box>
     </Box>
   );
 }
 
-function MobileTaskSummary({ repoLabel, setSelectedTaskId, task }) {
+function MobileTaskSummary({ loading, now, repoLabel, setSelectedTaskId, task }) {
   return (
-    <Box {...getSummaryButtonProps(setSelectedTaskId, task)} sx={mobileSummarySx}>
+    <Box {...getSummaryButtonProps(setSelectedTaskId, task, loading)} sx={{ ...mobileSummarySx, cursor: loading ? 'default' : mobileSummarySx.cursor }}>
       <Stack spacing={1.2}>
         <Stack spacing={0.35} sx={{ minWidth: 0 }}>
           <Stack direction="row" spacing={0.8} alignItems="center">
@@ -169,33 +149,21 @@ function MobileTaskSummary({ repoLabel, setSelectedTaskId, task }) {
             {task.branchName}
           </Typography>
         </Stack>
-        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap alignItems="center">
-          <StatusPill status={task.status} />
-          <GitStatusPill gitStatus={task.gitStatus} />
-          <GitDiffStats gitStatus={task.gitStatus} />
-        </Stack>
+        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap alignItems="center"><StatusPill status={task.status} /><TaskRuntimePill task={task} now={now} /><GitStatusPill gitStatus={task.gitStatus} /><GitDiffStats gitStatus={task.gitStatus} /></Stack>
       </Stack>
     </Box>
   );
 }
 
-function MobileTaskCard({ handleDeleteTask, handleStopTask, loading, selectedTaskId, setSelectedTaskId, task }) {
+function MobileTaskCard({ handleDeleteTask, handleStopTask, loading, now, selectedTaskId, setSelectedTaskId, task }) {
   const repoLabel = formatRepoDisplay(task.repoUrl) || task.repoUrl;
-
   return (
     <Box className={`task-mobile-card${task.taskId === selectedTaskId ? ' is-selected' : ''}`} sx={{ cursor: 'default' }}>
       <Stack direction="row" spacing={1.1} justifyContent="space-between" alignItems="flex-start">
-        <MobileTaskSummary repoLabel={repoLabel} setSelectedTaskId={setSelectedTaskId} task={task} />
-        <TaskRowActions
-          handleDeleteTask={handleDeleteTask}
-          handleStopTask={handleStopTask}
-          loading={loading}
-          setSelectedTaskId={setSelectedTaskId}
-          task={task}
-        />
+        <MobileTaskSummary loading={loading} now={now} repoLabel={repoLabel} setSelectedTaskId={setSelectedTaskId} task={task} />
+        <TaskRowActions handleDeleteTask={handleDeleteTask} handleStopTask={handleStopTask} loading={loading} task={task} />
       </Stack>
     </Box>
   );
 }
-
 export { DesktopTaskRow, MobileTaskCard };

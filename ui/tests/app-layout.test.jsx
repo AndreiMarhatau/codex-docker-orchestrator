@@ -92,7 +92,6 @@ describe('AppLayout', () => {
   it('renders mobile navigation and respects disabled task tabs before setup', () => {
     renderLayout({ activeTab: 2, mobile: true, setupReady: false, unlocked: false });
 
-    expect(screen.getByRole('button', { name: 'Menu' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Environments' })).toBeDisabled();
     expect(screen.getByRole('tab', { name: 'Tasks' })).toBeDisabled();
     expect(screen.getByText('auth gate')).toBeInTheDocument();

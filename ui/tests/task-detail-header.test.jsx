@@ -4,11 +4,12 @@ import { render, screen } from './test-utils.jsx';
 import TaskDetailHeader from '../src/app/tabs/tasks/detail/TaskDetailHeader.jsx';
 
 function createTaskDetail(overrides = {}) {
+  const status = overrides.status || 'completed';
   return {
     taskId: 'task-1',
     repoUrl: 'https://github.com/openai/codex.git',
     branchName: 'codex/ui-refresh',
-    status: 'completed',
+    status,
     ref: 'main',
     createdAt: '2024-05-12T22:42:00Z',
     gitStatus: {
@@ -17,12 +18,14 @@ function createTaskDetail(overrides = {}) {
       dirty: true,
       diffStats: { additions: 12, deletions: 4 }
     },
-    runLogs: [],
+    runLogs: status === 'running'
+      ? [{ runId: 'run-1', status: 'running', startedAt: '1970-01-01T00:00:30.000Z' }]
+      : [],
     ...overrides
   };
 }
 
-function renderHeader(taskDetail = createTaskDetail(), { loading = false } = {}) {
+function renderHeader(taskDetail = createTaskDetail(), { loading = false, now = 60_000 } = {}) {
   const handleBackToTasks = vi.fn();
   const handleDeleteTask = vi.fn();
   const handleStopTask = vi.fn();
@@ -30,6 +33,7 @@ function renderHeader(taskDetail = createTaskDetail(), { loading = false } = {})
   render(
     <TaskDetailHeader
       loading={loading}
+      now={now}
       tasksState={{
         actions: { handleDeleteTask, handleStopTask },
         detail: { taskDetail },
@@ -51,6 +55,7 @@ describe('TaskDetailHeader', () => {
     expect(screen.getAllByText('codex/ui-refresh').length).toBeGreaterThan(0);
     expect(screen.getAllByText('openai/codex').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Task duration 0:30')).toBeInTheDocument();
 
     await user.click(screen.getByLabelText('Back to tasks'));
     expect(handleBackToTasks).toHaveBeenCalled();
@@ -92,5 +97,17 @@ describe('TaskDetailHeader', () => {
 
     expect(screen.getByRole('button', { name: 'Stop' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+  });
+
+  it('does not render stop for stopping tasks', () => {
+    renderHeader(
+      createTaskDetail({
+        status: 'stopping',
+        runLogs: [{ runId: 'run-1', status: 'stopping', startedAt: '1970-01-01T00:00:30.000Z' }]
+      })
+    );
+
+    expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Task duration 0:30')).toBeInTheDocument();
   });
 });

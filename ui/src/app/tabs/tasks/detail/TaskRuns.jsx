@@ -19,7 +19,6 @@ function TaskRuns({ tasksState }) {
             now={now}
             run={run}
             runIndex={index}
-            taskId={detail.taskDetail.taskId}
           />
         ))}
         {runLogs.length === 0 && !latestRunFailedBeforeSpawn && (

@@ -1,5 +1,8 @@
 /* eslint-disable max-lines */
 const MOCK_NOW_ISO = '2026-04-17T09:00:00.000Z';
+const MOCK_NOW_MS = Date.parse(MOCK_NOW_ISO);
+const RUNNING_TASK_PRIMARY_STARTED_AT = new Date(MOCK_NOW_MS - 18 * 60 * 1000).toISOString();
+const RUNNING_TASK_SECONDARY_STARTED_AT = new Date(MOCK_NOW_MS - 84 * 60 * 1000).toISOString();
 
 function createDataUrl(mimeType, content) {
   return `data:${mimeType};charset=utf-8,${encodeURIComponent(content)}`;
@@ -67,7 +70,19 @@ const tasks = [
     reasoningEffort: 'high',
     status: 'running',
     createdAt: '2024-05-12T22:42:00Z',
-    runs: [],
+    runs: [
+      {
+        runId: 'run-1',
+        status: 'completed',
+        startedAt: '2024-05-12T22:42:00Z',
+        finishedAt: '2024-05-12T22:44:00Z'
+      },
+      {
+        runId: 'run-2',
+        status: 'running',
+        startedAt: RUNNING_TASK_PRIMARY_STARTED_AT
+      }
+    ],
     threadId: 'thread-1',
     useHostDockerSocket: true,
     gitStatus: {
@@ -147,7 +162,13 @@ const tasks = [
     reasoningEffort: 'medium',
     status: 'running',
     createdAt: '2024-05-12T19:12:00Z',
-    runs: [],
+    runs: [
+      {
+        runId: 'run-5',
+        status: 'running',
+        startedAt: RUNNING_TASK_SECONDARY_STARTED_AT
+      }
+    ],
     threadId: 'thread-5',
     useHostDockerSocket: false,
     gitStatus: {
@@ -277,7 +298,7 @@ const taskDetails = {
         reasoningEffort: 'high',
         prompt: 'Also update the header to use the new brand color.',
         status: 'running',
-        startedAt: '2024-05-12T22:58:00Z',
+        startedAt: RUNNING_TASK_PRIMARY_STARTED_AT,
         entries: [
           {
             id: 'entry-2b',

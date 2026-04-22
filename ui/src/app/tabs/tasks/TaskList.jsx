@@ -9,6 +9,7 @@ function DesktopTaskTable({
   handleDeleteTask,
   handleStopTask,
   loading,
+  now,
   selectedTaskId,
   setSelectedTaskId,
   tasks
@@ -31,6 +32,7 @@ function DesktopTaskTable({
             handleDeleteTask={handleDeleteTask}
             handleStopTask={handleStopTask}
             loading={loading}
+            now={now}
             selectedTaskId={selectedTaskId}
             setSelectedTaskId={setSelectedTaskId}
             task={task}
@@ -45,6 +47,7 @@ function MobileTaskTable({
   handleDeleteTask,
   handleStopTask,
   loading,
+  now,
   selectedTaskId,
   setSelectedTaskId,
   tasks
@@ -71,6 +74,7 @@ function MobileTaskTable({
           handleDeleteTask={handleDeleteTask}
           handleStopTask={handleStopTask}
           loading={loading}
+          now={now}
           selectedTaskId={selectedTaskId}
           setSelectedTaskId={setSelectedTaskId}
           task={task}
@@ -99,6 +103,7 @@ function TaskList({
   data,
   handleDeleteTask,
   handleStopTask,
+  now,
   selectedTaskId,
   setSelectedTaskId,
   visibleTasks
@@ -118,6 +123,7 @@ function TaskList({
           handleDeleteTask={handleDeleteTask}
           handleStopTask={handleStopTask}
           loading={loading}
+          now={now}
           selectedTaskId={selectedTaskId}
           setSelectedTaskId={setSelectedTaskId}
           tasks={visibleTasks}
@@ -127,6 +133,7 @@ function TaskList({
           handleDeleteTask={handleDeleteTask}
           handleStopTask={handleStopTask}
           loading={loading}
+          now={now}
           selectedTaskId={selectedTaskId}
           setSelectedTaskId={setSelectedTaskId}
           tasks={visibleTasks}

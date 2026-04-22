@@ -1,7 +1,4 @@
-import { Box, IconButton, Stack } from '@mui/material';
-import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
-import MenuOutlinedIcon from '@mui/icons-material/MenuOutlined';
-import TerminalOutlinedIcon from '@mui/icons-material/TerminalOutlined';
+import { Box, Stack } from '@mui/material';
 
 const NAV_ITEMS = [
   { label: 'Environments', tab: 0 },
@@ -83,28 +80,18 @@ function DesktopNavigation({ activeTab, handleNavSelect, isNavDisabled }) {
 
   return (
     <Box className="app-nav-desktop">
-      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
-        <Stack direction="row" spacing={2.5} alignItems="center" sx={{ minWidth: 0 }}>
-          <Box className="app-logo-mark" aria-hidden="true">
-            <TerminalOutlinedIcon fontSize="small" />
-          </Box>
-          <Stack direction="row" spacing={0.25} className="app-nav-links" role="tablist">
-            {NAV_ITEMS.map((item) => (
-              <AppNavButton
-                key={item.label}
-                activeTab={activeTab}
-                className="app-nav-link"
-                disabled={isNavDisabled(item)}
-                handleNavKeyDown={handleNavKeyDown}
-                handleNavSelect={handleNavSelect}
-                item={item}
-              />
-            ))}
-          </Stack>
-        </Stack>
-        <IconButton className="app-profile-button" aria-label="Profile" size="small">
-          <AccountCircleOutlinedIcon />
-        </IconButton>
+      <Stack direction="row" spacing={0.25} className="app-nav-links" role="tablist">
+        {NAV_ITEMS.map((item) => (
+          <AppNavButton
+            key={item.label}
+            activeTab={activeTab}
+            className="app-nav-link"
+            disabled={isNavDisabled(item)}
+            handleNavKeyDown={handleNavKeyDown}
+            handleNavSelect={handleNavSelect}
+            item={item}
+          />
+        ))}
       </Stack>
     </Box>
   );
@@ -115,22 +102,6 @@ function MobileNavigation({ activeTab, handleNavSelect, isNavDisabled }) {
 
   return (
     <Box className="app-nav-mobile">
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        className="app-mobile-topbar"
-      >
-        <IconButton className="app-mobile-icon" aria-label="Menu" size="small">
-          <MenuOutlinedIcon fontSize="small" />
-        </IconButton>
-        <Box className="app-logo-mark app-logo-mark--mobile" aria-hidden="true">
-          <TerminalOutlinedIcon fontSize="small" />
-        </Box>
-        <IconButton className="app-profile-button" aria-label="Profile" size="small">
-          <AccountCircleOutlinedIcon />
-        </IconButton>
-      </Stack>
       <Stack direction="row" justifyContent="space-between" className="app-mobile-tabs" role="tablist">
         {NAV_ITEMS.map((item) => (
           <AppNavButton

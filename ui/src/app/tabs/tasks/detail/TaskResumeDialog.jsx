@@ -40,11 +40,12 @@ function TaskResumeDialog({
     <Dialog
       open={open}
       onClose={closeDialog}
-      maxWidth="md"
+      maxWidth={false}
       fullWidth
       fullScreen={fullScreen}
+      scroll="body"
       aria-label="Ask for changes"
-      PaperProps={{ className: 'task-compose-dialog' }}
+      PaperProps={{ className: 'task-compose-dialog task-compose-dialog--resume' }}
     >
       <DialogTitle className="task-compose-dialog-title">
         <span>Ask for Changes</span>

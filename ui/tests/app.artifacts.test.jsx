@@ -66,7 +66,7 @@ it(
 );
 
 it(
-  'renders artifact grid when only one artifact type exists',
+  'does not surface artifacts even when a run includes files',
   async () => {
     const singleTypeTask = {
       taskId: 'task-5',
@@ -120,15 +120,15 @@ it(
     );
 
     await user.click(await screen.findByText('feature/one-type'));
-    await user.click(screen.getByRole('button', { name: 'Artifacts 1' }));
-    expect((await screen.findAllByText('report.txt')).length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: 'Open' })).toBeInTheDocument();
+    expect(await screen.findByText('Artifacts only')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Artifacts 1' })).not.toBeInTheDocument();
+    expect(screen.queryByText('report.txt')).not.toBeInTheDocument();
   },
   15000
 );
 
 it(
-  'prefers inline artifact urls when provided',
+  'does not surface inline artifact previews when a run includes urls',
   async () => {
     const inlineUrl = 'data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20120%2080%22%3E%3Crect%20width%3D%22120%22%20height%3D%2280%22%20fill%3D%22%230f172a%22/%3E%3Ctext%20x%3D%2210%22%20y%3D%2246%22%20fill%3D%22white%22%20font-size%3D%2218%22%3Emock%3C/text%3E%3C/svg%3E';
     const inlineArtifactTask = {
@@ -183,10 +183,9 @@ it(
     );
 
     await user.click(await screen.findByText('feature/inline-artifacts'));
-    await user.click(screen.getByRole('button', { name: 'Artifacts 1' }));
-    const preview = await screen.findByAltText('preview.png');
-    expect(preview).toHaveAttribute('src', inlineUrl);
-    expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute('href', inlineUrl);
+    expect(await screen.findByText('Artifacts only')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Artifacts 1' })).not.toBeInTheDocument();
+    expect(screen.queryByAltText('preview.png')).not.toBeInTheDocument();
   },
   15000
 );

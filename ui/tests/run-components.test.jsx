@@ -59,6 +59,7 @@ describe('run detail components', () => {
     expect(screen.getByText('Runs')).toBeInTheDocument();
     expect(screen.getByText('Run #1')).toBeInTheDocument();
     expect(screen.getByText('Run #2')).toBeInTheDocument();
+    expect(screen.getAllByText('1:00').length).toBeGreaterThan(0);
     expect(screen.getByText('First request')).toBeInTheDocument();
     expect(screen.getByText('Second request')).toBeInTheDocument();
   });

@@ -1,5 +1,6 @@
 const TAB_QUERY_NAMES = ['environments', 'tasks', 'accounts', 'settings'];
 const DETAIL_TAB_QUERY_NAMES = ['overview', 'diff'];
+const COMPOSE_QUERY_NAMES = new Set(['create', 'resume']);
 
 function getWindowUrl() {
   if (typeof window === 'undefined') {
@@ -31,6 +32,12 @@ function readDetailTabQuery() {
   return detailIndex === -1 ? 0 : detailIndex;
 }
 
+function readComposeQuery() {
+  const url = getWindowUrl();
+  const value = (url?.searchParams.get('compose') || '').trim().toLowerCase();
+  return COMPOSE_QUERY_NAMES.has(value) ? value : '';
+}
+
 function replaceQueryParams(updates) {
   const url = getWindowUrl();
   if (!url) {
@@ -54,15 +61,17 @@ function writeTabQuery(activeTab) {
   replaceQueryParams({
     tab: TAB_QUERY_NAMES[activeTab] || TAB_QUERY_NAMES[1],
     taskId: isTasksTab ? undefined : null,
-    detailTab: isTasksTab ? undefined : null
+    detailTab: isTasksTab ? undefined : null,
+    compose: isTasksTab ? undefined : null
   });
 }
 
 function writeTaskIdQuery(taskId, options = {}) {
-  const { clearDetailTab = false } = options;
+  const { clearCompose = false, clearDetailTab = false } = options;
   replaceQueryParams({
     taskId: taskId || null,
-    detailTab: clearDetailTab ? null : undefined
+    detailTab: clearDetailTab ? null : undefined,
+    compose: clearCompose ? null : undefined
   });
 }
 
@@ -72,13 +81,22 @@ function writeDetailTabQuery(activeTab) {
   });
 }
 
+function writeComposeQuery(value) {
+  replaceQueryParams({
+    compose: value || null
+  });
+}
+
 export {
+  COMPOSE_QUERY_NAMES,
   DETAIL_TAB_QUERY_NAMES,
+  readComposeQuery,
   readTabQuery,
   readDetailTabQuery,
   readTaskIdQuery,
   replaceQueryParams,
   TAB_QUERY_NAMES,
+  writeComposeQuery,
   writeDetailTabQuery,
   writeTabQuery,
   writeTaskIdQuery

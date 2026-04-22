@@ -54,6 +54,9 @@ function createInputStyles(theme, inputBackground) {
           borderColor: theme.palette.primary.main,
           boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.15)}`
         }
+      },
+      input: {
+        fontSize: '16px'
       }
     }
   };

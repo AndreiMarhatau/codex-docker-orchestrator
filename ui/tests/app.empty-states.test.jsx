@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from './test-utils.jsx';
+import { fireEvent, render, screen, waitFor, within } from './test-utils.jsx';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App.jsx';
 import { accounts, envs, rateLimits } from './app-fixtures.js';
@@ -29,6 +29,9 @@ it(
     );
 
     expect(await screen.findByText('No tasks yet. Create one to get started.')).toBeInTheDocument();
+
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Tasks' }), { key: 'ArrowRight' });
+    expect(screen.getByRole('tab', { name: 'Accounts' })).toHaveAttribute('aria-selected', 'true');
 
     await user.click(screen.getByRole('tab', { name: 'Environments' }));
     await user.click(screen.getByRole('button', { name: 'New source' }));

@@ -1,21 +1,31 @@
 /* eslint-disable max-lines, max-lines-per-function */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Box,
-  IconButton,
-  Stack,
-  Tab,
-  Tabs,
-  Tooltip,
-  Typography
-} from '@mui/material';
-import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
+import { Box, Typography } from '@mui/material';
 import TaskDetailActions from './detail/TaskDetailActions.jsx';
 import TaskDetailHeader from './detail/TaskDetailHeader.jsx';
+import TaskDetailSummaryCard from './detail/TaskDetailSummaryCard.jsx';
 import TaskDiff from './detail/TaskDiff.jsx';
 import TaskRunOverrides from './detail/TaskRunOverrides.jsx';
 import TaskRuns from './detail/TaskRuns.jsx';
 import { readDetailTabQuery, writeDetailTabQuery } from '../../query-state.js';
+
+function DetailTabButton({ active, controls, label, onClick, onKeyDown, tabId }) {
+  return (
+    <button
+      type="button"
+      className={`task-detail-mode${active ? ' is-active' : ''}`}
+      onClick={onClick}
+      onKeyDown={onKeyDown}
+      id={tabId}
+      aria-controls={controls}
+      role="tab"
+      aria-selected={active}
+      tabIndex={active ? 0 : -1}
+    >
+      {label}
+    </button>
+  );
+}
 
 function TaskDetailPanel({ data, tasksState }) {
   const { detail, selection } = tasksState;
@@ -33,9 +43,41 @@ function TaskDetailPanel({ data, tasksState }) {
     setActiveTabState(value);
     writeDetailTabQuery(value);
   };
+
+  const focusDetailTab = (value) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const tabId = value === 0 ? 'task-detail-tab-overview' : 'task-detail-tab-diff';
+    window.requestAnimationFrame(() => {
+      document.getElementById(tabId)?.focus();
+    });
+  };
+
+  const handleDetailTabKeyDown = (currentTab, event) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+      return;
+    }
+    event.preventDefault();
+    if (event.key === 'Home') {
+      setActiveTab(0);
+      focusDetailTab(0);
+      return;
+    }
+    if (event.key === 'End') {
+      setActiveTab(1);
+      focusDetailTab(1);
+      return;
+    }
+    const nextTab = currentTab === 0 ? 1 : 0;
+    setActiveTab(nextTab);
+    focusDetailTab(nextTab);
+  };
+
   useEffect(() => {
     setActiveTabState(readDetailTabQuery());
   }, [selection.selectedTaskId]);
+
   const runLogs = detail.taskDetail?.runLogs || [];
   const logUpdateToken = useMemo(() => {
     if (runLogs.length === 0) {
@@ -45,6 +87,7 @@ function TaskDetailPanel({ data, tasksState }) {
     const lastEntry = lastRun?.entries?.[lastRun.entries.length - 1];
     return `${runLogs.length}:${lastRun?.runId ?? 'none'}:${lastRun?.entries?.length ?? 0}:${lastEntry?.id ?? lastEntry?.timestamp ?? 'none'}`;
   }, [runLogs]);
+
   const isRunning = useMemo(() => {
     const status = detail.taskDetail?.status;
     return status === 'running' || status === 'stopping';
@@ -87,6 +130,7 @@ function TaskDetailPanel({ data, tasksState }) {
     stickToBottomRef.current = shouldStickToBottom;
     node.scrollTop = shouldStickToBottom ? node.scrollHeight : 0;
   }, [activeTab, hasTaskDetail, isRunning, selection.selectedTaskId]);
+
   useEffect(() => {
     if (activeTab !== 0 || !hasTaskDetail || !isRunning) {
       return;
@@ -97,6 +141,7 @@ function TaskDetailPanel({ data, tasksState }) {
     }
     node.scrollTop = node.scrollHeight;
   }, [activeTab, hasTaskDetail, isRunning, logUpdateToken]);
+
   const showPush = useMemo(() => {
     const gitStatus = detail.taskDetail?.gitStatus;
     if (!gitStatus) {
@@ -104,65 +149,39 @@ function TaskDetailPanel({ data, tasksState }) {
     }
     return gitStatus.hasChanges === true && gitStatus.pushed === false;
   }, [detail.taskDetail?.gitStatus]);
-  const hasSelectedTask = Boolean(selection.selectedTaskId);
-  const overviewTabId = 'task-detail-tab-overview';
-  const diffTabId = 'task-detail-tab-diff';
-  const overviewPanelId = 'task-detail-panel-overview';
-  const diffPanelId = 'task-detail-panel-diff';
+
   return (
     <Box className="task-detail-shell">
-      {hasSelectedTask && (
-        <Box className="task-detail-top">
-          <Tooltip title="Back to tasks">
-            <IconButton
-              size="small"
-              color="primary"
-              onClick={selection.handleBackToTasks}
-              aria-label="Back to tasks"
-              className="task-detail-back"
-            >
-              <ArrowBackOutlinedIcon />
-            </IconButton>
-          </Tooltip>
+      {!hasTaskDetail && (
+        <Box className="task-detail-pane task-detail-pane--overview">
+          <Typography color="text.secondary">Loading task details...</Typography>
         </Box>
       )}
-      <Box className="task-detail-modebar">
-        <Tabs
-          value={activeTab}
-          onChange={(_, value) => setActiveTab(value)}
-          aria-label="Task detail sections"
-          className="task-detail-tabs"
-        >
-          <Tab
-            className="task-detail-mode"
-            disableRipple
-            id={overviewTabId}
-            aria-controls={overviewPanelId}
-            label="Overview"
-            value={0}
-          />
-          <Tab
-            className="task-detail-mode"
-            disableRipple
-            id={diffTabId}
-            aria-controls={diffPanelId}
-            label="Diff"
-            value={1}
-          />
-        </Tabs>
-      </Box>
-      <Box className="task-detail-content">
-        {!hasTaskDetail && (
-          <Box className="task-detail-pane task-detail-pane--overview">
-            <Typography color="text.secondary">Loading task details...</Typography>
+
+      {hasTaskDetail && activeTab === 0 && (
+        <>
+          <TaskDetailHeader tasksState={tasksState} loading={data.loading} />
+          <Box className="task-detail-modebar" role="tablist" aria-label="Task detail views">
+            <DetailTabButton
+              active={activeTab === 0}
+              controls="task-detail-panel-overview"
+              label="Overview"
+              onClick={() => setActiveTab(0)}
+              onKeyDown={(event) => handleDetailTabKeyDown(0, event)}
+              tabId="task-detail-tab-overview"
+            />
+            <DetailTabButton
+              active={activeTab === 1}
+              controls="task-detail-panel-diff"
+              label="Diff"
+              onClick={() => setActiveTab(1)}
+              onKeyDown={(event) => handleDetailTabKeyDown(1, event)}
+              tabId="task-detail-tab-diff"
+            />
           </Box>
-        )}
-        {hasTaskDetail && activeTab === 0 && (
           <Box
-            aria-labelledby={overviewTabId}
-            id={overviewPanelId}
-            role="tabpanel"
             className="task-detail-pane task-detail-pane--overview"
+            id="task-detail-panel-overview"
             onScroll={() => {
               const node = overviewPaneRef.current;
               if (!node) {
@@ -173,29 +192,49 @@ function TaskDetailPanel({ data, tasksState }) {
               stickToBottomRef.current = distanceFromBottom <= threshold;
             }}
             ref={overviewPaneRef}
-          >
-            <Stack spacing={0.9}>
-              <TaskDetailHeader tasksState={tasksState} />
-              <Box className="task-detail-stream">
-                <Stack spacing={0.4}>
-                  <TaskRunOverrides tasksState={tasksState} />
-                  <TaskRuns tasksState={tasksState} />
-                </Stack>
-              </Box>
-            </Stack>
-          </Box>
-        )}
-        {hasTaskDetail && activeTab === 1 && (
-          <Box
-            aria-labelledby={diffTabId}
-            id={diffPanelId}
             role="tabpanel"
-            className="task-detail-pane task-detail-pane--diff"
+            aria-labelledby="task-detail-tab-overview"
           >
+            <TaskDetailSummaryCard taskDetail={detail.taskDetail} />
+            <TaskRunOverrides tasksState={tasksState} />
+            <TaskRuns tasksState={tasksState} />
+          </Box>
+        </>
+      )}
+
+      {hasTaskDetail && activeTab === 1 && (
+        <>
+          <TaskDetailHeader tasksState={tasksState} loading={data.loading} />
+          <Box className="task-detail-modebar" role="tablist" aria-label="Task detail views">
+            <DetailTabButton
+              active={activeTab === 0}
+              controls="task-detail-panel-overview"
+              label="Overview"
+              onClick={() => setActiveTab(0)}
+              onKeyDown={(event) => handleDetailTabKeyDown(0, event)}
+              tabId="task-detail-tab-overview"
+            />
+            <DetailTabButton
+              active={activeTab === 1}
+              controls="task-detail-panel-diff"
+              label="Diff"
+              onClick={() => setActiveTab(1)}
+              onKeyDown={(event) => handleDetailTabKeyDown(1, event)}
+              tabId="task-detail-tab-diff"
+            />
+          </Box>
+          <Box
+            className="task-detail-pane task-detail-pane--diff"
+            id="task-detail-panel-diff"
+            role="tabpanel"
+            aria-labelledby="task-detail-tab-diff"
+          >
+            <TaskDetailSummaryCard taskDetail={detail.taskDetail} />
             <TaskDiff tasksState={tasksState} />
           </Box>
-        )}
-      </Box>
+        </>
+      )}
+
       <TaskDetailActions
         data={data}
         hasTaskDetail={hasTaskDetail}

@@ -10,26 +10,15 @@ function TaskRuns({ tasksState }) {
     taskDetail.status === 'failed' && latestRunLog?.failedBeforeSpawn === true;
 
   return (
-    <Box className="detail-section">
-      {runLogs.length > 1 && (
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={1}
-          alignItems={{ xs: 'flex-start', sm: 'center' }}
-          justifyContent="space-between"
-        >
-          <Typography variant="subtitle2">Runs</Typography>
-          <Typography color="text.secondary" variant="body2">
-            {runLogs.length} runs
-          </Typography>
-        </Stack>
-      )}
-      <Stack spacing={1.25}>
-        {runLogs.map((run) => (
+    <Box className="detail-section detail-section--runs">
+      <Stack spacing={1.1}>
+        <Typography variant="h6" className="detail-section-title">Runs</Typography>
+        {runLogs.map((run, index) => (
           <RunLog
             key={run.runId}
             now={now}
             run={run}
+            runIndex={index}
             taskId={detail.taskDetail.taskId}
           />
         ))}

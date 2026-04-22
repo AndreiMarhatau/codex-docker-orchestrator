@@ -10,7 +10,7 @@
     "mock:build": "VITE_ENABLE_MOCK_DATA=1 VITE_BUILD_OUT_DIR=dist-mock vite build",
     "preview": "vite preview",
     "mock:preview": "sh -c 'VITE_ENABLE_MOCK_DATA=1 vite preview --host 0.0.0.0 --strictPort --port \"${MOCK_UI_PORT:-4173}\" --outDir \"${MOCK_UI_OUT_DIR:-dist-mock}\"'",
-    "test": "vitest run --coverage",
+    "test": "NODE_OPTIONS='--require ./tests/fs-mkdir-patch.cjs' vitest run --coverage",
     "lint": "eslint --rulesdir eslint-rules --ext .js,.jsx src tests --max-warnings=0"
   },
   "dependencies": {

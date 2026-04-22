@@ -42,16 +42,16 @@ const envs = [
   },
   {
     envId: 'env-2',
-    repoUrl: 'https://github.com/openai/openai-cookbook.git',
+    repoUrl: 'https://github.com/openai/openai-python.git',
     defaultBranch: 'main',
     envVars: {
-      DOCS_MODE: 'preview'
+      SDK_MODE: 'preview'
     }
   },
   {
     envId: 'env-3',
-    repoUrl: 'https://github.com/acme/internal-dashboard.git',
-    defaultBranch: 'develop',
+    repoUrl: 'https://github.com/openai/evals.git',
+    defaultBranch: 'main',
     envVars: {}
   }
 ];
@@ -61,66 +61,120 @@ const tasks = [
     taskId: 'task-1',
     envId: 'env-1',
     repoUrl: 'https://github.com/openai/codex.git',
-    branchName: 'feature/mock-preview',
+    branchName: 'codex/ui-refresh',
     ref: 'main',
     model: 'gpt-5.2',
     reasoningEffort: 'high',
-    status: 'completed',
-    createdAt: '2026-04-17T08:20:00Z',
+    status: 'running',
+    createdAt: '2024-05-12T22:42:00Z',
     runs: [],
     threadId: 'thread-1',
     useHostDockerSocket: true,
     gitStatus: {
       hasChanges: true,
       pushed: false,
-      dirty: false,
-      diffStats: { additions: 42, deletions: 11 }
+      dirty: true,
+      diffStats: { additions: 1831, deletions: 607 }
     }
   },
   {
     taskId: 'task-2',
-    envId: 'env-2',
-    repoUrl: 'https://github.com/openai/openai-cookbook.git',
-    branchName: 'design/mobile-polish',
+    envId: 'env-1',
+    repoUrl: 'https://github.com/openai/codex.git',
+    branchName: 'codex/fix-auth-flow',
     ref: 'main',
-    model: 'gpt-5.2',
+    model: 'gpt-5.3-codex',
     reasoningEffort: 'medium',
-    status: 'running',
-    createdAt: '2026-04-17T08:40:00Z',
-    runs: [
-      {
-        runId: 'run-2',
-        status: 'running',
-        startedAt: '2026-04-17T08:40:00Z'
-      }
-    ],
+    status: 'stopped',
+    createdAt: '2024-05-12T22:05:00Z',
+    runs: [],
     threadId: 'thread-2',
     useHostDockerSocket: false,
     gitStatus: {
       hasChanges: true,
       pushed: false,
       dirty: false,
-      diffStats: { additions: 18, deletions: 6 }
+      diffStats: { additions: 42, deletions: 10 }
     }
   },
   {
     taskId: 'task-3',
-    envId: 'env-3',
-    repoUrl: 'https://github.com/acme/internal-dashboard.git',
-    branchName: 'chore/settings-copy',
-    ref: 'develop',
-    model: 'gpt-5.1-codex-mini',
-    reasoningEffort: 'low',
-    status: 'failed',
-    createdAt: '2026-04-16T18:05:00Z',
+    envId: 'env-1',
+    repoUrl: 'https://github.com/openai/codex.git',
+    branchName: 'codex/api-pagination',
+    ref: 'main',
+    model: 'gpt-5.2-codex',
+    reasoningEffort: 'medium',
+    status: 'completed',
+    createdAt: '2024-05-12T21:20:00Z',
     runs: [],
     threadId: 'thread-3',
     useHostDockerSocket: false,
     gitStatus: {
-      hasChanges: false,
+      hasChanges: true,
       pushed: true,
       dirty: false,
-      diffStats: { additions: 0, deletions: 0 }
+      diffStats: { additions: 120, deletions: 33 }
+    }
+  },
+  {
+    taskId: 'task-4',
+    envId: 'env-1',
+    repoUrl: 'https://github.com/openai/codex.git',
+    branchName: 'codex/db-migration',
+    ref: 'main',
+    model: 'gpt-5.1-codex-mini',
+    reasoningEffort: 'low',
+    status: 'failed',
+    createdAt: '2024-05-12T20:02:00Z',
+    runs: [],
+    threadId: 'thread-4',
+    useHostDockerSocket: false,
+    gitStatus: {
+      hasChanges: true,
+      pushed: false,
+      dirty: true,
+      diffStats: { additions: 8, deletions: 2 }
+    }
+  },
+  {
+    taskId: 'task-5',
+    envId: 'env-2',
+    repoUrl: 'https://github.com/openai/openai-python.git',
+    branchName: 'feat/streaming-retry',
+    ref: 'main',
+    model: 'gpt-5.2',
+    reasoningEffort: 'medium',
+    status: 'running',
+    createdAt: '2024-05-12T19:12:00Z',
+    runs: [],
+    threadId: 'thread-5',
+    useHostDockerSocket: false,
+    gitStatus: {
+      hasChanges: true,
+      pushed: false,
+      dirty: false,
+      diffStats: { additions: 311, deletions: 98 }
+    }
+  },
+  {
+    taskId: 'task-6',
+    envId: 'env-3',
+    repoUrl: 'https://github.com/openai/evals.git',
+    branchName: 'chore/update-eval',
+    ref: 'main',
+    model: 'gpt-5.1-codex-mini',
+    reasoningEffort: 'low',
+    status: 'stopped',
+    createdAt: '2024-05-12T18:18:00Z',
+    runs: [],
+    threadId: 'thread-6',
+    useHostDockerSocket: false,
+    gitStatus: {
+      hasChanges: true,
+      pushed: true,
+      dirty: false,
+      diffStats: { additions: 5, deletions: 1 }
     }
   }
 ];
@@ -160,30 +214,23 @@ const taskDetails = {
     taskId: 'task-1',
     envId: 'env-1',
     repoUrl: 'https://github.com/openai/codex.git',
-    branchName: 'feature/mock-preview',
+    branchName: 'codex/ui-refresh',
     ref: 'main',
     model: 'gpt-5.2',
     reasoningEffort: 'high',
-    status: 'completed',
-    createdAt: '2026-04-17T08:20:00Z',
+    status: 'running',
+    createdAt: '2024-05-12T22:42:00Z',
     threadId: 'thread-1',
-    contextRepos: [
-      {
-        envId: 'env-2',
-        repoUrl: 'https://github.com/openai/openai-cookbook.git',
-        ref: 'main',
-        worktreePath: '/workspace/openai-cookbook'
-      }
-    ],
+    contextRepos: [],
     runLogs: [
       {
         runId: 'run-1',
         model: 'gpt-5.2',
         reasoningEffort: 'high',
-        prompt: 'Create a mock preview mode for the UI and make it screenshot friendly.',
+        prompt: 'What time is it?',
         status: 'completed',
-        startedAt: '2026-04-17T08:20:00Z',
-        finishedAt: '2026-04-17T08:44:00Z',
+        startedAt: '2024-05-12T22:42:00Z',
+        finishedAt: '2024-05-12T22:44:00Z',
         entries: [
           {
             id: 'entry-1',
@@ -191,8 +238,8 @@ const taskDetails = {
             parsed: {
               type: 'item.completed',
               item: {
-                type: 'agent_message',
-                text: 'Mapped the UI entrypoints and identified a frontend-only mock mode as the lowest-friction path.'
+                type: 'exec_command',
+                text: 'Executed: date'
               }
             },
             raw: 'entry-1'
@@ -204,7 +251,7 @@ const taskDetails = {
               type: 'item.completed',
               item: {
                 type: 'tool_call',
-                text: 'Scanned the app shell, task surfaces, and screenshot script to map layout breakpoints.'
+                text: 'Read file\ncat /etc/timezone'
               }
             },
             raw: 'entry-1b'
@@ -215,86 +262,53 @@ const taskDetails = {
             parsed: {
               type: 'item.completed',
               item: {
-                type: 'exec_command',
-                text: 'Ran the mock screenshot flow and compared desktop/mobile captures to spot overflow and hierarchy failures.'
+                type: 'agent_message',
+                text: 'The current time is 3:42 PM (America/Los_Angeles).'
               }
             },
             raw: 'entry-1c'
           },
-          {
-            id: 'entry-2',
-            type: 'item.completed',
-            parsed: {
-              type: 'item.completed',
-              item: {
-                type: 'agent_message',
-                text: 'Added deterministic screen URLs so desktop and mobile screenshots can be automated.'
-              }
-            },
-            raw: 'entry-2'
-          },
+        ],
+        artifacts: []
+      },
+      {
+        runId: 'run-2',
+        model: 'gpt-5.2',
+        reasoningEffort: 'high',
+        prompt: 'Also update the header to use the new brand color.',
+        status: 'running',
+        startedAt: '2024-05-12T22:58:00Z',
+        entries: [
           {
             id: 'entry-2b',
             type: 'item.completed',
             parsed: {
               type: 'item.completed',
               item: {
-                type: 'tool_call',
-                text: 'Reworked the board and detail shell into a shared two-surface layout with collapsed secondary sections.'
+                type: 'agent_message',
+                text: 'Updated the header component to use the new brand color across all breakpoints.'
               }
             },
             raw: 'entry-2b'
           }
         ],
-        artifacts: [
-          {
-            path: 'screenshots/desktop-tasks.png',
-            size: 189743,
-            url: createSvgArtifactUrl('Desktop Task Board', '#38bdf8')
-          },
-          {
-            path: 'screenshots/mobile-task-detail.png',
-            size: 112204,
-            url: createSvgArtifactUrl('Mobile Task Detail', '#22c55e')
-          },
-          {
-            path: 'notes/mock-preview.md',
-            size: 3211,
-            url: createDataUrl(
-              'text/markdown',
-              '# Mock preview\n\nThis artifact is bundled with the mock UI so designers can open it without a backend.'
-            )
-          }
-        ]
+        artifacts: []
       }
     ],
-    attachments: [
-      {
-        name: 'design-brief.md',
-        originalName: 'design-brief.md',
-        path: '/tmp/mock/design-brief.md',
-        size: 2401
-      },
-      {
-        name: 'wireframe.png',
-        originalName: 'wireframe.png',
-        path: '/tmp/mock/wireframe.png',
-        size: 48213
-      }
-    ],
+    attachments: [],
     gitStatus: {
       hasChanges: true,
       pushed: false,
-      dirty: false,
-      diffStats: { additions: 42, deletions: 11 }
+      dirty: true,
+      diffStats: { additions: 1831, deletions: 607 }
     },
     useHostDockerSocket: true
   },
   'task-2': {
     taskId: 'task-2',
-    envId: 'env-2',
-    repoUrl: 'https://github.com/openai/openai-cookbook.git',
-    branchName: 'design/mobile-polish',
+    envId: 'env-1',
+    repoUrl: 'https://github.com/openai/codex.git',
+    branchName: 'codex/fix-auth-flow',
     ref: 'main',
     model: 'gpt-5.2',
     reasoningEffort: 'medium',
@@ -325,21 +339,21 @@ const taskDetails = {
   },
   'task-3': {
     taskId: 'task-3',
-    envId: 'env-3',
-    repoUrl: 'https://github.com/acme/internal-dashboard.git',
-    branchName: 'chore/settings-copy',
-    ref: 'develop',
-    model: 'gpt-5.1-codex-mini',
-    reasoningEffort: 'low',
-    status: 'failed',
-    createdAt: '2026-04-16T18:05:00Z',
+    envId: 'env-1',
+    repoUrl: 'https://github.com/openai/codex.git',
+    branchName: 'codex/api-pagination',
+    ref: 'main',
+    model: 'gpt-5.2-codex',
+    reasoningEffort: 'medium',
+    status: 'completed',
+    createdAt: '2024-05-12T21:20:00Z',
     threadId: 'thread-3',
     contextRepos: [
       {
         envId: 'env-2',
-        repoUrl: 'https://github.com/openai/openai-cookbook.git',
-        ref: 'release/docs',
-        worktreePath: '/workspace/reference/openai-cookbook'
+        repoUrl: 'https://github.com/openai/openai-python.git',
+        ref: 'main',
+        worktreePath: '/workspace/reference/openai-python'
       }
     ],
     runLogs: [],
@@ -351,12 +365,64 @@ const taskDetails = {
         size: 918
       }
     ],
-    error: 'Task failed before codex-docker spawned.',
     gitStatus: {
-      hasChanges: false,
+      hasChanges: true,
       pushed: true,
       dirty: false,
-      diffStats: { additions: 0, deletions: 0 }
+      diffStats: { additions: 120, deletions: 33 }
+    },
+    useHostDockerSocket: false
+  },
+  'task-4': {
+    taskId: 'task-4',
+    envId: 'env-1',
+    repoUrl: 'https://github.com/openai/codex.git',
+    branchName: 'codex/db-migration',
+    ref: 'main',
+    model: 'gpt-5.1-codex-mini',
+    reasoningEffort: 'low',
+    status: 'failed',
+    createdAt: '2024-05-12T20:02:00Z',
+    threadId: 'thread-4',
+    contextRepos: [],
+    runLogs: [
+      {
+        runId: 'run-4',
+        model: 'gpt-5.1-codex-mini',
+        reasoningEffort: 'low',
+        prompt: 'Collect migration diagnostics.',
+        status: 'failed',
+        startedAt: '2024-05-12T20:02:00Z',
+        finishedAt: '2024-05-12T20:04:00Z',
+        entries: [],
+        artifacts: [
+          {
+            path: 'screenshots/desktop-tasks.png',
+            size: 189743,
+            url: createSvgArtifactUrl('Desktop Task Board', '#38bdf8')
+          },
+          {
+            path: 'screenshots/mobile-task-detail.png',
+            size: 112204,
+            url: createSvgArtifactUrl('Mobile Task Detail', '#22c55e')
+          },
+          {
+            path: 'notes/mock-preview.md',
+            size: 3211,
+            url: createDataUrl(
+              'text/markdown',
+              '# Mock preview\n\nThis artifact is bundled with the mock UI so designers can open it without a backend.'
+            )
+          }
+        ]
+      }
+    ],
+    attachments: [],
+    gitStatus: {
+      hasChanges: true,
+      pushed: false,
+      dirty: true,
+      diffStats: { additions: 8, deletions: 2 }
     },
     useHostDockerSocket: false
   }

@@ -5,6 +5,27 @@ const { readJson, writeJson } = require('../../storage');
 const { buildRunEnv, createOutputTracker, updateRunMeta } = require('./run-helpers');
 const { createDeferredRunState, createStoppedDuringStartupError, isAbortError } = require('./deferred-run-state');
 
+function createTaskBusyError() {
+  const error = new Error('Wait for the current run to finish before continuing this task.');
+  error.code = 'TASK_BUSY';
+  return error;
+}
+
+function claimTaskRunTransition(orchestrator, taskId) {
+  const taskRunClaims = orchestrator.taskRunClaims || new Map();
+  orchestrator.taskRunClaims = taskRunClaims;
+  if (taskRunClaims.has(taskId) || orchestrator.running.has(taskId)) {
+    throw createTaskBusyError();
+  }
+  const claimToken = Symbol(taskId);
+  taskRunClaims.set(taskId, claimToken);
+  return () => {
+    if (taskRunClaims.get(taskId) === claimToken) {
+      taskRunClaims.delete(taskId);
+    }
+  };
+}
+
 async function resolveCurrentBranch(exec, worktreePath) {
   const result = await exec('git', ['-C', worktreePath, 'branch', '--show-current']);
   if (result.code !== 0) {
@@ -210,6 +231,9 @@ function attachStartRunMethod(Orchestrator) {
   };
 }
 function attachTaskRunMethods(Orchestrator) {
+  Orchestrator.prototype.claimTaskRunTransition = function claimTaskRunTransitionMethod(taskId) {
+    return claimTaskRunTransition(this, taskId);
+  };
   attachFailRunStartMethod(Orchestrator); attachDeferredRunStartMethod(Orchestrator);
   attachFinalizeRunMethod(Orchestrator); attachStartRunMethod(Orchestrator);
 }

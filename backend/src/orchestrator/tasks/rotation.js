@@ -201,6 +201,7 @@ function attachTaskRotationMethods(Orchestrator) {
     meta.error = null;
     await writeJson(this.taskMetaPath(taskId), meta);
     await this.resumeTask(taskId, prompt, {
+      allowRunningStatus: true,
       model: meta.model,
       reasoningEffort: meta.reasoningEffort,
       useHostDockerSocket: meta.useHostDockerSocket,

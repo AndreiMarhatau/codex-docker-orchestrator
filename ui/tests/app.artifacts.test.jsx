@@ -5,7 +5,7 @@ import { accounts, envs, rateLimits } from './app-fixtures.js';
 import mockApi from './helpers/mock-api.js';
 
 it(
-  'shows empty run artifacts and entries',
+  'omits the artifacts disclosure when a run has no artifacts',
   async () => {
     const emptyRunTask = {
       taskId: 'task-4',
@@ -60,8 +60,7 @@ it(
 
     await user.click(await screen.findByText('feature/empty-artifacts'));
     expect(await screen.findByText('Testing run')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Artifacts' }));
-    expect(screen.getByText('No artifacts for this run.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Artifacts' })).not.toBeInTheDocument();
   },
   15000
 );

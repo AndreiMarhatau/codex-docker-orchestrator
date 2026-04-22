@@ -1,133 +1,93 @@
-/* eslint-disable complexity */
-import { useEffect, useState } from 'react';
-import { Box, Stack, Tab, Tabs, Typography, useMediaQuery } from '@mui/material';
+import { Box, Typography, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
-import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
-import FolderOpenOutlinedIcon from '@mui/icons-material/FolderOpenOutlined';
-import ListAltOutlinedIcon from '@mui/icons-material/ListAltOutlined';
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import AccountsTab from '../tabs/AccountsTab.jsx';
 import EnvironmentsTab from '../tabs/EnvironmentsTab.jsx';
-import AuthGate from './AuthGate.jsx';
 import SettingsTab from '../tabs/SettingsTab.jsx';
 import TasksTab from '../tabs/TasksTab.jsx';
+import AuthGate from './AuthGate.jsx';
+import { DesktopNavigation, MobileNavigation } from './AppNavigation.jsx';
+
+function AppTabPanel({ activeTab, children, tab }) {
+  return (
+    <Box
+      role="tabpanel"
+      id={`app-tabpanel-${tab}`}
+      aria-labelledby={`app-tab-${tab}`}
+      hidden={activeTab !== tab}
+    >
+      {activeTab === tab && children}
+    </Box>
+  );
+}
 
 function AppLayout({ accountsState, authState, data, envState, tabState, tasksState }) {
   const theme = useTheme();
-  const compactTabs = useMediaQuery(theme.breakpoints.down('sm'));
+  const mobileNav = useMediaQuery(theme.breakpoints.down('sm'));
   const { activeTab, setActiveTab } = tabState;
   const { error, setupState } = data;
   const { handleBackToTasks, selectedTaskId } = tasksState.selection;
   const locked = !authState.isUnlocked;
   const setupReady = Boolean(setupState?.ready);
-  const [headerScrolled, setHeaderScrolled] = useState(false);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setHeaderScrolled(window.scrollY > 16);
-    };
-    handleScroll();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const isNavDisabled = (item) =>
+    locked || ((item.tab === 0 || item.tab === 1) && !setupReady);
 
-  const activeLabel = ['Environments', selectedTaskId ? 'Task Workspace' : 'Tasks', 'Accounts', 'Settings'][activeTab];
+  const handleNavSelect = (value) => {
+    if (value === 1 && activeTab === 1 && selectedTaskId) {
+      handleBackToTasks();
+    }
+    setActiveTab(value);
+  };
 
   return (
     <Box className={`app-shell${locked ? ' app-shell-locked' : ''}`}>
-      <Box className={`app-header${headerScrolled ? ' app-header-scrolled' : ''}`}>
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={2}
-          alignItems={{ xs: 'stretch', sm: 'center' }}
-          justifyContent="space-between"
-          sx={{ flexWrap: 'wrap' }}
-        >
-          <Stack direction="row" spacing={1.5} alignItems="center" className="app-brand">
-            <Box className="app-brand-mark">
-              <AutoAwesomeOutlinedIcon fontSize="small" />
-            </Box>
-            <Stack spacing={0.3}>
-              <Typography className="app-brand-title">
-                Codex Orchestrator
-              </Typography>
-              <Typography className="app-brand-subtitle">
-                {activeLabel}
-              </Typography>
-            </Stack>
-          </Stack>
-          <Tabs
-            className="app-tabs"
-            value={activeTab}
-            onChange={(event, value) => setActiveTab(value)}
-            textColor="primary"
-            indicatorColor="primary"
-            aria-label="Orchestrator sections"
-            variant="scrollable"
-            scrollButtons="auto"
-            allowScrollButtonsMobile
-            sx={{
-              maxWidth: '100%',
-              '.MuiTab-root': {
-                minWidth: 'auto'
-              }
-            }}
-          >
-            <Tab
-              icon={<FolderOpenOutlinedIcon />}
-              iconPosition={compactTabs ? 'top' : 'start'}
-              label={compactTabs ? '' : 'Environments'}
-              aria-label="Environments"
-              disabled={locked || !setupReady}
+      <Box className="app-frame">
+        <Box className="app-header">
+          {mobileNav ? (
+            <MobileNavigation
+              activeTab={activeTab}
+              handleNavSelect={handleNavSelect}
+              isNavDisabled={isNavDisabled}
             />
-            <Tab
-              icon={<ListAltOutlinedIcon />}
-              iconPosition={compactTabs ? 'top' : 'start'}
-              label={compactTabs ? '' : 'Tasks'}
-              aria-label="Tasks"
-              onClick={() => {
-                if (activeTab === 1 && selectedTaskId) {
-                  handleBackToTasks();
-                }
-              }}
-              disabled={locked || !setupReady}
+          ) : (
+            <DesktopNavigation
+              activeTab={activeTab}
+              handleNavSelect={handleNavSelect}
+              isNavDisabled={isNavDisabled}
             />
-            <Tab
-              icon={<AccountCircleOutlinedIcon />}
-              iconPosition={compactTabs ? 'top' : 'start'}
-              label={compactTabs ? '' : 'Accounts'}
-              aria-label="Accounts"
-              disabled={locked}
-            />
-            <Tab
-              icon={<SettingsOutlinedIcon />}
-              iconPosition={compactTabs ? 'top' : 'start'}
-              label={compactTabs ? '' : 'Settings'}
-              aria-label="Settings"
-              disabled={locked}
-            />
-          </Tabs>
-        </Stack>
-      </Box>
+          )}
+        </Box>
 
-      <Box className="app-main">
-        {activeTab === 0 && (setupReady ? (
-          <EnvironmentsTab data={data} envState={envState} />
-        ) : (
-          <Box className="workspace-empty">
-            <Typography>Finish setup in Settings and add a Codex account to enable environments.</Typography>
-          </Box>
-        ))}
-        {activeTab === 1 && (setupReady ? (
-          <TasksTab data={data} tasksState={tasksState} />
-        ) : (
-          <Box className="workspace-empty">
-            <Typography>Finish setup in Settings and add a Codex account to enable tasks.</Typography>
-          </Box>
-        ))}
-        {activeTab === 2 && <AccountsTab accountsState={accountsState} data={data} />}
-        {activeTab === 3 && <SettingsTab authState={authState} refreshAll={data.refreshAll} setupState={setupState} />}
+        <Box className="app-main">
+          <AppTabPanel activeTab={activeTab} tab={0}>
+            {setupReady ? (
+              <EnvironmentsTab data={data} envState={envState} />
+            ) : (
+              <Box className="workspace-empty">
+                <Typography>Finish setup in Settings and add a Codex account to enable environments.</Typography>
+              </Box>
+            )}
+          </AppTabPanel>
+          <AppTabPanel activeTab={activeTab} tab={1}>
+            {setupReady ? (
+              <TasksTab data={data} tasksState={tasksState} />
+            ) : (
+              <Box className="workspace-empty">
+                <Typography>Finish setup in Settings and add a Codex account to enable tasks.</Typography>
+              </Box>
+            )}
+          </AppTabPanel>
+          <AppTabPanel activeTab={activeTab} tab={2}>
+            <AccountsTab accountsState={accountsState} data={data} />
+          </AppTabPanel>
+          <AppTabPanel activeTab={activeTab} tab={3}>
+            <SettingsTab
+              authState={authState}
+              refreshAll={data.refreshAll}
+              setupState={setupState}
+            />
+          </AppTabPanel>
+        </Box>
       </Box>
 
       {error && (

@@ -1,226 +1,95 @@
-/* eslint-disable max-lines */
-import { memo } from 'react';
-import {
-  Box,
-  Divider,
-  IconButton,
-  Stack,
-  Tooltip,
-  Typography
-} from '@mui/material';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined';
-import { STATUS_CONFIG } from '../../constants.js';
-import { formatDuration, formatTimestamp } from '../../formatters.js';
-import { getGitStatusDisplay } from '../../git-helpers.js';
-import { formatEffortDisplay, formatModelDisplay } from '../../model-helpers.js';
-import { formatRepoDisplay } from '../../repo-helpers.js';
-import { getElapsedMs, getLatestRun } from '../../task-helpers.js';
+import { memo, useEffect, useMemo, useState } from 'react';
+import { Box, Typography, useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import { DesktopTaskRow, MobileTaskCard } from './TaskListRow.jsx';
 
-function GitStatusPill({ gitStatus }) {
-  const gitStatusDisplay = getGitStatusDisplay(gitStatus);
-  const GitIcon = gitStatusDisplay?.icon;
-  if (!gitStatusDisplay || !GitIcon) {
-    return null;
-  }
+const MOBILE_TASK_LIMIT = 4;
+
+function DesktopTaskTable({
+  handleDeleteTask,
+  handleStopTask,
+  loading,
+  selectedTaskId,
+  setSelectedTaskId,
+  tasks
+}) {
   return (
-    <Tooltip title={gitStatusDisplay.tooltip}>
-      <Box className={`git-state-pill git-state-pill--${gitStatusDisplay.tone || 'unknown'}`}>
-        <GitIcon fontSize="inherit" />
-        <span>{gitStatusDisplay.label}</span>
+    <>
+      <Box className="task-table-head">
+        <span>Environment</span>
+        <span>Branch</span>
+        <span>Status</span>
+        <span>Git Status</span>
+        <span>Changes</span>
+        <span>Actions</span>
       </Box>
-    </Tooltip>
-  );
-}
 
-function GitDiffStats({ gitStatus }) {
-  const additions = gitStatus?.diffStats?.additions ?? 0;
-  const deletions = gitStatus?.diffStats?.deletions ?? 0;
-  if (!additions && !deletions) {
-    return null;
-  }
-  return (
-    <Tooltip title={`Diff since base commit: +${additions} / -${deletions}`}>
-      <Box className="task-diff-stats">
-        {additions > 0 && <span className="diff-add">+{additions}</span>}
-        {deletions > 0 && <span className="diff-del">-{deletions}</span>}
-      </Box>
-    </Tooltip>
-  );
-}
-
-function MetaLabel({ children }) {
-  return (
-    <Box component="span" sx={{ color: 'text.primary', fontWeight: 700 }}>
-      {children}
-    </Box>
-  );
-}
-
-function StatusPill({ status }) {
-  const config = STATUS_CONFIG[status] || STATUS_CONFIG.unknown;
-  return (
-    <Box className={`status-pill status-pill--${status || 'unknown'}`}>
-      <span className="status-pill-dot" style={{ backgroundColor: config.border }} />
-      <span>{config.label}</span>
-    </Box>
-  );
-}
-
-function countTaskArtifacts(task) {
-  return (task.runs || []).reduce((count, run) => count + ((run.artifacts || []).length || 0), 0);
-}
-
-function TaskRowHeader({ task }) {
-  return (
-    <Stack
-      spacing={1}
-      alignItems="flex-start"
-    >
-      <Stack spacing={0.35} sx={{ minWidth: 0, flex: 1 }}>
-        <Typography className="task-card-title" sx={{ overflowWrap: 'anywhere' }}>
-          {task.branchName}
-        </Typography>
-        <Typography className="task-card-repo" sx={{ overflowWrap: 'anywhere' }}>
-          {formatRepoDisplay(task.repoUrl) || task.repoUrl}
-        </Typography>
-      </Stack>
-      <Stack
-        direction="row"
-        spacing={1}
-        alignItems="center"
-        flexWrap="wrap"
-        useFlexGap
-      >
-        <StatusPill status={task.status} />
-        <GitStatusPill gitStatus={task.gitStatus} />
-        <GitDiffStats gitStatus={task.gitStatus} />
-      </Stack>
-    </Stack>
-  );
-}
-
-function TaskRowSummary({ artifactCount, elapsedLabel, task }) {
-  return (
-    <Stack spacing={0.35}>
-      <Typography color="text.secondary" variant="body2" sx={{ overflowWrap: 'anywhere', lineHeight: 1.45 }}>
-        <MetaLabel>Ref</MetaLabel> {task.ref}
-        <Box component="span" sx={{ mx: 0.75 }}>
-          ·
-        </Box>
-        <MetaLabel>Created</MetaLabel> {formatTimestamp(task.createdAt)}
-        {(task.model || task.reasoningEffort) && (
-          <>
-            <Box component="span" sx={{ mx: 0.75 }}>
-              ·
-            </Box>
-            <MetaLabel>Model</MetaLabel> {formatModelDisplay(task.model)}
-            <Box component="span" sx={{ mx: 0.75 }}>
-              ·
-            </Box>
-            <MetaLabel>Effort</MetaLabel> {formatEffortDisplay(task.reasoningEffort)}
-          </>
-        )}
-      </Typography>
-      <Typography color="text.secondary" variant="body2" sx={{ overflowWrap: 'anywhere', lineHeight: 1.45 }}>
-        <MetaLabel>Thread</MetaLabel> {task.threadId ? `#${task.threadId}` : 'pending'}
-        {(artifactCount > 0 || elapsedLabel) && (
-          <>
-            <Box component="span" sx={{ mx: 0.75 }}>
-              ·
-            </Box>
-            {artifactCount > 0 && (
-              <>
-                <MetaLabel>Outputs</MetaLabel> {artifactCount}
-                {elapsedLabel && (
-                  <Box component="span" sx={{ mx: 0.75 }}>
-                    ·
-                  </Box>
-                )}
-              </>
-            )}
-            {elapsedLabel && (
-              <>
-                <MetaLabel>Elapsed</MetaLabel> {elapsedLabel}
-              </>
-            )}
-          </>
-        )}
-      </Typography>
-    </Stack>
-  );
-}
-
-function TaskRowActions({ handleDeleteTask, handleStopTask, loading, task }) {
-  return (
-    <Stack
-      direction="row"
-      spacing={0.5}
-      justifyContent="flex-end"
-      alignItems="center"
-      flexWrap="wrap"
-      useFlexGap
-    >
-      <Tooltip title="Stop task">
-        <span>
-          <IconButton
-            size="small"
-            color="error"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleStopTask(task.taskId);
-            }}
-            disabled={loading || task.status !== 'running'}
-            aria-label={`Stop task ${task.taskId}`}
-          >
-            <StopCircleOutlinedIcon fontSize="small" />
-          </IconButton>
-        </span>
-      </Tooltip>
-      <Tooltip title="Remove task">
-        <span>
-          <IconButton
-            size="small"
-            color="secondary"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleDeleteTask(task.taskId);
-            }}
-            disabled={loading}
-            aria-label={`Remove task ${task.taskId}`}
-          >
-            <DeleteOutlineIcon fontSize="small" />
-          </IconButton>
-        </span>
-      </Tooltip>
-    </Stack>
-  );
-}
-
-function TaskRow({ handleDeleteTask, handleStopTask, now, selectedTaskId, setSelectedTaskId, task, loading }) {
-  const artifactCount = countTaskArtifacts(task);
-  const isActiveTask = task.status === 'running' || task.status === 'stopping';
-  const latestRun = isActiveTask ? getLatestRun(task) : null;
-  const elapsedLabel = isActiveTask
-    ? formatDuration(getElapsedMs(latestRun?.startedAt || task.createdAt, null, now))
-    : null;
-
-  return (
-    <Box
-      className={`task-card task-card--interactive${task.taskId === selectedTaskId ? ' task-card--selected' : ''}`}
-      onClick={() => setSelectedTaskId(task.taskId)}
-    >
-      <Box className="task-card-content">
-        <Stack spacing={1.1}>
-          <TaskRowHeader task={task} />
-          <TaskRowSummary artifactCount={artifactCount} elapsedLabel={elapsedLabel} task={task} />
-          <TaskRowActions
+      <Box className="task-table-body">
+        {tasks.map((task) => (
+          <DesktopTaskRow
+            key={task.taskId}
             handleDeleteTask={handleDeleteTask}
             handleStopTask={handleStopTask}
             loading={loading}
+            selectedTaskId={selectedTaskId}
+            setSelectedTaskId={setSelectedTaskId}
             task={task}
           />
-        </Stack>
+        ))}
+      </Box>
+    </>
+  );
+}
+
+function MobileTaskTable({
+  handleDeleteTask,
+  handleStopTask,
+  loading,
+  selectedTaskId,
+  setSelectedTaskId,
+  tasks
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const taskIdentity = useMemo(
+    () => tasks.map((task) => task.taskId).join(':'),
+    [tasks]
+  );
+  const mobileTasks = useMemo(
+    () => (showAll ? tasks : tasks.slice(0, MOBILE_TASK_LIMIT)),
+    [showAll, tasks]
+  );
+
+  useEffect(() => {
+    setShowAll(false);
+  }, [taskIdentity]);
+
+  return (
+    <Box className="task-mobile-list">
+      {mobileTasks.map((task) => (
+        <MobileTaskCard
+          key={task.taskId}
+          handleDeleteTask={handleDeleteTask}
+          handleStopTask={handleStopTask}
+          loading={loading}
+          selectedTaskId={selectedTaskId}
+          setSelectedTaskId={setSelectedTaskId}
+          task={task}
+        />
+      ))}
+      {!showAll && tasks.length > MOBILE_TASK_LIMIT && (
+        <button type="button" className="task-mobile-more" onClick={() => setShowAll(true)}>
+          View more
+        </button>
+      )}
+    </Box>
+  );
+}
+
+function EmptyTaskList() {
+  return (
+    <Box className="task-table-shell task-table-shell--empty">
+      <Box className="empty-state">
+        <Typography color="text.secondary">No tasks yet. Create one to get started.</Typography>
       </Box>
     </Box>
   );
@@ -230,51 +99,41 @@ function TaskList({
   data,
   handleDeleteTask,
   handleStopTask,
-  now,
   selectedTaskId,
   setSelectedTaskId,
   visibleTasks
 }) {
+  const theme = useTheme();
+  const mobileLayout = useMediaQuery(theme.breakpoints.down('md'));
   const { loading } = data;
+
+  if (visibleTasks.length === 0) {
+    return <EmptyTaskList />;
+  }
+
   return (
-    <Stack spacing={1.5}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={0.75}
-        justifyContent="space-between"
-        alignItems={{ xs: 'flex-start', sm: 'center' }}
-      >
-        <Typography variant="h6" className="panel-title">
-          Tasks
-        </Typography>
-        <Typography color="text.secondary" variant="body2">
-          Open a task to inspect live output, artifacts, and git changes.
-        </Typography>
-      </Stack>
-      <Box className="task-list-shell">
-        <Stack spacing={0} divider={visibleTasks.length > 1 ? <Divider flexItem /> : undefined}>
-        {visibleTasks.map((task) => (
-          <TaskRow
-            key={task.taskId}
-            handleDeleteTask={handleDeleteTask}
-            handleStopTask={handleStopTask}
-            loading={loading}
-            now={now}
-            selectedTaskId={selectedTaskId}
-            setSelectedTaskId={setSelectedTaskId}
-            task={task}
-          />
-        ))}
-        {visibleTasks.length === 0 && (
-          <Box className="empty-state" sx={{ py: 2 }}>
-            <Typography color="text.secondary">
-              No tasks yet. Create one to get started.
-            </Typography>
-          </Box>
-        )}
-        </Stack>
-      </Box>
-    </Stack>
+    <Box className="task-table-shell">
+      {mobileLayout ? (
+        <MobileTaskTable
+          handleDeleteTask={handleDeleteTask}
+          handleStopTask={handleStopTask}
+          loading={loading}
+          selectedTaskId={selectedTaskId}
+          setSelectedTaskId={setSelectedTaskId}
+          tasks={visibleTasks}
+        />
+      ) : (
+        <DesktopTaskTable
+          handleDeleteTask={handleDeleteTask}
+          handleStopTask={handleStopTask}
+          loading={loading}
+          selectedTaskId={selectedTaskId}
+          setSelectedTaskId={setSelectedTaskId}
+          tasks={visibleTasks}
+        />
+      )}
+    </Box>
   );
 }
+
 export default memo(TaskList);

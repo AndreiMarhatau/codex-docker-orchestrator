@@ -32,6 +32,8 @@ export default defineConfig(({ command, mode }) => {
       environment: 'jsdom',
       setupFiles: ['./tests/setup.js'],
       globals: true,
+      maxWorkers: 1,
+      minWorkers: 1,
       coverage: {
         provider: 'v8',
         all: true,

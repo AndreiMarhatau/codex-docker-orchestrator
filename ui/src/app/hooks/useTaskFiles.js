@@ -8,8 +8,7 @@ function useTaskFiles() {
   const [taskFileUploadProgress, setTaskFileUploadProgress] = useState(null);
   const taskFileInputRef = useRef(null);
 
-  function handleTaskFilesSelected(event) {
-    const files = Array.from(event.target.files || []);
+  function appendTaskFiles(files) {
     if (files.length === 0) {
       return;
     }
@@ -21,7 +20,16 @@ function useTaskFiles() {
       setTaskFiles(combined);
       setTaskFileError('');
     }
+  }
+
+  function handleTaskFilesSelected(event) {
+    const files = Array.from(event.target.files || []);
+    appendTaskFiles(files);
     event.target.value = '';
+  }
+
+  function handleTaskFilesDropped(fileList) {
+    appendTaskFiles(Array.from(fileList || []));
   }
 
   function handleRemoveTaskFile(index) {
@@ -39,6 +47,7 @@ function useTaskFiles() {
 
   return {
     handleClearTaskFiles,
+    handleTaskFilesDropped,
     handleRemoveTaskFile,
     handleTaskFilesSelected,
     setTaskFileError,

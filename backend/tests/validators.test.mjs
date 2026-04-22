@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const {
+  normalizeAttachmentNamesInput,
   normalizeAttachmentUploadsInput,
   normalizeContextReposInput,
   normalizeEnvVarsInput
@@ -29,6 +30,19 @@ describe('validators', () => {
     ).toEqual([
       { path: '/tmp/file.txt', originalName: 'file.txt', size: 10, mimeType: 'text/plain' }
     ]);
+  });
+
+  it('normalizes attachment name input', () => {
+    expect(normalizeAttachmentNamesInput(undefined, 'attachmentRemovals')).toBe(null);
+    expect(() => normalizeAttachmentNamesInput('bad', 'attachmentRemovals')).toThrow(
+      /attachmentRemovals/
+    );
+    expect(() => normalizeAttachmentNamesInput([''], 'attachmentRemovals')).toThrow(
+      /attachmentRemovals\[0\]/
+    );
+    expect(
+      normalizeAttachmentNamesInput([' design-brief.md ', 'wireframe.png'], 'attachmentRemovals')
+    ).toEqual(['design-brief.md', 'wireframe.png']);
   });
 
   it('normalizes env vars input', () => {

@@ -518,16 +518,6 @@ body::before {
   overflow: hidden;
 }
 
-.task-compose-dialog.MuiDialog-paperFullScreen {
-  width: 100%;
-  height: 100dvh;
-  min-height: 100dvh;
-  margin: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  max-height: 100dvh;
-}
-
 .task-compose-dialog-title {
   display: flex !important;
   align-items: center;
@@ -553,8 +543,6 @@ body::before {
 
 .task-compose-dialog-content {
   padding: 20px 24px 20px !important;
-  min-height: 0;
-  overscroll-behavior: contain;
 }
 
 .task-compose-dialog-actions {
@@ -1263,6 +1251,7 @@ pre {
   .task-compose-dialog {
     width: 100%;
     margin: 0 !important;
+    border: 0 !important;
     border-radius: 0 !important;
   }
 

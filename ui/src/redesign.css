@@ -584,6 +584,10 @@ body::before {
 
 .task-compose-field .MuiInputBase-root {
   min-height: 50px;
+  align-items: center;
+}
+
+.task-compose-field .MuiInputBase-root.MuiInputBase-multiline {
   align-items: flex-start;
 }
 
@@ -612,10 +616,6 @@ body::before {
 
 .task-compose-helper--section {
   margin-top: -4px;
-}
-
-.task-compose-helper--inline {
-  margin-top: -12px !important;
 }
 
 .task-compose-dropzone {
@@ -683,17 +683,57 @@ body::before {
   background: var(--ui-surface-subtle) !important;
 }
 
-.task-compose-toggle-row {
+.task-compose-toggle-block {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 10px;
+  align-items: start;
   margin-top: -6px;
 }
 
-.task-compose-checkbox .MuiFormControlLabel-label {
+.task-compose-toggle-checkbox {
+  margin-left: -6px !important;
+}
+
+.task-compose-toggle-copy {
+  min-width: 0;
+  padding-top: 7px;
+}
+
+.task-compose-toggle-row {
+  min-width: 0;
+}
+
+.task-compose-checkbox-label {
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 600 !important;
+  color: var(--ui-text) !important;
+  line-height: 1.2 !important;
+  cursor: pointer;
 }
 
 .task-compose-warning {
-  margin-top: 11px;
+  flex-shrink: 0;
+}
+
+.task-compose-repo-row {
+  min-width: 0;
+}
+
+.task-compose-repo-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.task-compose-repo-remove {
+  flex-shrink: 0;
+  margin-top: 8px !important;
+}
+
+.task-compose-field .MuiSelect-select {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .task-compose-textarea {

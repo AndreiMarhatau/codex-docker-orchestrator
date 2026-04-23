@@ -1,15 +1,7 @@
-import {
-  Checkbox,
-  FormControlLabel,
-  MenuItem,
-  Stack,
-  TextField,
-  Tooltip,
-  Typography
-} from '@mui/material';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import { MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { EFFORT_LABELS, MODEL_CUSTOM_VALUE, MODEL_OPTIONS } from '../../../constants.js';
 import { getEffortOptionsForModel } from '../../../model-helpers.js';
+import TaskDockerToggle from './TaskDockerToggle.jsx';
 
 function TaskFormModel({ handleTaskModelChoiceChange, setTaskForm, taskForm }) {
   return (
@@ -86,29 +78,16 @@ function TaskFormModel({ handleTaskModelChoiceChange, setTaskForm, taskForm }) {
         </Typography>
       </Stack>
 
-      <Stack direction="row" spacing={1} alignItems="flex-start" className="task-compose-toggle-row">
-        <FormControlLabel
-          className="task-compose-checkbox"
-          control={(
-            <Checkbox
-              checked={taskForm.useHostDockerSocket}
-              onChange={(event) =>
-                setTaskForm((prev) => ({
-                  ...prev,
-                  useHostDockerSocket: event.target.checked
-                }))
-              }
-            />
-          )}
-          label="Enable Docker"
-        />
-        <Tooltip title="Runs Docker using the orchestrator's isolated per-task sidecar daemon.">
-          <WarningAmberIcon className="task-compose-warning" color="warning" fontSize="small" />
-        </Tooltip>
-      </Stack>
-      <Typography className="task-compose-helper task-compose-helper--inline">
-        Run the agent in a Docker container.
-      </Typography>
+      <TaskDockerToggle
+        checked={taskForm.useHostDockerSocket}
+        onChange={(event) =>
+          setTaskForm((prev) => ({
+            ...prev,
+            useHostDockerSocket: event.target.checked
+          }))
+        }
+        warningTooltip="Runs Docker using the orchestrator's isolated per-task sidecar daemon."
+      />
     </Stack>
   );
 }

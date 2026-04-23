@@ -5,7 +5,6 @@ import TaskDetailActions from './detail/TaskDetailActions.jsx';
 import TaskDetailHeader from './detail/TaskDetailHeader.jsx';
 import TaskDetailSummaryCard from './detail/TaskDetailSummaryCard.jsx';
 import TaskDiff from './detail/TaskDiff.jsx';
-import TaskRunOverrides from './detail/TaskRunOverrides.jsx';
 import TaskRuns from './detail/TaskRuns.jsx';
 import { readDetailTabQuery, writeDetailTabQuery } from '../../query-state.js';
 
@@ -29,6 +28,7 @@ function DetailTabButton({ active, controls, label, onClick, onKeyDown, tabId })
 
 function TaskDetailPanel({ data, tasksState }) {
   const { detail, selection } = tasksState;
+  const { now } = tasksState;
   const hasTaskDetail = Boolean(detail.taskDetail);
   const [activeTab, setActiveTabState] = useState(readDetailTabQuery);
   const overviewPaneRef = useRef(null);
@@ -160,7 +160,7 @@ function TaskDetailPanel({ data, tasksState }) {
 
       {hasTaskDetail && activeTab === 0 && (
         <>
-          <TaskDetailHeader tasksState={tasksState} loading={data.loading} />
+          <TaskDetailHeader now={now} tasksState={tasksState} loading={data.loading} />
           <Box className="task-detail-modebar" role="tablist" aria-label="Task detail views">
             <DetailTabButton
               active={activeTab === 0}
@@ -195,8 +195,7 @@ function TaskDetailPanel({ data, tasksState }) {
             role="tabpanel"
             aria-labelledby="task-detail-tab-overview"
           >
-            <TaskDetailSummaryCard taskDetail={detail.taskDetail} />
-            <TaskRunOverrides tasksState={tasksState} />
+            <TaskDetailSummaryCard now={now} taskDetail={detail.taskDetail} />
             <TaskRuns tasksState={tasksState} />
           </Box>
         </>
@@ -204,7 +203,7 @@ function TaskDetailPanel({ data, tasksState }) {
 
       {hasTaskDetail && activeTab === 1 && (
         <>
-          <TaskDetailHeader tasksState={tasksState} loading={data.loading} />
+          <TaskDetailHeader now={now} tasksState={tasksState} loading={data.loading} />
           <Box className="task-detail-modebar" role="tablist" aria-label="Task detail views">
             <DetailTabButton
               active={activeTab === 0}
@@ -229,7 +228,7 @@ function TaskDetailPanel({ data, tasksState }) {
             role="tabpanel"
             aria-labelledby="task-detail-tab-diff"
           >
-            <TaskDetailSummaryCard taskDetail={detail.taskDetail} />
+            <TaskDetailSummaryCard now={now} taskDetail={detail.taskDetail} />
             <TaskDiff tasksState={tasksState} />
           </Box>
         </>

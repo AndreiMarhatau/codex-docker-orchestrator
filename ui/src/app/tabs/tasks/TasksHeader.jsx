@@ -7,19 +7,14 @@ function TasksHeader({ compact = false, tasksState }) {
   return (
     <Stack
       className={`tasks-page-header${compact ? ' tasks-page-header--compact' : ''}`}
-      direction={{ xs: 'column', sm: 'row' }}
-      spacing={1.5}
+      direction="row"
+      spacing={2}
       justifyContent="space-between"
-      alignItems={{ xs: 'flex-start', sm: 'center' }}
+      alignItems="center"
     >
-      <Stack spacing={0.35}>
-        <Typography component="h1" className="page-title">
-          Tasks
-        </Typography>
-        <Typography className="page-subtitle">
-          Manage and monitor your Codex agent tasks.
-        </Typography>
-      </Stack>
+      <Typography component="h1" className="page-title">
+        Tasks
+      </Typography>
       <Button
         className="page-primary-button"
         variant="contained"

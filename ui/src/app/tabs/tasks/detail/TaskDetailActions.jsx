@@ -1,10 +1,21 @@
 import { useState } from 'react';
 import { Box, Button, Stack } from '@mui/material';
 import TaskResumeDialog from './TaskResumeDialog.jsx';
+import { readComposeQuery, writeComposeQuery } from '../../../query-state.js';
 
 function TaskDetailActions({ data, hasTaskDetail, isRunning = false, showPush, tasksState }) {
   const { actions, detail, handleResumeModelChoiceChange } = tasksState;
-  const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
+  const [resumeDialogOpen, setResumeDialogOpen] = useState(() => readComposeQuery() === 'resume');
+
+  function openResumeDialog() {
+    writeComposeQuery('resume');
+    setResumeDialogOpen(true);
+  }
+
+  function closeResumeDialog() {
+    writeComposeQuery('');
+    setResumeDialogOpen(false);
+  }
 
   return (
     <>
@@ -13,7 +24,7 @@ function TaskDetailActions({ data, hasTaskDetail, isRunning = false, showPush, t
           {hasTaskDetail && (
             <Button
               variant="outlined"
-              onClick={() => setResumeDialogOpen(true)}
+              onClick={openResumeDialog}
               disabled={data.loading || isRunning}
             >
               Ask for changes
@@ -37,7 +48,7 @@ function TaskDetailActions({ data, hasTaskDetail, isRunning = false, showPush, t
         envs={data.envs}
         handleResumeModelChoiceChange={handleResumeModelChoiceChange}
         open={resumeDialogOpen}
-        onClose={() => setResumeDialogOpen(false)}
+        onClose={closeResumeDialog}
       />
     </>
   );

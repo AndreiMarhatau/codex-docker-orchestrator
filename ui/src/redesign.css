@@ -52,7 +52,7 @@
 }
 
 body {
-  background: var(--ui-page-bg) !important;
+  background: var(--ui-frame-bg) !important;
   color: var(--ui-text) !important;
   font-family: "Plus Jakarta Sans", "IBM Plex Sans", sans-serif !important;
 }
@@ -67,19 +67,19 @@ body::before {
 
 .app-shell {
   width: 100%;
-  max-width: 1536px !important;
-  margin: 0 auto !important;
-  padding: 12px !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
   display: block !important;
 }
 
 .app-frame {
-  min-height: calc(100vh - 24px);
+  min-height: 100vh;
   background: var(--ui-frame-bg);
-  border: 1px solid var(--ui-border);
-  border-radius: 14px;
+  border: 0;
+  border-radius: 0;
   overflow: hidden;
-  box-shadow: var(--ui-shadow);
+  box-shadow: none;
 }
 
 .app-header {
@@ -98,7 +98,7 @@ body::before {
 
 .app-nav-desktop,
 .app-nav-mobile {
-  padding: 0 16px;
+  padding: 0 24px;
 }
 
 .app-nav-desktop {
@@ -107,23 +107,6 @@ body::before {
 
 .app-nav-mobile {
   display: none;
-}
-
-.app-logo-mark {
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--ui-text);
-  border-radius: 6px;
-  color: var(--ui-text);
-  flex-shrink: 0;
-}
-
-.app-logo-mark--mobile {
-  width: 30px;
-  height: 30px;
 }
 
 .app-nav-links {
@@ -167,18 +150,6 @@ body::before {
   background: var(--ui-accent);
 }
 
-.app-profile-button,
-.app-mobile-icon {
-  color: var(--ui-text-muted) !important;
-  border: 1px solid var(--ui-border);
-  background: var(--ui-surface-subtle);
-}
-
-.app-profile-button:hover,
-.app-mobile-icon:hover {
-  background: var(--ui-surface-muted);
-}
-
 .app-main {
   padding: 0 !important;
   display: block !important;
@@ -204,17 +175,17 @@ body::before {
 .dense-tab-header,
 .section-hero,
 .workspace-header {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .page-title,
 .section-title,
 .workspace-title,
 .task-detail-title {
-  font-size: 2rem !important;
+  font-size: 1.8rem !important;
   line-height: 1.1 !important;
   font-weight: 700 !important;
-  letter-spacing: -0.04em !important;
+  letter-spacing: -0.03em !important;
   color: var(--ui-text) !important;
 }
 
@@ -307,6 +278,11 @@ body::before {
   max-width: 100%;
 }
 
+.task-filter-select .MuiInputBase-input,
+.task-filter-select .MuiSelect-select {
+  font-size: 16px !important;
+}
+
 .task-table-shell {
   overflow: hidden;
 }
@@ -314,7 +290,7 @@ body::before {
 .task-table-head,
 .task-table-row {
   display: grid;
-  grid-template-columns: 1.8fr 1.8fr 1.2fr 1.4fr 1fr 1.2fr;
+  grid-template-columns: 1.8fr 1.7fr 1.15fr 1.35fr 1fr 0.7fr;
   gap: 16px;
   align-items: center;
 }
@@ -382,9 +358,29 @@ body::before {
 }
 
 .task-inline-action.MuiButton-root {
-  min-width: 86px;
+  min-width: 82px;
   border-color: var(--ui-border);
   background: transparent;
+}
+
+.task-runtime-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--ui-neutral-soft);
+  color: var(--ui-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.task-runtime-pill--detail,
+.task-runtime-pill--run {
+  background: var(--ui-surface-subtle);
+  border: 1px solid var(--ui-border);
 }
 
 .task-delete-button {
@@ -490,7 +486,7 @@ body::before {
   border: 1px solid var(--ui-border);
   border-radius: 12px;
   background: var(--ui-surface);
-  padding: 12px;
+  padding: 14px;
   cursor: pointer;
 }
 
@@ -513,7 +509,22 @@ body::before {
 }
 
 .task-compose-dialog {
+  width: min(920px, calc(100vw - 32px));
+  margin: 32px auto !important;
+  border: 1px solid var(--ui-border) !important;
+  border-radius: 22px !important;
+  background: var(--ui-surface) !important;
+  box-shadow: var(--ui-shadow) !important;
   overflow: hidden;
+}
+
+.task-compose-dialog.MuiDialog-paperFullScreen {
+  width: 100%;
+  min-height: 100%;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  max-height: none;
 }
 
 .task-compose-dialog-title {
@@ -521,34 +532,66 @@ body::before {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 20px 20px 16px !important;
-  font-size: 1.5rem !important;
+  padding: 18px 24px 16px !important;
+  font-size: 1.22rem !important;
   font-weight: 700 !important;
-  letter-spacing: -0.03em !important;
+  letter-spacing: -0.02em !important;
+  border-bottom: 1px solid var(--ui-border);
+  background: var(--ui-surface);
+}
+
+.task-compose-dialog-title > span {
+  display: block;
+  word-spacing: 0.08em;
+}
+
+.task-compose-dialog-title .MuiIconButton-root {
+  border: 1px solid var(--ui-border);
+  background: var(--ui-surface-subtle);
 }
 
 .task-compose-dialog-content {
-  padding: 8px 20px 20px !important;
+  padding: 20px 24px 20px !important;
+  overflow: visible !important;
 }
 
 .task-compose-dialog-actions {
-  padding: 0 20px 20px !important;
+  justify-content: flex-end;
+  padding: 16px 24px 20px !important;
   gap: 12px;
+  border-top: 1px solid var(--ui-border);
+  background: var(--ui-surface);
+}
+
+.task-compose-dialog-actions .MuiButton-root {
+  min-width: 136px;
 }
 
 .task-compose-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 20px;
+  gap: 24px;
+  align-items: start;
 }
 
 .task-compose-column {
   min-width: 0;
 }
 
-.task-compose-field .MuiInputBase-root,
+.task-compose-field .MuiFormLabel-root {
+  font-size: 0.92rem !important;
+}
+
+.task-compose-field .MuiInputBase-root {
+  min-height: 50px;
+  align-items: flex-start;
+}
+
+.task-compose-field .MuiInputBase-input,
+.task-compose-field .MuiInputBase-inputMultiline,
+.task-compose-field .MuiSelect-select,
 .task-compose-textarea {
-  font-size: 0.95rem;
+  font-size: 16px !important;
 }
 
 .task-compose-label {
@@ -581,7 +624,7 @@ body::before {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-height: 110px;
+  min-height: 124px;
   border: 1px dashed var(--ui-border-strong);
   border-radius: 10px;
   background: var(--ui-surface-subtle);
@@ -609,7 +652,7 @@ body::before {
   border: 1px solid var(--ui-border);
   border-radius: 10px;
   background: var(--ui-surface-subtle);
-  padding: 10px 12px;
+  padding: 12px;
 }
 
 .task-compose-file-item.is-pending-removal {
@@ -724,7 +767,7 @@ body::before {
 }
 
 .task-detail-header {
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .task-detail-back-link {
@@ -751,6 +794,12 @@ body::before {
   font-size: 0.95rem !important;
 }
 
+.task-detail-mobile-menu-button {
+  border: 1px solid var(--ui-border) !important;
+  background: var(--ui-surface-subtle) !important;
+  color: var(--ui-text-muted) !important;
+}
+
 .task-detail-summary-card {
   padding: 18px !important;
   margin-bottom: 16px;
@@ -766,6 +815,12 @@ body::before {
   color: var(--ui-text-muted) !important;
   font-size: 0.78rem !important;
   font-weight: 600 !important;
+}
+
+.task-detail-meta-item > .status-pill,
+.task-detail-meta-item > .git-state-pill,
+.task-detail-meta-item > .task-diff-stats {
+  align-self: flex-start;
 }
 
 .detail-section {
@@ -853,11 +908,12 @@ body::before {
   border: 1px solid var(--ui-border);
   border-radius: 12px;
   background: var(--ui-surface);
-  padding: 14px 16px;
+  padding: 14px 16px 16px;
 }
 
 .run-shell-header {
   margin-bottom: 10px;
+  flex-wrap: wrap;
 }
 
 .run-shell-time {
@@ -1095,13 +1151,13 @@ pre {
 
 @media (max-width: 600px) {
   .app-shell {
-    max-width: 430px !important;
-    padding: 10px !important;
+    max-width: none !important;
+    padding: 0 !important;
   }
 
   .app-frame {
-    min-height: calc(100vh - 20px);
-    border-radius: 32px;
+    min-height: 100vh;
+    border-radius: 0;
   }
 
   .app-nav-desktop {
@@ -1110,15 +1166,11 @@ pre {
 
   .app-nav-mobile {
     display: block;
-    padding: 10px 14px 0;
-  }
-
-  .app-mobile-topbar {
-    padding: 0 0 8px;
+    padding: 0 12px;
   }
 
   .app-mobile-tabs {
-    border-top: 1px solid var(--ui-border);
+    border-top: 0;
     justify-content: space-between;
   }
 
@@ -1150,28 +1202,31 @@ pre {
   .section-title,
   .workspace-title,
   .task-detail-title {
-    font-size: 1.85rem !important;
+    font-size: 1.55rem !important;
   }
 
   .task-compose-dialog-title {
-    padding: 18px 16px 12px !important;
-    font-size: 1.25rem !important;
+    padding: 18px 18px 16px !important;
+    font-size: 1.08rem !important;
   }
 
   .task-compose-dialog-content {
-    padding: 10px 16px 16px !important;
+    padding: 16px 18px 18px !important;
   }
 
   .task-compose-dialog-actions {
-    padding: 12px 16px 16px !important;
-    position: sticky;
-    bottom: 0;
-    background: var(--ui-frame-bg);
-    border-top: 1px solid var(--ui-border);
+    padding: 16px 18px 18px !important;
+  }
+
+  .task-compose-dialog {
+    width: 100%;
+    margin: 0 !important;
+    border-radius: 0 !important;
   }
 
   .task-compose-dialog-actions .MuiButton-root {
     flex: 1;
+    min-width: 0;
   }
 
   .task-detail-shell {

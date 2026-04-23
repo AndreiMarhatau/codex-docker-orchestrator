@@ -63,9 +63,8 @@ async function exerciseTaskDetail(user) {
   await user.click(screen.getByText('feature/refactor'));
   expect(screen.getByText('Hello from agent')).toBeInTheDocument();
   expect(screen.getByText('Second agent update')).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: /Artifacts 2/ }));
-  expect(screen.queryAllByText('output.png').length).toBeGreaterThan(0);
-  expect(screen.queryAllByText('report.txt').length).toBeGreaterThan(0);
+  expect(screen.queryByRole('button', { name: /Artifacts/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Task context/ })).not.toBeInTheDocument();
 
   await user.click(screen.getByRole('tab', { name: 'Diff' }));
   await user.click(await screen.findByRole('button', { name: 'Show diff' }));
@@ -113,11 +112,9 @@ async function exerciseTaskDetail(user) {
   await user.click(screen.getByRole('button', { name: 'Push' }));
   await user.click(screen.getByLabelText('Back to tasks'));
   await user.click(screen.getByText('feature/preflight'));
-  await user.click(screen.getByRole('button', { name: /Task context/ }));
-  await user.click(screen.getByRole('button', { name: /Task files 1/ }));
-  expect(screen.getByText('brief.md')).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: /Reference repos 1/ }));
-  expect(screen.getByText('openai/reference')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Task context/ })).not.toBeInTheDocument();
+  expect(screen.queryByText('brief.md')).not.toBeInTheDocument();
+  expect(screen.queryByText('openai/reference')).not.toBeInTheDocument();
   await user.click(screen.getByLabelText('Back to tasks'));
   const removeTaskButtons = screen.getAllByLabelText(/Remove task/);
   await user.click(removeTaskButtons[removeTaskButtons.length - 1]);

@@ -28,22 +28,30 @@ function TaskForm({ data, tasksState }) {
     Math.min(100, Math.round(files.taskFileUploadProgress?.percent || 0))
   );
 
+  const closeDialog = () => {
+    if (!loading && !files.taskFileUploading) {
+      formState.setShowTaskForm(false);
+    }
+  };
+
   return (
     <Dialog
       open={formState.showTaskForm}
-      onClose={() => formState.setShowTaskForm(false)}
+      onClose={closeDialog}
       fullWidth
-      maxWidth="md"
+      maxWidth={false}
       fullScreen={fullScreen}
+      scroll="body"
       aria-label="New task"
-      PaperProps={{ className: 'task-compose-dialog' }}
+      PaperProps={{ className: 'task-compose-dialog task-compose-dialog--create' }}
     >
       <DialogTitle className="task-compose-dialog-title">
         <span>Create New Task</span>
         <IconButton
           aria-label="Close"
-          onClick={() => formState.setShowTaskForm(false)}
+          onClick={closeDialog}
           size="small"
+          disabled={loading || files.taskFileUploading}
         >
           <CloseOutlinedIcon fontSize="small" />
         </IconButton>
@@ -58,7 +66,7 @@ function TaskForm({ data, tasksState }) {
         />
       </DialogContent>
       <DialogActions className="task-compose-dialog-actions">
-        <Button onClick={() => formState.setShowTaskForm(false)} disabled={loading || files.taskFileUploading}>
+        <Button onClick={closeDialog} disabled={loading || files.taskFileUploading}>
           Cancel
         </Button>
         <Button

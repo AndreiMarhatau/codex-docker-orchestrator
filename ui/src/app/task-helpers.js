@@ -13,11 +13,34 @@ function getElapsedMs(startedAt, finishedAt, now) {
   return Math.max(0, end - start);
 }
 
-function getLatestRun(task) {
-  if (!task?.runs || task.runs.length === 0) {
+function getRunDurationMs(run, now) {
+  if (!run || typeof run !== 'object') {
     return null;
   }
-  return task.runs[task.runs.length - 1];
+  return getElapsedMs(run.startedAt, run.finishedAt, now);
+}
+
+function getLatestRun(task) {
+  const runs = Array.isArray(task?.runs) && task.runs.length > 0
+    ? task.runs
+    : Array.isArray(task?.runLogs)
+      ? task.runLogs
+      : [];
+  if (runs.length === 0) {
+    return null;
+  }
+  return runs[runs.length - 1];
+}
+
+function getTaskRuntimeMs(task, now) {
+  if (!task || typeof task !== 'object') {
+    return null;
+  }
+  const latestRun = getLatestRun(task);
+  if (latestRun) {
+    return getRunDurationMs(latestRun, now);
+  }
+  return null;
 }
 
 function encodeArtifactPath(value) {
@@ -44,5 +67,7 @@ export {
   encodeArtifactPath,
   getElapsedMs,
   getLatestRun,
+  getRunDurationMs,
+  getTaskRuntimeMs,
   isImageArtifact
 };

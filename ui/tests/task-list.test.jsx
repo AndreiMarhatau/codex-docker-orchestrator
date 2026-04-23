@@ -14,12 +14,16 @@ vi.mock('@mui/material', async () => {
 });
 
 function createTask(taskId, overrides = {}) {
+  const status = overrides.status || 'completed';
   return {
     taskId,
     envId: 'env-1',
     repoUrl: 'https://github.com/openai/codex.git',
     branchName: `branch-${taskId}`,
-    status: 'completed',
+    status,
+    runs: status === 'running'
+      ? [{ runId: `run-${taskId}`, startedAt: '1970-01-01T00:00:30.000Z' }]
+      : [],
     gitStatus: {
       hasChanges: true,
       pushed: false,
@@ -30,16 +34,17 @@ function createTask(taskId, overrides = {}) {
   };
 }
 
-function renderTaskList({ selectedTaskId = '', tasks = [] } = {}) {
+function renderTaskList({ loading = false, selectedTaskId = '', tasks = [] } = {}) {
   const handleDeleteTask = vi.fn();
   const handleStopTask = vi.fn();
   const setSelectedTaskId = vi.fn();
 
   render(
     <TaskList
-      data={{ loading: false }}
+      data={{ loading }}
       handleDeleteTask={handleDeleteTask}
       handleStopTask={handleStopTask}
+      now={60_000}
       selectedTaskId={selectedTaskId}
       setSelectedTaskId={setSelectedTaskId}
       visibleTasks={tasks}
@@ -75,6 +80,7 @@ describe('TaskList', () => {
     expect(screen.getByText('Environment')).toBeInTheDocument();
     expect(screen.getByText('branch-task-running')).toBeInTheDocument();
     expect(screen.getByText('branch-task-stopped')).toBeInTheDocument();
+    expect(screen.getByLabelText('Task duration 0:30')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Open task task-running' }).contains(
         screen.getByRole('button', { name: 'Stop' })
@@ -84,7 +90,7 @@ describe('TaskList', () => {
     await user.click(screen.getByRole('button', { name: 'Stop' }));
     expect(handleStopTask).toHaveBeenCalledWith('task-running');
 
-    await user.click(screen.getByRole('button', { name: 'Open' }));
+    await user.click(screen.getByRole('button', { name: 'Open task task-stopped' }));
     expect(setSelectedTaskId).toHaveBeenCalledWith('task-stopped');
 
     await user.click(screen.getByLabelText('Remove task task-running'));
@@ -124,6 +130,7 @@ describe('TaskList', () => {
     const { setSelectedTaskId } = renderTaskList({ tasks });
 
     expect(screen.getByText('branch-task-1')).toBeInTheDocument();
+    expect(screen.getByLabelText('Task duration 0:30')).toBeInTheDocument();
     expect(screen.queryByText('branch-task-5')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'View more' })).toBeInTheDocument();
 
@@ -150,5 +157,28 @@ describe('TaskList', () => {
     fireEvent.click(stopButton);
     expect(handleStopTask).toHaveBeenCalledWith('task-running');
     expect(setSelectedTaskId).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables task opening while list mutations are loading', async () => {
+    useMediaQueryMock.mockReturnValue(false);
+    const user = userEvent.setup();
+    const task = createTask('task-loading', { status: 'running' });
+    const { setSelectedTaskId } = renderTaskList({ loading: true, tasks: [task] });
+
+    const summaryButton = screen.getByRole('button', { name: 'Open task task-loading' });
+    expect(summaryButton).toHaveAttribute('aria-disabled', 'true');
+    expect(summaryButton).toHaveAttribute('tabindex', '-1');
+
+    await user.click(summaryButton);
+    expect(setSelectedTaskId).not.toHaveBeenCalled();
+  });
+
+  it('does not render stop for stopping tasks', () => {
+    useMediaQueryMock.mockReturnValue(false);
+    const task = createTask('task-stopping', { status: 'stopping' });
+
+    renderTaskList({ tasks: [task] });
+
+    expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument();
   });
 });

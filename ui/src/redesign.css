@@ -593,8 +593,7 @@ body::before {
 
 .task-compose-field .MuiInputBase-input,
 .task-compose-field .MuiInputBase-inputMultiline,
-.task-compose-field .MuiSelect-select,
-.task-compose-textarea {
+.task-compose-field .MuiSelect-select {
   font-size: 16px !important;
 }
 
@@ -734,26 +733,6 @@ body::before {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.task-compose-textarea {
-  width: 100%;
-  min-height: 188px;
-  resize: vertical;
-  border: 1px solid var(--ui-border);
-  border-radius: 10px;
-  background: var(--ui-surface);
-  color: var(--ui-text);
-  padding: 14px;
-  font-family: inherit;
-  line-height: 1.5;
-  box-sizing: border-box;
-}
-
-.task-compose-textarea:focus {
-  outline: 0;
-  border-color: var(--ui-accent);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .task-detail-shell {

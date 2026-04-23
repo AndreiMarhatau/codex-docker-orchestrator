@@ -1,4 +1,4 @@
-import { Stack, Typography } from '@mui/material';
+import { Stack, TextField, Typography } from '@mui/material';
 import AttachFileOutlinedIcon from '@mui/icons-material/AttachFileOutlined';
 import UploadProgress from '../../../components/UploadProgress.jsx';
 import { MAX_TASK_FILES } from '../../../constants.js';
@@ -115,14 +115,16 @@ function TaskResumeDialogBody({
             <Typography className="task-compose-helper">
               Continuing <strong>{detail.taskDetail?.branchName || 'current branch'}</strong>
             </Typography>
-            <textarea
-              className="task-compose-textarea"
+            <TextField
+              fullWidth
+              multiline
+              minRows={8}
+              className="task-compose-field"
               value={detail.resumePrompt}
               onChange={(event) => detail.setResumePrompt(event.target.value)}
               disabled={dialogBusy}
               placeholder="Describe what the agent should do..."
-              rows={8}
-              aria-label="Continuation prompt"
+              inputProps={{ 'aria-label': 'Continuation prompt' }}
             />
             <Typography className="task-compose-helper">
               Be specific and include context, goals, and constraints.

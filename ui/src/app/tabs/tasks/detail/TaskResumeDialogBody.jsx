@@ -1,9 +1,9 @@
-import { Checkbox, FormControlLabel, Stack, Typography } from '@mui/material';
+import { Stack, Typography } from '@mui/material';
 import AttachFileOutlinedIcon from '@mui/icons-material/AttachFileOutlined';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import UploadProgress from '../../../components/UploadProgress.jsx';
 import { MAX_TASK_FILES } from '../../../constants.js';
 import { formatBytes } from '../../../formatters.js';
+import TaskDockerToggle from '../form/TaskDockerToggle.jsx';
 import TaskFormContextRepos from '../form/TaskFormContextRepos.jsx';
 import RunOverrideForm from './RunOverrideForm.jsx';
 
@@ -177,25 +177,13 @@ function TaskResumeDialogBody({
           effortHelper="If not specified, the task effort will be used."
         />
 
-        <Stack direction="row" spacing={1} alignItems="flex-start" className="task-compose-toggle-row">
-          <FormControlLabel
-            className="task-compose-checkbox"
-            control={(
-              <Checkbox
-                checked={detail.resumeUseHostDockerSocket}
-                onChange={(event) => {
-                  detail.setResumeUseHostDockerSocket(event.target.checked);
-                  detail.setResumeDockerTouched(true);
-                }}
-              />
-            )}
-            label="Enable Docker"
-          />
-          <WarningAmberIcon className="task-compose-warning" color="warning" fontSize="small" />
-        </Stack>
-        <Typography className="task-compose-helper task-compose-helper--inline">
-          Run the agent in a Docker container.
-        </Typography>
+        <TaskDockerToggle
+          checked={detail.resumeUseHostDockerSocket}
+          onChange={(event) => {
+            detail.setResumeUseHostDockerSocket(event.target.checked);
+            detail.setResumeDockerTouched(true);
+          }}
+        />
 
         <Stack spacing={1.15} className="task-compose-section">
           <Typography className="task-compose-label">

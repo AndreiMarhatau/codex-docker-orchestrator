@@ -520,11 +520,12 @@ body::before {
 
 .task-compose-dialog.MuiDialog-paperFullScreen {
   width: 100%;
-  min-height: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
   margin: 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
-  max-height: none;
+  max-height: 100dvh;
 }
 
 .task-compose-dialog-title {
@@ -552,7 +553,8 @@ body::before {
 
 .task-compose-dialog-content {
   padding: 20px 24px 20px !important;
-  overflow: visible !important;
+  min-height: 0;
+  overscroll-behavior: contain;
 }
 
 .task-compose-dialog-actions {
@@ -593,7 +595,8 @@ body::before {
 
 .task-compose-field .MuiInputBase-input,
 .task-compose-field .MuiInputBase-inputMultiline,
-.task-compose-field .MuiSelect-select {
+.task-compose-field .MuiSelect-select,
+.task-compose-textarea {
   font-size: 16px !important;
 }
 
@@ -733,6 +736,26 @@ body::before {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.task-compose-textarea {
+  width: 100%;
+  min-height: 188px;
+  resize: vertical;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  padding: 14px;
+  font-family: inherit;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.task-compose-textarea:focus {
+  outline: 0;
+  border-color: var(--ui-accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .task-detail-shell {

@@ -41,7 +41,7 @@ function TaskForm({ data, tasksState }) {
       fullWidth
       maxWidth={false}
       fullScreen={fullScreen}
-      scroll="body"
+      scroll="paper"
       aria-label="New task"
       PaperProps={{ className: 'task-compose-dialog task-compose-dialog--create' }}
     >

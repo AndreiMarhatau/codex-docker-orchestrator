@@ -43,7 +43,7 @@ function TaskResumeDialog({
       maxWidth={false}
       fullWidth
       fullScreen={fullScreen}
-      scroll="body"
+      scroll="paper"
       aria-label="Ask for changes"
       PaperProps={{ className: 'task-compose-dialog task-compose-dialog--resume' }}
     >

@@ -1,5 +1,5 @@
 const TAB_QUERY_NAMES = ['environments', 'tasks', 'accounts', 'settings'];
-const DETAIL_TAB_QUERY_NAMES = ['overview', 'diff'];
+const DETAIL_TAB_QUERY_NAMES = ['overview', 'diff', 'artifacts'];
 const COMPOSE_QUERY_NAMES = new Set(['create', 'resume']);
 
 function getWindowUrl() {

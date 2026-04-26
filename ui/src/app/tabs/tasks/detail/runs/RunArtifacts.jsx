@@ -4,7 +4,7 @@ import DisclosureSection from '../../../../components/DisclosureSection.jsx';
 import { formatBytes } from '../../../../formatters.js';
 import { encodeArtifactPath, isImageArtifact } from '../../../../task-helpers.js';
 
-function RunArtifacts({ run, taskId }) {
+function RunArtifacts({ defaultOpen = false, run, taskId }) {
   const artifacts = run.artifacts || [];
 
   if (artifacts.length === 0) {
@@ -39,6 +39,7 @@ function RunArtifacts({ run, taskId }) {
   return (
     <DisclosureSection
       className="run-section-card run-section-card--artifacts agent-inline-summary agent-inline-summary--subtle"
+      defaultOpen={defaultOpen}
       title={`Artifacts ${artifacts.length}`}
     >
       <Box>

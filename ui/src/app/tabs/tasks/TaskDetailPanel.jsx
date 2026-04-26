@@ -2,11 +2,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import TaskDetailActions from './detail/TaskDetailActions.jsx';
+import TaskArtifacts from './detail/TaskArtifacts.jsx';
 import TaskDetailHeader from './detail/TaskDetailHeader.jsx';
 import TaskDetailSummaryCard from './detail/TaskDetailSummaryCard.jsx';
 import TaskDiff from './detail/TaskDiff.jsx';
 import TaskRuns from './detail/TaskRuns.jsx';
 import { readDetailTabQuery, writeDetailTabQuery } from '../../query-state.js';
+
+const DETAIL_TABS = [
+  { label: 'Overview', panelId: 'task-detail-panel-overview', tabId: 'task-detail-tab-overview' },
+  { label: 'Diff', panelId: 'task-detail-panel-diff', tabId: 'task-detail-tab-diff' },
+  { label: 'Artifacts', panelId: 'task-detail-panel-artifacts', tabId: 'task-detail-tab-artifacts' }
+];
 
 function DetailTabButton({ active, controls, label, onClick, onKeyDown, tabId }) {
   return (
@@ -23,6 +30,24 @@ function DetailTabButton({ active, controls, label, onClick, onKeyDown, tabId })
     >
       {label}
     </button>
+  );
+}
+
+function DetailModeBar({ activeTab, onKeyDown, setActiveTab }) {
+  return (
+    <Box className="task-detail-modebar" role="tablist" aria-label="Task detail views">
+      {DETAIL_TABS.map((tab, index) => (
+        <DetailTabButton
+          active={activeTab === index}
+          controls={tab.panelId}
+          key={tab.tabId}
+          label={tab.label}
+          onClick={() => setActiveTab(index)}
+          onKeyDown={(event) => onKeyDown(index, event)}
+          tabId={tab.tabId}
+        />
+      ))}
+    </Box>
   );
 }
 
@@ -48,7 +73,7 @@ function TaskDetailPanel({ data, tasksState }) {
     if (typeof window === 'undefined') {
       return;
     }
-    const tabId = value === 0 ? 'task-detail-tab-overview' : 'task-detail-tab-diff';
+    const tabId = DETAIL_TABS[value]?.tabId || DETAIL_TABS[0].tabId;
     window.requestAnimationFrame(() => {
       document.getElementById(tabId)?.focus();
     });
@@ -65,11 +90,13 @@ function TaskDetailPanel({ data, tasksState }) {
       return;
     }
     if (event.key === 'End') {
-      setActiveTab(1);
-      focusDetailTab(1);
+      const lastTab = DETAIL_TABS.length - 1;
+      setActiveTab(lastTab);
+      focusDetailTab(lastTab);
       return;
     }
-    const nextTab = currentTab === 0 ? 1 : 0;
+    const offset = event.key === 'ArrowRight' ? 1 : -1;
+    const nextTab = (currentTab + offset + DETAIL_TABS.length) % DETAIL_TABS.length;
     setActiveTab(nextTab);
     focusDetailTab(nextTab);
   };
@@ -161,24 +188,11 @@ function TaskDetailPanel({ data, tasksState }) {
       {hasTaskDetail && activeTab === 0 && (
         <>
           <TaskDetailHeader now={now} tasksState={tasksState} loading={data.loading} />
-          <Box className="task-detail-modebar" role="tablist" aria-label="Task detail views">
-            <DetailTabButton
-              active={activeTab === 0}
-              controls="task-detail-panel-overview"
-              label="Overview"
-              onClick={() => setActiveTab(0)}
-              onKeyDown={(event) => handleDetailTabKeyDown(0, event)}
-              tabId="task-detail-tab-overview"
-            />
-            <DetailTabButton
-              active={activeTab === 1}
-              controls="task-detail-panel-diff"
-              label="Diff"
-              onClick={() => setActiveTab(1)}
-              onKeyDown={(event) => handleDetailTabKeyDown(1, event)}
-              tabId="task-detail-tab-diff"
-            />
-          </Box>
+          <DetailModeBar
+            activeTab={activeTab}
+            onKeyDown={handleDetailTabKeyDown}
+            setActiveTab={setActiveTab}
+          />
           <Box
             className="task-detail-pane task-detail-pane--overview"
             id="task-detail-panel-overview"
@@ -204,24 +218,11 @@ function TaskDetailPanel({ data, tasksState }) {
       {hasTaskDetail && activeTab === 1 && (
         <>
           <TaskDetailHeader now={now} tasksState={tasksState} loading={data.loading} />
-          <Box className="task-detail-modebar" role="tablist" aria-label="Task detail views">
-            <DetailTabButton
-              active={activeTab === 0}
-              controls="task-detail-panel-overview"
-              label="Overview"
-              onClick={() => setActiveTab(0)}
-              onKeyDown={(event) => handleDetailTabKeyDown(0, event)}
-              tabId="task-detail-tab-overview"
-            />
-            <DetailTabButton
-              active={activeTab === 1}
-              controls="task-detail-panel-diff"
-              label="Diff"
-              onClick={() => setActiveTab(1)}
-              onKeyDown={(event) => handleDetailTabKeyDown(1, event)}
-              tabId="task-detail-tab-diff"
-            />
-          </Box>
+          <DetailModeBar
+            activeTab={activeTab}
+            onKeyDown={handleDetailTabKeyDown}
+            setActiveTab={setActiveTab}
+          />
           <Box
             className="task-detail-pane task-detail-pane--diff"
             id="task-detail-panel-diff"
@@ -230,6 +231,26 @@ function TaskDetailPanel({ data, tasksState }) {
           >
             <TaskDetailSummaryCard now={now} taskDetail={detail.taskDetail} />
             <TaskDiff tasksState={tasksState} />
+          </Box>
+        </>
+      )}
+
+      {hasTaskDetail && activeTab === 2 && (
+        <>
+          <TaskDetailHeader now={now} tasksState={tasksState} loading={data.loading} />
+          <DetailModeBar
+            activeTab={activeTab}
+            onKeyDown={handleDetailTabKeyDown}
+            setActiveTab={setActiveTab}
+          />
+          <Box
+            className="task-detail-pane task-detail-pane--artifacts"
+            id="task-detail-panel-artifacts"
+            role="tabpanel"
+            aria-labelledby="task-detail-tab-artifacts"
+          >
+            <TaskDetailSummaryCard now={now} taskDetail={detail.taskDetail} />
+            <TaskArtifacts tasksState={tasksState} />
           </Box>
         </>
       )}

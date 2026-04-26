@@ -22,6 +22,11 @@ vi.mock('../src/app/tabs/tasks/detail/TaskDiff.jsx', () => ({
   default: () => <div>task diff</div>
 }));
 
+vi.mock('../src/app/tabs/tasks/detail/TaskArtifacts.jsx', () => ({
+  __esModule: true,
+  default: () => <div>task artifacts</div>
+}));
+
 vi.mock('../src/app/tabs/tasks/detail/TaskRunOverrides.jsx', () => ({
   __esModule: true,
   default: () => <div>run overrides</div>
@@ -113,6 +118,23 @@ describe('TaskDetailPanel', () => {
     expect(screen.queryByText('run logs')).not.toBeInTheDocument();
   });
 
+  it('honors an artifacts detail tab deep link on first load', () => {
+    window.history.pushState({}, '', '/?tab=tasks&taskId=task-1&detailTab=artifacts');
+
+    render(
+      <TaskDetailPanel
+        data={{ envs: [], loading: false }}
+        tasksState={createTasksState()}
+      />
+    );
+
+    expect(screen.getByText('task artifacts')).toBeInTheDocument();
+    expect(screen.getByText('task header')).toBeInTheDocument();
+    expect(screen.getByText('task summary')).toBeInTheDocument();
+    expect(screen.queryByText('task diff')).not.toBeInTheDocument();
+    expect(screen.queryByText('run logs')).not.toBeInTheDocument();
+  });
+
   it('starts running tasks at the live tail and stops auto-follow after manual scroll away', async () => {
     const initialState = createTasksState({
       selectedTaskId: 'task-1',
@@ -191,5 +213,9 @@ describe('TaskDetailPanel', () => {
     fireEvent.keyDown(screen.getByRole('tab', { name: 'Overview' }), { key: 'ArrowRight' });
 
     await waitFor(() => expect(screen.getByText('task diff')).toBeInTheDocument());
+
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Diff' }), { key: 'ArrowRight' });
+
+    await waitFor(() => expect(screen.getByText('task artifacts')).toBeInTheDocument());
   });
 });

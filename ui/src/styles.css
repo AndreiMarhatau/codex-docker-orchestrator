@@ -493,8 +493,8 @@ body::before {
 }
 
 .status-pill--running {
-  background: var(--warning-soft);
-  border-color: rgba(251, 191, 36, 0.24);
+  background: var(--accent-soft);
+  border-color: rgba(59, 130, 246, 0.24);
 }
 
 .status-pill--stopping {

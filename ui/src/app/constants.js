@@ -52,9 +52,9 @@ const STATUS_CONFIG = {
   running: {
     label: 'Running',
     icon: 'PlayCircleOutlineIcon',
-    fg: '#16a34a',
-    bg: 'rgba(34, 197, 94, 0.12)',
-    border: '#22c55e'
+    fg: '#2563eb',
+    bg: 'rgba(59, 130, 246, 0.12)',
+    border: '#3b82f6'
   },
   stopping: {
     label: 'Stopping',

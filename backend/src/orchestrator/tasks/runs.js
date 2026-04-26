@@ -11,19 +11,52 @@ function createTaskBusyError() {
   return error;
 }
 
+function beginTaskRunFinalization(orchestrator, taskId) {
+  const finalizingTaskRuns = orchestrator.finalizingTaskRuns || new Map();
+  orchestrator.finalizingTaskRuns = finalizingTaskRuns;
+  const state = finalizingTaskRuns.get(taskId) || {
+    count: 0,
+    stopRequested: false,
+    afterRelease: []
+  };
+  state.count += 1;
+  finalizingTaskRuns.set(taskId, state);
+  return () => {
+    const activeState = finalizingTaskRuns.get(taskId);
+    if (!activeState) {
+      return;
+    }
+    activeState.count -= 1;
+    if (activeState.count > 0) {
+      return;
+    }
+    const callbacks = activeState.stopRequested ? [] : activeState.afterRelease || [];
+    finalizingTaskRuns.delete(taskId);
+    for (const callback of callbacks) {
+      void Promise.resolve().then(callback).catch(() => {});
+    }
+  };
+}
+
 function claimTaskRunTransition(orchestrator, taskId) {
   const taskRunClaims = orchestrator.taskRunClaims || new Map();
   orchestrator.taskRunClaims = taskRunClaims;
-  if (taskRunClaims.has(taskId) || orchestrator.running.has(taskId)) {
+  if (
+    taskRunClaims.has(taskId) ||
+    orchestrator.running.has(taskId) ||
+    orchestrator.finalizingTaskRuns?.has(taskId)
+  ) {
     throw createTaskBusyError();
   }
-  const claimToken = Symbol(taskId);
-  taskRunClaims.set(taskId, claimToken);
-  return () => {
-    if (taskRunClaims.get(taskId) === claimToken) {
+  const claim = { token: Symbol(taskId), stopRequested: false, runtimeActive: false };
+  taskRunClaims.set(taskId, claim);
+  const release = () => {
+    if (taskRunClaims.get(taskId) === claim) {
       taskRunClaims.delete(taskId);
     }
   };
+  release.claim = claim;
+  return release;
 }
 
 async function resolveCurrentBranch(exec, worktreePath) {
@@ -102,30 +135,35 @@ function attachDeferredRunStartMethod(Orchestrator) {
         }
         this.startCodexRun(options);
       } catch (error) {
+        const releaseFinalizing = beginTaskRunFinalization(this, taskId);
         if (pendingRun.stopTimeout) {
           clearTimeout(pendingRun.stopTimeout);
         }
-        const activeRun = this.running.get(taskId);
-        if (activeRun === pendingRun) {
-          this.running.delete(taskId);
-        }
-        if (useHostDockerSocket) {
-          try {
-            if (hadExistingSidecar !== false) {
-              await this.stopTaskDockerSidecar(taskId);
-            } else {
-              await this.removeTaskDockerSidecar(taskId);
-            }
-          } catch {
-            // Best-effort cleanup for sidecar startup failures.
-          }
-        }
-        const startupError =
-          pendingRun.stopRequested && isAbortError(error) ? createStoppedDuringStartupError() : error;
         try {
-          await this.failRunStart(taskId, runLabel, prompt, startupError);
-        } catch {
-          // Never surface deferred bookkeeping failures as unhandled rejections.
+          const activeRun = this.running.get(taskId);
+          if (activeRun === pendingRun) {
+            this.running.delete(taskId);
+          }
+          if (useHostDockerSocket) {
+            try {
+              if (hadExistingSidecar !== false) {
+                await this.stopTaskDockerSidecar(taskId);
+              } else {
+                await this.removeTaskDockerSidecar(taskId);
+              }
+            } catch {
+              // Best-effort cleanup for sidecar startup failures.
+            }
+          }
+          const startupError =
+            pendingRun.stopRequested && isAbortError(error) ? createStoppedDuringStartupError() : error;
+          try {
+            await this.failRunStart(taskId, runLabel, prompt, startupError);
+          } catch {
+            // Never surface deferred bookkeeping failures as unhandled rejections.
+          }
+        } finally {
+          releaseFinalizing();
         }
       }
     })();
@@ -133,6 +171,11 @@ function attachDeferredRunStartMethod(Orchestrator) {
 }
 function attachFinalizeRunMethod(Orchestrator) {
   Orchestrator.prototype.finalizeRun = async function finalizeRun(taskId, runLabel, result, prompt) {
+    const isStopped = () =>
+      result.stopped === true || this.getFinalizingTaskRun(taskId)?.stopRequested === true;
+    if (isStopped()) {
+      result.stopped = true;
+    }
     const { meta, usageLimit } = await updateRunMeta({
       taskId,
       runLabel,
@@ -140,7 +183,8 @@ function attachFinalizeRunMethod(Orchestrator) {
       prompt,
       now: this.now,
       taskMetaPath: this.taskMetaPath.bind(this),
-      runArtifactsDir: this.runArtifactsDir.bind(this)
+      runArtifactsDir: this.runArtifactsDir.bind(this),
+      isStopped
     });
     await syncTaskBranchFromWorktree(this.exec, this.taskMetaPath.bind(this), taskId, meta.worktreePath)
       .catch(() => {});
@@ -198,14 +242,23 @@ function attachStartRunMethod(Orchestrator) {
     child.stdout.on('data', tracker.onStdout);
     child.stderr.on('data', tracker.onStderr);
     const finalize = async (code, signal) => {
+      const releaseFinalizing = beginTaskRunFinalization(this, taskId);
       if (runState.stopTimeout) {
         clearTimeout(runState.stopTimeout);
       }
-      this.running.delete(taskId);
-      const result = tracker.getResult();
-      result.code = code ?? 1;
-      result.stopped = runState.stopRequested || signal === 'SIGTERM' || signal === 'SIGKILL';
       try {
+        const activeRun = this.running.get(taskId);
+        if (activeRun === runState) {
+          this.running.delete(taskId);
+        }
+        const result = tracker.getResult();
+        result.code = code ?? 1;
+        const isStopped = () =>
+          runState.stopRequested ||
+          this.getFinalizingTaskRun(taskId)?.stopRequested === true ||
+          signal === 'SIGTERM' ||
+          signal === 'SIGKILL';
+        result.stopped = isStopped();
         await this.finalizeRun(taskId, runLabel, result, prompt);
       } finally {
         let stopErrorMessage = null;
@@ -221,6 +274,7 @@ function attachStartRunMethod(Orchestrator) {
         }
         logStream.end();
         stderrStream.end();
+        releaseFinalizing();
       }
     };
     child.on('error', (error) => {
@@ -233,6 +287,47 @@ function attachStartRunMethod(Orchestrator) {
 function attachTaskRunMethods(Orchestrator) {
   Orchestrator.prototype.claimTaskRunTransition = function claimTaskRunTransitionMethod(taskId) {
     return claimTaskRunTransition(this, taskId);
+  };
+  Orchestrator.prototype.getTaskRunTransitionClaim = function getTaskRunTransitionClaim(taskId) {
+    return this.taskRunClaims?.get(taskId) || null;
+  };
+  Orchestrator.prototype.requestTaskRunTransitionStop = function requestTaskRunTransitionStop(
+    taskId
+  ) {
+    const claim = this.getTaskRunTransitionClaim(taskId);
+    if (!claim) {
+      return false;
+    }
+    claim.stopRequested = true;
+    return true;
+  };
+  Orchestrator.prototype.markTaskRunTransitionRuntimeActive =
+    function markTaskRunTransitionRuntimeActive(claim) {
+      if (claim) {
+        claim.runtimeActive = true;
+      }
+    };
+  Orchestrator.prototype.getFinalizingTaskRun = function getFinalizingTaskRun(taskId) {
+    return this.finalizingTaskRuns?.get(taskId) || null;
+  };
+  Orchestrator.prototype.runAfterTaskFinalization = function runAfterTaskFinalization(
+    taskId,
+    callback
+  ) {
+    const state = this.getFinalizingTaskRun(taskId);
+    if (!state) {
+      return false;
+    }
+    state.afterRelease.push(callback);
+    return true;
+  };
+  Orchestrator.prototype.requestFinalizingTaskStop = function requestFinalizingTaskStop(taskId) {
+    const state = this.getFinalizingTaskRun(taskId);
+    if (!state) {
+      return false;
+    }
+    state.stopRequested = true;
+    return true;
   };
   attachFailRunStartMethod(Orchestrator); attachDeferredRunStartMethod(Orchestrator);
   attachFinalizeRunMethod(Orchestrator); attachStartRunMethod(Orchestrator);

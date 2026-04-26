@@ -1,4 +1,5 @@
-import fs from 'node:fs/promises';
+import { EventEmitter } from 'node:events';
+import { PassThrough } from 'node:stream';
 import { describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createRequire } from 'node:module';
@@ -8,13 +9,37 @@ const require = createRequire(import.meta.url);
 const { createApp } = require('../src/app');
 const { Orchestrator } = require('../src/orchestrator');
 
-async function createTestContext() {
+function createControlledRunSpawn() {
+  const baseSpawn = createMockSpawn();
+  let runChild = null;
+  const spawn = (command, args, options = {}) => {
+    if (command !== 'codex-docker' || args[0] === 'app-server') {
+      return baseSpawn(command, args, options);
+    }
+    spawn.calls.push({ command, args, options });
+    runChild = new EventEmitter();
+    runChild.stdout = new PassThrough();
+    runChild.stderr = new PassThrough();
+    runChild.stdin = new PassThrough();
+    runChild.kill = () => {};
+    return runChild;
+  };
+  spawn.calls = baseSpawn.calls;
+  spawn.finishRun = () => {
+    const started = { type: 'thread.started', thread_id: baseSpawn.threadId };
+    runChild.stdout.write(`${JSON.stringify(started)}\n`);
+    runChild.emit('close', 0, null);
+  };
+  return spawn;
+}
+
+async function createTestContext({ spawn = createMockSpawn() } = {}) {
   const orchHome = await createTempDir();
   const orchestrator = new Orchestrator({
     orchHome,
     codexHome: `${orchHome}/codex-home`,
     exec: createMockExec({ branches: ['main'] }),
-    spawn: createMockSpawn()
+    spawn
   });
   await prepareOrchestratorSetup(orchestrator);
   return { app: await createApp({ orchestrator }), orchestrator };
@@ -30,13 +55,6 @@ async function waitForTaskStatus(orchestrator, taskId, status) {
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
   throw new Error(`Timed out waiting for status ${status}`);
-}
-
-async function updateTaskStatus(orchestrator, taskId, status) {
-  const metaPath = orchestrator.taskMetaPath(taskId);
-  const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
-  meta.status = status;
-  await fs.writeFile(metaPath, JSON.stringify(meta));
 }
 
 describe('tasks resume claim release', () => {
@@ -57,7 +75,8 @@ describe('tasks resume claim release', () => {
   });
 
   it('releases the transition claim after a running-task 409 response', async () => {
-    const { app, orchestrator } = await createTestContext();
+    const spawn = createControlledRunSpawn();
+    const { app, orchestrator } = await createTestContext({ spawn });
     const env = await orchestrator.createEnv({
       repoUrl: 'git@example.com:repo.git',
       defaultBranch: 'main'
@@ -67,8 +86,6 @@ describe('tasks resume claim release', () => {
       ref: 'main',
       prompt: 'Do work'
     });
-    await waitForTaskStatus(orchestrator, task.taskId, 'completed');
-    await updateTaskStatus(orchestrator, task.taskId, 'running');
 
     const blockedResponse = await request(app)
       .post(`/api/tasks/${task.taskId}/resume`)
@@ -78,7 +95,8 @@ describe('tasks resume claim release', () => {
     expect(blockedResponse.text).toContain('Wait for the current run to finish');
     expect(orchestrator.taskRunClaims?.size || 0).toBe(0);
 
-    await updateTaskStatus(orchestrator, task.taskId, 'completed');
+    spawn.finishRun();
+    await waitForTaskStatus(orchestrator, task.taskId, 'completed');
     const resumedResponse = await request(app)
       .post(`/api/tasks/${task.taskId}/resume`)
       .send({ prompt: 'Continue for real' })

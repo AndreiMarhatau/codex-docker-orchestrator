@@ -12,7 +12,7 @@ function taskSidecarName(orchestrator, taskId) { return `${orchestrator.taskDock
 function taskSidecarVolumeName(orchestrator, taskId) { return `${orchestrator.taskDockerSidecarNamePrefix}-${taskId}-data`; }
 
 async function execIgnoreNotFound(orchestrator, args) {
-  const result = await orchestrator.exec('docker', args);
+  const result = await execTaskDocker(orchestrator, args);
   if (result.code === 0) { return; }
   const output = `${result.stderr || ''}\n${result.stdout || ''}`.toLowerCase();
   if (output.includes('no such container') || output.includes('not found')) { return; }
@@ -143,7 +143,7 @@ function attachTaskDockerSidecarMethods(Orchestrator) {
     const sidecarName = taskSidecarName(this, taskId);
     const volumeName = taskSidecarVolumeName(this, taskId);
     await execIgnoreNotFound(this, ['rm', '-f', sidecarName]);
-    await this.exec('docker', ['volume', 'rm', '-f', volumeName]);
+    await execTaskDockerOrThrow(this, ['volume', 'rm', '-f', volumeName]);
     await removePath(this.taskDockerDir(taskId));
   };
 }

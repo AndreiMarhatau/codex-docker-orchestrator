@@ -15,60 +15,20 @@ function createTaskBusyError() {
   return error;
 }
 
-function signalRunChild(run, signal) {
-  if (!run?.child) {
-    return;
+function assertTaskCanResume(meta, options) {
+  if (!options.allowRunningStatus && (meta.status === 'running' || meta.status === 'stopping')) {
+    throw createTaskBusyError();
   }
-  if (
-    run.useProcessGroup &&
-    Number.isInteger(run.child.pid) &&
-    run.child.pid > 0 &&
-    process.platform !== 'win32'
-  ) {
-    try {
-      process.kill(-run.child.pid, signal);
-      return;
-    } catch (error) {
-      // Fall back to direct child signal when process-group signaling is unavailable.
-    }
-  }
-  try {
-    run.child.kill(signal);
-  } catch (error) {
-    // Ignore kill errors.
+  if (!meta.threadId) {
+    throw new Error('Cannot resume task without a thread_id. Rerun the task to generate one.');
   }
 }
 
-function attachStopTaskMethod(Orchestrator) {
-  Orchestrator.prototype.stopTask = async function stopTask(taskId) {
-    await this.init();
-    const meta = await readJson(this.taskMetaPath(taskId));
-    const run = this.running.get(taskId);
-    if (!run) {
-      throw new Error('No running task found.');
-    }
-    run.stopRequested = true;
-    if (run.pendingStart && run.startController) {
-      run.startController.abort();
-    }
-    signalRunChild(run, 'SIGTERM');
-    run.stopTimeout = setTimeout(() => {
-      signalRunChild(run, 'SIGKILL');
-    }, 5000);
-
-    const updatedAt = this.now();
-    meta.status = 'stopping';
-    meta.updatedAt = updatedAt;
-    if (meta.runs?.length) {
-      meta.runs[meta.runs.length - 1] = {
-        ...meta.runs[meta.runs.length - 1],
-        status: 'stopping'
-      };
-    }
-    await writeJson(this.taskMetaPath(taskId), meta);
-    this.notifyTasksChanged(taskId);
-    return meta;
-  };
+async function stopIfTransitionRequested(orchestrator, taskId, meta, claim) {
+  if (!claim?.stopRequested) {
+    return null;
+  }
+  return orchestrator.stopPersistedTaskRun(taskId, meta);
 }
 
 function attachTaskResumeMethods(Orchestrator) {
@@ -76,32 +36,38 @@ function attachTaskResumeMethods(Orchestrator) {
     const releaseTaskRunTransition =
       options.transitionClaim || this.claimTaskRunTransition(taskId);
     const ownsTaskRunTransition = !options.transitionClaim;
+    const transitionClaim = releaseTaskRunTransition.claim;
     try {
       await this.init();
-      const meta = await readJson(this.taskMetaPath(taskId));
-      if (!options.allowRunningStatus && (meta.status === 'running' || meta.status === 'stopping')) {
-        throw createTaskBusyError();
-      }
-      if (!meta.threadId) {
-        throw new Error('Cannot resume task without a thread_id. Rerun the task to generate one.');
-      }
-      const contextRepos = Array.isArray(meta.contextRepos) ? meta.contextRepos : [];
-      const attachments = Array.isArray(meta.attachments) ? meta.attachments : [];
-      const hasContextReposOverride = Object.prototype.hasOwnProperty.call(options, 'contextRepos');
-      let resolvedContextRepos = contextRepos;
+      const meta = await this.reconcileTaskRuntimeState(
+        taskId,
+        await readJson(this.taskMetaPath(taskId))
+      );
+      assertTaskCanResume(meta, options);
       let replacedContextReposState = null;
-      if (hasContextReposOverride) {
-        replacedContextReposState = await replaceContextReposForResume(
-          this,
-          taskId,
-          contextRepos,
-          options.contextRepos || []
-        );
-        resolvedContextRepos = replacedContextReposState.resolvedContextRepos;
-        meta.contextRepos = resolvedContextRepos;
-      }
       const { hasDockerSocketOverride, shouldUseHostDockerSocket } = resolveDockerUsage(meta, options);
+      if (shouldUseHostDockerSocket) {
+        await this.awaitStaleTaskRuntimeCleanup(taskId);
+      }
+      const stoppedAfterCleanup = await stopIfTransitionRequested(this, taskId, meta, transitionClaim);
+      if (stoppedAfterCleanup) {
+        return stoppedAfterCleanup;
+      }
       try {
+        const contextRepos = Array.isArray(meta.contextRepos) ? meta.contextRepos : [];
+        const attachments = Array.isArray(meta.attachments) ? meta.attachments : [];
+        const hasContextReposOverride = Object.prototype.hasOwnProperty.call(options, 'contextRepos');
+        let resolvedContextRepos = contextRepos;
+        if (hasContextReposOverride) {
+          replacedContextReposState = await replaceContextReposForResume(
+            this,
+            taskId,
+            contextRepos,
+            options.contextRepos || []
+          );
+          resolvedContextRepos = replacedContextReposState.resolvedContextRepos;
+          meta.contextRepos = resolvedContextRepos;
+        }
         const env = await this.readEnv(meta.envId);
         await this.ensureOwnership(env.mirrorPath);
         await this.syncManagedAgents();
@@ -143,6 +109,11 @@ function attachTaskResumeMethods(Orchestrator) {
           dockerSocketDir: this.taskDockerSocketDir(taskId),
           useHostDockerSocket: shouldUseHostDockerSocket
         });
+        const stoppedBeforeMetaWrite =
+          await stopIfTransitionRequested(this, taskId, meta, transitionClaim);
+        if (stoppedBeforeMetaWrite) {
+          return stoppedBeforeMetaWrite;
+        }
         applyResumeMetaUpdates({
           meta,
           prompt,
@@ -154,7 +125,11 @@ function attachTaskResumeMethods(Orchestrator) {
           runModel,
           runReasoningEffort
         });
+        this.markTaskRunTransitionRuntimeActive(transitionClaim);
         await writeJson(this.taskMetaPath(taskId), meta);
+        if (transitionClaim?.stopRequested) {
+          return this.stopPersistedTaskRun(taskId, meta);
+        }
         this.startCodexRunDeferred({
           taskId,
           runLabel,
@@ -185,7 +160,6 @@ function attachTaskResumeMethods(Orchestrator) {
       }
     }
   };
-  attachStopTaskMethod(Orchestrator);
 }
 
 module.exports = {

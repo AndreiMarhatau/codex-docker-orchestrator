@@ -180,6 +180,22 @@ describe('task docker sidecar cleanup', () => {
     await expect(orchestrator.stopTaskDockerSidecar('task-5')).rejects.toThrow(/permission denied/);
   });
 
+  it('uses bounded docker execution for sidecar volume removal', async () => {
+    const orchHome = await createTempDir();
+    const calls = [];
+    const exec = async (command, args, options = {}) => {
+      calls.push({ command, args, options });
+      return { stdout: '', stderr: '', code: 0 };
+    };
+    const orchestrator = new Orchestrator({ orchHome, exec });
+
+    await orchestrator.removeTaskDockerSidecar('task-volume');
+    const volumeRemoval = calls.find(
+      (call) => call.command === 'docker' && call.args[0] === 'volume' && call.args[1] === 'rm'
+    );
+    expect(volumeRemoval?.options?.signal).toBeTruthy();
+  });
+
   it('keeps the task Docker socket path short enough for unix sockets', async () => {
     const orchHome = await createTempDir();
     const orchestrator = new Orchestrator({ orchHome });

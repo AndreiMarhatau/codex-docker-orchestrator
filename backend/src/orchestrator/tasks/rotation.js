@@ -195,21 +195,20 @@ function attachTaskRotationMethods(Orchestrator) {
       fromAccountId: activeAccount.id,
       toAccountId: nextAccountId
     });
-    meta.autoRotateCount = attempts + 1;
-    meta.updatedAt = this.now();
-    meta.status = 'running';
-    meta.error = null;
-    await writeJson(this.taskMetaPath(taskId), meta);
-    await this.resumeTask(taskId, prompt, {
-      allowRunningStatus: true,
-      model: meta.model,
-      reasoningEffort: meta.reasoningEffort,
-      useHostDockerSocket: meta.useHostDockerSocket,
-      codexPrompt: ''
-    });
+    const startRotatedResume = async () => {
+      meta.autoRotateCount = attempts + 1;
+      meta.updatedAt = this.now();
+      await writeJson(this.taskMetaPath(taskId), meta);
+      await this.resumeTask(taskId, prompt, {
+        model: meta.model,
+        reasoningEffort: meta.reasoningEffort,
+        useHostDockerSocket: meta.useHostDockerSocket,
+        codexPrompt: ''
+      });
+    };
+    if (this.runAfterTaskFinalization?.(taskId, startRotatedResume)) { return; }
+    await startRotatedResume();
   };
 }
 
-module.exports = {
-  attachTaskRotationMethods
-};
+module.exports = { attachTaskRotationMethods };

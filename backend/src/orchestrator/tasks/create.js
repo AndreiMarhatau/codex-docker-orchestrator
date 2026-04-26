@@ -105,6 +105,7 @@ function attachTaskCreateMethods(Orchestrator) {
     const taskId = crypto.randomUUID();
     const shouldUseHostDockerSocket = Boolean(useHostDockerSocket);
     const runLabel = nextRunLabel(1);
+    const releaseTaskRunTransition = this.claimTaskRunTransition(taskId);
     let createdWorktreePath = null;
     try {
       await ensureDir(this.taskDir(taskId));
@@ -147,6 +148,7 @@ function attachTaskCreateMethods(Orchestrator) {
         account: activeAccount,
         runLabel
       });
+      this.markTaskRunTransitionRuntimeActive(releaseTaskRunTransition.claim);
       await writeJson(this.taskMetaPath(taskId), meta);
       await this.ensureActiveAuth();
       const args = buildCodexArgs({
@@ -166,6 +168,9 @@ function attachTaskCreateMethods(Orchestrator) {
         dockerSocketDir: this.taskDockerSocketDir(taskId),
         useHostDockerSocket: shouldUseHostDockerSocket
       });
+      if (releaseTaskRunTransition.claim?.stopRequested) {
+        return this.stopPersistedTaskRun(taskId, meta);
+      }
       this.startCodexRunDeferred({
         taskId,
         runLabel,
@@ -184,6 +189,8 @@ function attachTaskCreateMethods(Orchestrator) {
       await cleanupFailedWorktree(this, env.mirrorPath, createdWorktreePath);
       await removePath(this.taskDir(taskId));
       throw error;
+    } finally {
+      releaseTaskRunTransition();
     }
   };
 }

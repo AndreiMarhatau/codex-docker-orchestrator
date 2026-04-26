@@ -58,6 +58,7 @@ function attachSetupMethods(Orchestrator) {
 
   Orchestrator.prototype.initializeAppStartup = async function initializeAppStartup() {
     await this.init();
+    await this.reconcilePersistedTaskStates();
     await this.syncManagedAgents();
     await this.accountStore.applyActiveAccount();
   };

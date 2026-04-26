@@ -75,7 +75,7 @@ function attachTaskMetaMethods(Orchestrator) {
       if (!(await pathExists(metaPath))) {
         continue;
       }
-      const meta = await readJson(metaPath);
+      const meta = await this.reconcileTaskRuntimeState(taskId, await readJson(metaPath));
       const gitStatus = await this.getTaskGitStatus(meta);
       tasks.push({ ...meta, gitStatus });
     }
@@ -84,7 +84,10 @@ function attachTaskMetaMethods(Orchestrator) {
   };
 
   Orchestrator.prototype.getTask = async function getTask(taskId) {
-    const meta = await readJson(this.taskMetaPath(taskId));
+    const meta = await this.reconcileTaskRuntimeState(
+      taskId,
+      await readJson(this.taskMetaPath(taskId))
+    );
     const [logTail, runLogs, gitStatus] = await Promise.all([
       this.readLogTail(taskId),
       this.readRunLogs(taskId),

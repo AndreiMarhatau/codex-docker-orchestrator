@@ -416,7 +416,11 @@ body::before {
   border-radius: 999px;
 }
 
-.status-pill--running,
+.status-pill--running {
+  color: var(--ui-info);
+  background: var(--ui-info-soft);
+}
+
 .status-pill--completed {
   color: var(--ui-success);
   background: var(--ui-success-soft);

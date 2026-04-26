@@ -10,6 +10,18 @@ const {
   createTaskHandler
 } = require('./tasks.handlers');
 
+function sendTaskMutationError(res, error) {
+  if (error.code === 'TASK_BUSY') {
+    res.status(409).send(error.message);
+    return true;
+  }
+  if (error.code === 'ENOENT') {
+    res.status(404).send('Task not found');
+    return true;
+  }
+  return false;
+}
+
 function createMissingTaskHandler(load) {
   return asyncHandler(async (req, res) => {
     try {
@@ -20,6 +32,19 @@ function createMissingTaskHandler(load) {
         return res.status(404).send('Task not found');
       }
       throw error;
+    }
+  });
+}
+
+function createTaskMutationRoute(runMutation, sendResult = (res, value) => res.json(value)) {
+  return asyncHandler(async (req, res) => {
+    try {
+      const value = await runMutation(req);
+      sendResult(res, value);
+    } catch (error) {
+      if (!sendTaskMutationError(res, error)) {
+        throw error;
+      }
     }
   });
 }
@@ -54,14 +79,28 @@ function createTasksRouter(orchestrator) {
   router.get('/tasks/:taskId/logs/stream', (req, res) => {
     streamTaskLogs(orchestrator, req, res);
   });
-  router.post('/tasks/:taskId/push', asyncHandler(async (req, res) => {
-    const result = await orchestrator.pushTask(req.params.taskId);
-    res.json(result);
-  }));
-  router.delete('/tasks/:taskId', asyncHandler(async (req, res) => {
-    await orchestrator.deleteTask(req.params.taskId);
-    res.status(204).send();
-  }));
+  router.post(
+    '/tasks/:taskId/push',
+    createTaskMutationRoute((req) => orchestrator.pushTask(req.params.taskId))
+  );
+  router.post(
+    '/tasks/:taskId/commit-push',
+    createTaskMutationRoute((req) =>
+      orchestrator.commitAndPushTask(req.params.taskId, {
+        message: req.body?.message
+      })
+    )
+  );
+  router.post(
+    '/tasks/:taskId/review',
+    createTaskMutationRoute((req) => orchestrator.runTaskReview(req.params.taskId, req.body || {}))
+  );
+  router.delete('/tasks/:taskId', createTaskMutationRoute(
+    (req) => orchestrator.deleteTask(req.params.taskId),
+    (res) => {
+      res.status(204).send();
+    }
+  ));
 
   return router;
 }

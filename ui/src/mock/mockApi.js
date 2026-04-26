@@ -79,6 +79,7 @@ function syncTaskSummary(state, taskId) {
       finishedAt: run.finishedAt
     })),
     threadId: detail.threadId,
+    autoReview: detail.autoReview === true,
     useHostDockerSocket: detail.useHostDockerSocket === true,
     gitStatus: clone(detail.gitStatus || null)
   };
@@ -139,6 +140,7 @@ function createTaskDetail(state, body) {
     status: 'queued',
     createdAt: MOCK_NOW_ISO,
     threadId: `thread-${taskId}`,
+    autoReview: body?.autoReview === true,
     contextRepos: [],
     runLogs: [
       {
@@ -428,6 +430,57 @@ function handleApiRequest(state, url, method, body) {
     };
     syncTaskSummary(state, taskId);
     return { status: 200, body: { pushed: true } };
+  }
+  const taskCommitPushMatch = pathname.match(/^\/api\/tasks\/([^/]+)\/commit-push$/);
+  if (taskCommitPushMatch && method === 'POST') {
+    const taskId = taskCommitPushMatch[1];
+    const detail = state.taskDetails[taskId];
+    if (!detail) {
+      return { status: 404, text: 'Task not found' };
+    }
+    detail.gitStatus = {
+      hasChanges: false,
+      pushed: true,
+      dirty: false,
+      diffStats: { additions: 0, deletions: 0 }
+    };
+    syncTaskSummary(state, taskId);
+    return {
+      status: 200,
+      body: {
+        pushed: true,
+        committed: true,
+        commitMessage: String(body?.message || 'Update mock task')
+      }
+    };
+  }
+  const taskReviewMatch = pathname.match(/^\/api\/tasks\/([^/]+)\/review$/);
+  if (taskReviewMatch && method === 'POST') {
+    const taskId = taskReviewMatch[1];
+    const detail = state.taskDetails[taskId];
+    if (!detail) {
+      return { status: 404, text: 'Task not found' };
+    }
+    const latestRun = detail.runLogs[detail.runLogs.length - 1];
+    if (latestRun) {
+      latestRun.entries = [
+        ...(latestRun.entries || []),
+        {
+          id: `entry-${taskId}-review`,
+          type: 'item.completed',
+          parsed: {
+            type: 'item.completed',
+            item: {
+              type: 'agent_message',
+              text: `Review: ${body?.type || 'uncommittedChanges'}\n\nNo findings.`
+            }
+          },
+          raw: `entry-${taskId}-review`
+        }
+      ];
+    }
+    syncTaskSummary(state, taskId);
+    return { status: 200, body: { review: 'No findings.', target: clone(body || {}) } };
   }
   const taskAttachmentMatch = pathname.match(/^\/api\/tasks\/([^/]+)\/attachments$/);
   if (taskAttachmentMatch && method === 'POST') {

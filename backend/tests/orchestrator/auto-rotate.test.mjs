@@ -1,10 +1,8 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { EventEmitter } from 'node:events';
-import { PassThrough } from 'node:stream';
 import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
-import { createMockExec, createTempDir } from '../helpers.mjs';
+import { countAppServerTaskRuns, createMockExec, createMockSpawn, createTempDir } from '../helpers.mjs';
 import { waitForTaskStatus } from '../helpers/wait.mjs';
 import { buildSpawnWithUsageLimit } from '../helpers/auto-rotate.mjs';
 
@@ -19,37 +17,9 @@ describe('Orchestrator auto-rotate', () => {
     await fs.writeFile(path.join(codexHome, 'auth.json'), JSON.stringify({ token: 'primary' }, null, 2));
 
     const exec = createMockExec({ branches: ['main'] });
-    const spawnCalls = [];
-    const spawn = (command, args, options = {}) => {
-      spawnCalls.push({ command, args, options });
-      const child = new EventEmitter();
-      child.stdout = new PassThrough();
-      child.stderr = new PassThrough();
-      child.stdin = new PassThrough();
-      child.kill = () => {
-        setImmediate(() => {
-          child.emit('close', 143, 'SIGTERM');
-        });
-      };
-      setImmediate(() => {
-        child.stdout.write(
-          JSON.stringify({ type: 'thread.started', thread_id: 'thread-1' }) +
-            '\n' +
-            JSON.stringify({
-              type: 'item.completed',
-              item: {
-                id: 'item_1',
-                type: 'agent_message',
-                text: 'Approaching usage limit, switching soon.'
-              }
-            }) +
-            '\n'
-        );
-        child.stdout.end();
-        child.emit('close', 0, null);
-      });
-      return child;
-    };
+    const spawn = createMockSpawn({
+      defaultAgentMessageText: 'Approaching usage limit, switching soon.'
+    });
 
     const orchestrator = new Orchestrator({
       orchHome,
@@ -77,7 +47,7 @@ describe('Orchestrator auto-rotate', () => {
 
     const completed = await waitForTaskStatus(orchestrator, task.taskId, 'completed');
     expect(completed.autoRotateCount || 0).toBe(0);
-    expect(spawnCalls.length).toBe(1);
+    expect(countAppServerTaskRuns(spawn.calls)).toBe(1);
 
     const activeAuth = JSON.parse(await fs.readFile(path.join(codexHome, 'auth.json'), 'utf8'));
     expect(activeAuth).toEqual({ token: 'primary' });
@@ -125,6 +95,6 @@ describe('Orchestrator auto-rotate', () => {
 
     const failed = await waitForTaskStatus(orchestrator, task.taskId, 'failed');
     expect(failed.autoRotateCount || 0).toBe(0);
-    expect(spawnCalls.length).toBe(1);
+    expect(countAppServerTaskRuns(spawnCalls)).toBe(1);
   });
 });

@@ -11,7 +11,10 @@ class Orchestrator {
     this.dataRoot = options.dataRoot || process.env.ORCH_DATA_DIR || options.orchHome || config.dataRoot;
     this.dataVolumeName = config.dataVolumeName;
     this.orchHome = config.orchHome;
-    this.codexHome = config.codexHome;
+    this.codexHome =
+      options.codexHome ||
+      process.env.CODEX_HOME ||
+      (this.dataRoot !== config.dataRoot ? path.join(this.dataRoot, '.codex') : config.codexHome);
     this.gitConfigGlobalPath =
       options.gitConfigGlobalPath ||
       process.env.GIT_CONFIG_GLOBAL ||

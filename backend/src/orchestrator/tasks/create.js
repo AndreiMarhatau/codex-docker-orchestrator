@@ -1,8 +1,9 @@
+/* eslint-disable max-lines */
 const crypto = require('node:crypto');
-const { ensureDir, writeJson, removePath } = require('../../storage');
+const { ensureDir, readJson, writeJson, removePath } = require('../../storage');
 const { resolveRefInRepo } = require('../git');
-const { buildCodexArgs } = require('../context');
 const { nextRunLabel, normalizeOptionalString, repoNameFromUrl } = require('../utils');
+const { fallbackBranchName } = require('./branch-name');
 const { buildTaskRunEnvOverrides, buildTaskRunVolumeMounts } = require('./mounts');
 const { buildRunEntry } = require('./run-entry');
 async function setupWorktree(orch, { env, ref, taskId }) {
@@ -20,8 +21,7 @@ async function setupWorktree(orch, { env, ref, taskId }) {
   return { worktreePath, baseSha, targetRef };
 }
 
-async function checkoutTaskBranch(orch, worktreePath, taskId) {
-  const branchName = `codex/${taskId}`;
+async function checkoutTaskBranch(orch, worktreePath, branchName) {
   await orch.execOrThrow('git', ['-C', worktreePath, 'checkout', '-b', branchName]);
   return branchName;
 }
@@ -49,6 +49,7 @@ function buildTaskMeta({
   model,
   reasoningEffort,
   useHostDockerSocket,
+  autoReview,
   prompt,
   now,
   account,
@@ -67,6 +68,7 @@ function buildTaskMeta({
     model,
     reasoningEffort,
     useHostDockerSocket,
+    autoReview: Boolean(autoReview),
     threadId: null,
     error: null,
     status: 'running',
@@ -81,9 +83,155 @@ function buildTaskMeta({
       reasoningEffort,
       now,
       account,
-      useHostDockerSocket
+      useHostDockerSocket,
+      autoReviewRemaining: autoReview ? 1 : 0
     })]
   };
+}
+
+async function persistInitialTaskMeta(orch, {
+  taskId,
+  envId,
+  env,
+  targetRef,
+  baseSha,
+  worktreePath,
+  resolvedContextRepos,
+  model,
+  reasoningEffort,
+  shouldUseHostDockerSocket,
+  autoReview,
+  prompt,
+  runLabel,
+  transitionClaim
+}) {
+  const now = orch.now();
+  const activeAccount = await orch.accountStore.getActiveAccount();
+  const meta = buildTaskMeta({
+    taskId,
+    envId,
+    env,
+    targetRef,
+    baseSha,
+    branchName: fallbackBranchName(taskId),
+    worktreePath,
+    contextRepos: resolvedContextRepos,
+    attachments: [],
+    model,
+    reasoningEffort,
+    useHostDockerSocket: shouldUseHostDockerSocket,
+    autoReview: Boolean(autoReview),
+    prompt,
+    now,
+    account: activeAccount,
+    runLabel
+  });
+  orch.markTaskRunTransitionRuntimeActive(transitionClaim);
+  await writeJson(orch.taskMetaPath(taskId), meta);
+  return meta;
+}
+
+async function generateTaskBranchNameForCreate(orch, {
+  taskId,
+  prompt,
+  env,
+  worktreePath,
+  workspaceDir,
+  runLabel,
+  model,
+  reasoningEffort
+}) {
+  const branchVolumeMounts = await buildTaskRunVolumeMounts(orch, {
+    worktreePath,
+    workspaceDir,
+    mirrorPath: env.mirrorPath,
+    attachmentsDir: orch.taskAttachmentsDir(taskId),
+    hasAttachments: false,
+    contextRepos: [],
+    dockerSocketDir: orch.taskDockerSocketDir(taskId),
+    useHostDockerSocket: false
+  });
+  const branchName = await orch.generateTaskBranchName({
+    taskId,
+    prompt,
+    cwd: worktreePath,
+    workspaceDir,
+    volumeMounts: branchVolumeMounts,
+    envOverrides: buildTaskRunEnvOverrides(env.envVars, false),
+    artifactsDir: orch.runArtifactsDir(taskId, runLabel),
+    model,
+    reasoningEffort
+  });
+  return branchName;
+}
+
+async function prepareCreateRunContext(orch, {
+  taskId,
+  env,
+  resolvedContextRepos,
+  fileUploads,
+  meta,
+  workspaceDir,
+  shouldUseHostDockerSocket
+}) {
+  const attachments = await orch.prepareTaskAttachments(taskId, fileUploads);
+  const exposedPaths = await orch.prepareTaskExposedPaths(taskId, {
+    contextRepos: resolvedContextRepos,
+    attachments
+  });
+  const orchestratorInstructions = orch.buildOrchestratorInstructions({
+    useHostDockerSocket: shouldUseHostDockerSocket,
+    contextRepos: resolvedContextRepos,
+    attachments,
+    envVars: env.envVars,
+    exposedPaths
+  });
+  meta.attachments = attachments;
+  meta.updatedAt = orch.now();
+  const volumeMounts = await buildTaskRunVolumeMounts(orch, {
+    worktreePath: meta.worktreePath,
+    workspaceDir,
+    mirrorPath: env.mirrorPath,
+    attachmentsDir: orch.taskAttachmentsDir(taskId),
+    hasAttachments: attachments.length > 0,
+    contextRepos: exposedPaths.contextRepos || [],
+    dockerSocketDir: orch.taskDockerSocketDir(taskId),
+    useHostDockerSocket: shouldUseHostDockerSocket
+  });
+  return { orchestratorInstructions, volumeMounts };
+}
+
+async function writeStartupPreparedMeta(orch, taskId, meta, claim) {
+  if (claim?.stopRequested) {
+    return orch.stopPersistedTaskRun(taskId, meta);
+  }
+  const latest = await readJson(orch.taskMetaPath(taskId));
+  if (claim?.stopRequested || latest.status === 'stopped') {
+    return orch.stopPersistedTaskRun(taskId, latest);
+  }
+  const nextMeta = {
+    ...latest,
+    branchName: meta.branchName,
+    attachments: meta.attachments,
+    updatedAt: meta.updatedAt
+  };
+  await writeJson(orch.taskMetaPath(taskId), nextMeta);
+  if (claim?.stopRequested) {
+    return orch.stopPersistedTaskRun(taskId, nextMeta);
+  }
+  return nextMeta;
+}
+
+async function stopCreatedTaskAfterStartupError(orch, taskId, error, claim) {
+  if (!claim?.stopRequested && error?.stopped !== true) {
+    return null;
+  }
+  try {
+    const meta = await readJson(orch.taskMetaPath(taskId));
+    return orch.stopPersistedTaskRun(taskId, meta);
+  } catch (readError) {
+    return null;
+  }
 }
 
 function attachTaskCreateMethods(Orchestrator) {
@@ -95,6 +243,7 @@ function attachTaskCreateMethods(Orchestrator) {
     model,
     reasoningEffort,
     useHostDockerSocket,
+    autoReview,
     contextRepos
   }) {
     await this.init();
@@ -110,82 +259,93 @@ function attachTaskCreateMethods(Orchestrator) {
     try {
       await ensureDir(this.taskDir(taskId));
       await ensureDir(this.taskLogsDir(taskId));
-      await this.syncManagedAgents();
       const resolvedContextRepos = await this.resolveContextRepos(taskId, contextRepos);
       const { worktreePath, baseSha, targetRef } = await setupWorktree(this, { env, ref, taskId });
       createdWorktreePath = worktreePath;
-      const branchName = await checkoutTaskBranch(this, worktreePath, taskId);
       await ensureDir(this.runArtifactsDir(taskId, runLabel));
-      const attachments = await this.prepareTaskAttachments(taskId, fileUploads);
-      const exposedPaths = await this.prepareTaskExposedPaths(taskId, {
-        contextRepos: resolvedContextRepos,
-        attachments
-      });
-      const orchestratorInstructions = this.buildOrchestratorInstructions({
-        useHostDockerSocket: shouldUseHostDockerSocket,
-        contextRepos: resolvedContextRepos,
-        attachments,
-        envVars: env.envVars,
-        exposedPaths
-      });
-      const now = this.now();
-      const activeAccount = await this.accountStore.getActiveAccount();
-      const meta = buildTaskMeta({
+      let meta = await persistInitialTaskMeta(this, {
         taskId,
         envId,
         env,
         targetRef,
         baseSha,
-        branchName,
         worktreePath,
-        contextRepos: resolvedContextRepos,
-        attachments,
+        resolvedContextRepos,
         model: normalizedModel,
         reasoningEffort: normalizedReasoningEffort,
-        useHostDockerSocket: shouldUseHostDockerSocket,
+        shouldUseHostDockerSocket,
+        autoReview: Boolean(autoReview),
         prompt,
-        now,
-        account: activeAccount,
-        runLabel
+        runLabel,
+        transitionClaim: releaseTaskRunTransition.claim
       });
-      this.markTaskRunTransitionRuntimeActive(releaseTaskRunTransition.claim);
-      await writeJson(this.taskMetaPath(taskId), meta);
       await this.ensureActiveAuth();
-      const args = buildCodexArgs({
-        prompt,
-        model: normalizedModel,
-        reasoningEffort: normalizedReasoningEffort,
-        developerInstructions: orchestratorInstructions
-      });
+      if (releaseTaskRunTransition.claim?.stopRequested) {
+        return this.stopPersistedTaskRun(taskId, meta);
+      }
       const workspaceDir = `/workspace/${repoNameFromUrl(env.repoUrl)}`;
-      const volumeMounts = await buildTaskRunVolumeMounts(this, {
+      const branchName = await generateTaskBranchNameForCreate(this, {
+        taskId,
+        prompt,
+        env,
         worktreePath,
         workspaceDir,
-        mirrorPath: env.mirrorPath,
-        attachmentsDir: this.taskAttachmentsDir(taskId),
-        hasAttachments: attachments.length > 0,
-        contextRepos: exposedPaths.contextRepos || [],
-        dockerSocketDir: this.taskDockerSocketDir(taskId),
-        useHostDockerSocket: shouldUseHostDockerSocket
+        runLabel,
+        model: normalizedModel,
+        reasoningEffort: normalizedReasoningEffort
       });
       if (releaseTaskRunTransition.claim?.stopRequested) {
         return this.stopPersistedTaskRun(taskId, meta);
       }
+      meta.branchName = await checkoutTaskBranch(this, worktreePath, branchName);
+      if (releaseTaskRunTransition.claim?.stopRequested) {
+        return this.stopPersistedTaskRun(taskId, meta);
+      }
+      const { orchestratorInstructions, volumeMounts } = await prepareCreateRunContext(this, {
+        taskId,
+        env,
+        resolvedContextRepos,
+        fileUploads,
+        meta,
+        workspaceDir,
+        shouldUseHostDockerSocket
+      });
+      if (releaseTaskRunTransition.claim?.stopRequested) {
+        return this.stopPersistedTaskRun(taskId, meta);
+      }
+      meta = await writeStartupPreparedMeta(this, taskId, meta, releaseTaskRunTransition.claim);
       this.startCodexRunDeferred({
         taskId,
         runLabel,
         prompt,
         cwd: worktreePath,
-        args,
+        appServerConfig: {
+          model: normalizedModel,
+          reasoningEffort: normalizedReasoningEffort,
+          developerInstructions: orchestratorInstructions
+        },
         workspaceDir,
         volumeMounts,
         useHostDockerSocket: shouldUseHostDockerSocket,
         envOverrides: buildTaskRunEnvOverrides(env.envVars, shouldUseHostDockerSocket),
-        stopTaskDockerSidecarOnExit: shouldUseHostDockerSocket
+        stopTaskDockerSidecarOnExit: shouldUseHostDockerSocket,
+        transitionClaim: releaseTaskRunTransition.claim
       });
+      if (releaseTaskRunTransition.claim?.stopRequested) {
+        return this.stopPersistedTaskRun(taskId, meta);
+      }
       this.notifyTasksChanged(taskId);
       return meta;
     } catch (error) {
+      const stopped = await stopCreatedTaskAfterStartupError(
+        this,
+        taskId,
+        error,
+        releaseTaskRunTransition.claim
+      );
+      if (stopped) {
+        return stopped;
+      }
       await cleanupFailedWorktree(this, env.mirrorPath, createdWorktreePath);
       await removePath(this.taskDir(taskId));
       throw error;

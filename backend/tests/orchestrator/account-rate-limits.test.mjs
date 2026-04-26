@@ -156,10 +156,12 @@ describe('Orchestrator account rate-limit reads', () => {
     const triggerCall = spawn.calls.find(
       (call) =>
         call.command === 'codex-docker' &&
-        call.args.includes('exec') &&
-        call.args.includes('--skip-git-repo-check')
+        call.args[0] === 'app-server' &&
+        call.messages.some((message) => message.method === 'turn/start')
     );
     expect(triggerCall).toBeTruthy();
+    const threadStart = triggerCall.messages.find((message) => message.method === 'thread/start');
+    expect(threadStart.params.ephemeral).toBe(true);
     expect(triggerCall.options.cwd).toContain('codex-usage-trigger-');
     expect(triggerCall.options.cwd).not.toBe('/root/.codex');
   });

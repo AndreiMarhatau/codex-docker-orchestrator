@@ -7,15 +7,20 @@ vi.mock('../src/app/tabs/tasks/detail/TaskResumeDialog.jsx', () => ({
   default: () => null
 }));
 
-function renderActions({ hasTaskDetail = true, isRunning = false, loading = false, showPush = true } = {}) {
+function renderActions({
+  hasTaskDetail = true,
+  isRunning = false,
+  loading = false,
+  showCommitPush = true
+} = {}) {
   render(
     <TaskDetailActions
       data={{ envs: [], loading }}
       hasTaskDetail={hasTaskDetail}
       isRunning={isRunning}
-      showPush={showPush}
+      showCommitPush={showCommitPush}
       tasksState={{
-        actions: { handlePushTask: vi.fn() },
+        actions: { handleCommitPushTask: vi.fn(), handleReviewTask: vi.fn() },
         detail: {},
         handleResumeModelChoiceChange: vi.fn()
       }}
@@ -30,10 +35,10 @@ describe('TaskDetailActions', () => {
     expect(screen.getByRole('button', { name: 'Ask for changes' })).toBeDisabled();
   });
 
-  it('keeps push available for completed tasks with changes', () => {
-    renderActions({ isRunning: false, showPush: true });
+  it('keeps commit and push available for completed tasks with changes', () => {
+    renderActions({ isRunning: false, showCommitPush: true });
 
     expect(screen.getByRole('button', { name: 'Ask for changes' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Push' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Commit & Push' })).toBeEnabled();
   });
 });

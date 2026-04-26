@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { createRequire } from 'node:module';
-import { createMockExec, createTempDir } from '../helpers.mjs';
+import { countAppServerTaskRuns, createMockExec, createTempDir } from '../helpers.mjs';
 import { buildSpawnWithUsageLimit } from '../helpers/auto-rotate.mjs';
 
 const require = createRequire(import.meta.url);
@@ -31,11 +31,6 @@ async function waitForValue(readValue) {
 async function readTaskMeta(orchestrator, taskId) {
   const metaPath = path.join(orchestrator.orchHome, 'tasks', taskId, 'meta.json');
   return JSON.parse(await fsp.readFile(metaPath, 'utf8'));
-}
-
-function countRunSpawns(spawnCalls) {
-  return spawnCalls.filter((call) => call.command === 'codex-docker' && call.args[0] !== 'app-server')
-    .length;
 }
 
 describe('Orchestrator finalization auto-rotate cancellation', () => {
@@ -102,7 +97,7 @@ describe('Orchestrator finalization auto-rotate cancellation', () => {
     const persisted = await readTaskMeta(orchestrator, task.taskId);
 
     expect(orchestrator.resumeTask).not.toHaveBeenCalled();
-    expect(countRunSpawns(spawnCalls)).toBe(1);
+    expect(countAppServerTaskRuns(spawnCalls)).toBe(1);
     expect(persisted.runs).toHaveLength(1);
     expect(persisted.autoRotateCount || 0).toBe(0);
   });

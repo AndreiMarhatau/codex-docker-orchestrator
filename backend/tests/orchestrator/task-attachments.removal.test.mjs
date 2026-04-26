@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 import { createMockExec, createMockSpawn, createTempDir } from '../helpers.mjs';
-import { waitForTaskStatus } from '../helpers/wait.mjs';
+import { waitForTaskIdle, waitForTaskStatus } from '../helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
@@ -30,6 +30,7 @@ describe('Orchestrator task attachment removal', () => {
       prompt: 'Do work'
     });
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    await waitForTaskIdle(orchestrator, task.taskId);
 
     await fs.mkdir(orchestrator.uploadsDir(), { recursive: true });
     const uploadPath = path.join(orchestrator.uploadsDir(), 'keep.txt');

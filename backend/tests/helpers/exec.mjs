@@ -1,3 +1,4 @@
+/* eslint-disable complexity, max-lines */
 import fs from 'node:fs/promises';
 import fsSync from 'node:fs';
 function normalizeGitArgs(args) {
@@ -56,8 +57,30 @@ function handleGitCCommand({ normalizedArgs, headSha, remoteHeadSha, statusPorce
   if (normalizedArgs[0] !== '-C') {
     return null;
   }
+  if (normalizedArgs[2] === 'check-ref-format') {
+    return Promise.resolve({ stdout: normalizedArgs[4] || '', stderr: '', code: 0 });
+  }
+  if (normalizedArgs[2] === 'show-ref') {
+    return Promise.resolve({ stdout: '', stderr: 'not found', code: 1 });
+  }
   if (normalizedArgs[2] === 'checkout') {
     return Promise.resolve({ stdout: '', stderr: '', code: 0 });
+  }
+  if (normalizedArgs[2] === 'add') {
+    return Promise.resolve({ stdout: '', stderr: '', code: 0 });
+  }
+  if (normalizedArgs[2] === 'config') {
+    return Promise.resolve({ stdout: '', stderr: '', code: 0 });
+  }
+  if (normalizedArgs[2] === 'commit') {
+    return Promise.resolve({ stdout: '[mock] commit\n', stderr: '', code: 0 });
+  }
+  if (
+    normalizedArgs[2] === 'diff' &&
+    normalizedArgs[3] === '--cached' &&
+    normalizedArgs[4] === '--quiet'
+  ) {
+    return Promise.resolve({ stdout: '', stderr: '', code: diffHasChanges ? 1 : 0 });
   }
   if (normalizedArgs[2] === 'diff' && normalizedArgs[3] === '--quiet') {
     return Promise.resolve({ stdout: '', stderr: '', code: diffHasChanges ? 1 : 0 });
@@ -76,12 +99,15 @@ index 0000000..1111111 100644
   if (normalizedArgs[2] === 'status') {
     return Promise.resolve({ stdout: statusPorcelain, stderr: '', code: 0 });
   }
+  if (normalizedArgs[2] === 'ls-files') {
+    return Promise.resolve({ stdout: '', stderr: '', code: 0 });
+  }
   if (normalizedArgs[2] === 'rev-parse' && normalizedArgs[3] === 'HEAD') {
     return Promise.resolve({ stdout: `${headSha}\n`, stderr: '', code: 0 });
   }
   if (normalizedArgs[2] === 'ls-remote' && normalizedArgs[3] === '--heads') {
     const branch = normalizedArgs[5] || 'unknown';
-    if (!remoteHeadSha) {
+    if (!remoteHeadSha || String(branch).startsWith('codex/mock-branch')) {
       return Promise.resolve({ stdout: '', stderr: '', code: 0 });
     }
     return Promise.resolve({

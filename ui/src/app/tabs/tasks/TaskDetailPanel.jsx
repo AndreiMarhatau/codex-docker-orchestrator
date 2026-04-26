@@ -169,12 +169,12 @@ function TaskDetailPanel({ data, tasksState }) {
     node.scrollTop = node.scrollHeight;
   }, [activeTab, hasTaskDetail, isRunning, logUpdateToken]);
 
-  const showPush = useMemo(() => {
+  const showCommitPush = useMemo(() => {
     const gitStatus = detail.taskDetail?.gitStatus;
     if (!gitStatus) {
       return false;
     }
-    return gitStatus.hasChanges === true && gitStatus.pushed === false;
+    return gitStatus.dirty === true || gitStatus.pushed === false;
   }, [detail.taskDetail?.gitStatus]);
 
   return (
@@ -259,7 +259,7 @@ function TaskDetailPanel({ data, tasksState }) {
         data={data}
         hasTaskDetail={hasTaskDetail}
         isRunning={isRunning}
-        showPush={showPush}
+        showCommitPush={showCommitPush}
         tasksState={tasksState}
       />
     </Box>

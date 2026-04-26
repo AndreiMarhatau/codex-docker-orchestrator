@@ -1,9 +1,7 @@
 import path from 'node:path';
-import { EventEmitter } from 'node:events';
-import { PassThrough } from 'node:stream';
 import { describe, expect, it, vi } from 'vitest';
 import { createRequire } from 'node:module';
-import { createMockExec, createTempDir } from '../helpers.mjs';
+import { createManualAppServerSpawn, createMockExec, createTempDir } from '../helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const fsp = require('node:fs/promises');
@@ -18,28 +16,7 @@ function createDeferred() {
 }
 
 function createManualRunSpawn() {
-  const calls = [];
-  const runChildren = [];
-  const spawn = (command, args, options = {}) => {
-    calls.push({ command, args, options });
-    const child = new EventEmitter();
-    child.stdout = new PassThrough();
-    child.stderr = new PassThrough();
-    child.stdin = new PassThrough();
-    child.kill = vi.fn(() => {});
-    if (command === 'codex-docker' && args[0] !== 'app-server') {
-      runChildren.push(child);
-      return child;
-    }
-    setImmediate(() => {
-      child.stdout.end();
-      child.emit('close', 0, null);
-    });
-    return child;
-  };
-  spawn.calls = calls;
-  spawn.runChildren = runChildren;
-  return spawn;
+  return createManualAppServerSpawn();
 }
 
 async function waitForValue(readValue) {
@@ -72,8 +49,10 @@ async function createRunningTask(orchestrator) {
   });
 }
 
-function writeThreadStarted(child) {
-  child.stdout.write(`${JSON.stringify({ type: 'thread.started', thread_id: 'thread-1' })}\n`);
+async function waitForRunServer(spawn) {
+  const server = await waitForValue(() => spawn.latestServer());
+  await server.waitForTurnStart();
+  return server;
 }
 
 describe('Orchestrator finalization transitions', () => {
@@ -94,9 +73,8 @@ describe('Orchestrator finalization transitions', () => {
     };
 
     const task = await createRunningTask(orchestrator);
-    const child = await waitForValue(() => spawn.runChildren[0] || null);
-    writeThreadStarted(child);
-    child.emit('close', 0, null);
+    const server = await waitForRunServer(spawn);
+    server.completeTurn();
     await cleanupStarted.promise;
     expect((await readTaskMeta(orchestrator, task.taskId)).status).toBe('completed');
 
@@ -126,15 +104,14 @@ describe('Orchestrator finalization transitions', () => {
 
     try {
       const task = await createRunningTask(orchestrator);
-      const child = await waitForValue(() => spawn.runChildren[0] || null);
+      const server = await waitForRunServer(spawn);
       const originalReaddir = fsp.readdir.bind(fsp);
       readdirSpy = vi.spyOn(fsp, 'readdir').mockImplementationOnce(async (...args) => {
         artifactReadStarted.resolve();
         await releaseArtifactRead.promise;
         return originalReaddir(...args);
       });
-      writeThreadStarted(child);
-      child.emit('close', 0, null);
+      server.completeTurn();
       await artifactReadStarted.promise;
 
       const stopped = await orchestrator.stopTask(task.taskId);

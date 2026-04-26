@@ -82,27 +82,7 @@ function buildAttachmentsSection(attachments, options = {}) {
   }).trim();
 }
 
-function buildCodexArgs({ prompt, model, reasoningEffort, developerInstructions, resumeThreadId }) {
-  const args = ['exec', '--dangerously-bypass-approvals-and-sandbox', '--json'];
-  if (model) {
-    args.push('--model', model);
-  }
-  if (reasoningEffort) {
-    args.push('-c', `model_reasoning_effort=${reasoningEffort}`);
-  }
-  if (developerInstructions) {
-    args.push('-c', `developer_instructions=${JSON.stringify(developerInstructions)}`);
-  }
-  if (resumeThreadId) {
-    args.push('resume', resumeThreadId, prompt);
-    return args;
-  }
-  args.push(prompt);
-  return args;
-}
-
 module.exports = {
   buildAttachmentsSection,
-  buildContextReposSection,
-  buildCodexArgs
+  buildContextReposSection
 };

@@ -1,7 +1,8 @@
 import {
+  useCommitPushTaskHandler,
   useCreateTaskHandler,
   useDeleteTaskHandler,
-  usePushTaskHandler,
+  useReviewTaskHandler,
   useResumeTaskHandler,
   useStopTaskHandler
 } from './task-action-hooks.js';
@@ -61,7 +62,14 @@ function useTaskActions({
     setTaskDetail
   });
 
-  const handlePushTask = usePushTaskHandler({
+  const handleCommitPushTask = useCommitPushTaskHandler({
+    refreshTaskDetail,
+    selectedTaskId,
+    setError,
+    setLoading
+  });
+
+  const handleReviewTask = useReviewTaskHandler({
     refreshTaskDetail,
     selectedTaskId,
     setError,
@@ -98,8 +106,9 @@ function useTaskActions({
 
   return {
     handleCreateTask,
+    handleCommitPushTask,
     handleDeleteTask,
-    handlePushTask,
+    handleReviewTask,
     handleResumeTask,
     handleStopTask
   };

@@ -1,34 +1,33 @@
-import { EventEmitter } from 'node:events';
-import { PassThrough } from 'node:stream';
 import { describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createRequire } from 'node:module';
-import { createMockExec, createMockSpawn, createTempDir, prepareOrchestratorSetup } from './helpers.mjs';
+import {
+  createManualAppServerSpawn,
+  createMockExec,
+  createMockSpawn,
+  createTempDir,
+  prepareOrchestratorSetup
+} from './helpers.mjs';
+import { waitForTaskIdle } from './helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
 const { createApp } = require('../src/app');
 const { Orchestrator } = require('../src/orchestrator');
 
 function createControlledRunSpawn() {
-  const baseSpawn = createMockSpawn();
-  let runChild = null;
-  const spawn = (command, args, options = {}) => {
-    if (command !== 'codex-docker' || args[0] === 'app-server') {
-      return baseSpawn(command, args, options);
+  const spawn = createManualAppServerSpawn();
+  spawn.finishRun = async () => {
+    const deadline = Date.now() + 2000;
+    while (Date.now() < deadline) {
+      const server = spawn.latestServer();
+      if (server) {
+        await server.waitForTurnStart();
+        server.completeTurn();
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10));
     }
-    spawn.calls.push({ command, args, options });
-    runChild = new EventEmitter();
-    runChild.stdout = new PassThrough();
-    runChild.stderr = new PassThrough();
-    runChild.stdin = new PassThrough();
-    runChild.kill = () => {};
-    return runChild;
-  };
-  spawn.calls = baseSpawn.calls;
-  spawn.finishRun = () => {
-    const started = { type: 'thread.started', thread_id: baseSpawn.threadId };
-    runChild.stdout.write(`${JSON.stringify(started)}\n`);
-    runChild.emit('close', 0, null);
+    throw new Error('Timed out waiting for app-server run');
   };
   return spawn;
 }
@@ -95,8 +94,9 @@ describe('tasks resume claim release', () => {
     expect(blockedResponse.text).toContain('Wait for the current run to finish');
     expect(orchestrator.taskRunClaims?.size || 0).toBe(0);
 
-    spawn.finishRun();
+    await spawn.finishRun();
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    await waitForTaskIdle(orchestrator, task.taskId);
     const resumedResponse = await request(app)
       .post(`/api/tasks/${task.taskId}/resume`)
       .send({ prompt: 'Continue for real' })

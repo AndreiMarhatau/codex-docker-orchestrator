@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createRequire } from 'node:module';
 import { createMockExec, createMockSpawn, createTempDir, prepareOrchestratorSetup } from './helpers.mjs';
+import { waitForTaskIdle } from './helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
 const { createApp } = require('../src/app');
@@ -73,6 +74,7 @@ describe('tasks resume route atomicity', () => {
       prompt: 'Do work'
     });
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    await waitForTaskIdle(orchestrator, task.taskId);
     const [existingAttachment] = await orchestrator.addTaskAttachments(task.taskId, [
       await createUploadInfo(orchestrator, 'existing.txt', 'existing attachment')
     ]);
@@ -107,6 +109,7 @@ describe('tasks resume route atomicity', () => {
       prompt: 'Do work'
     });
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    await waitForTaskIdle(orchestrator, task.taskId);
     const [existingAttachment] = await orchestrator.addTaskAttachments(task.taskId, [
       await createUploadInfo(orchestrator, 'existing.txt', 'existing attachment')
     ]);

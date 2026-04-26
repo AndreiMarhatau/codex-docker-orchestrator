@@ -3,20 +3,15 @@ import fs from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 import { createMockExec, createMockSpawn, createTempDir } from '../helpers.mjs';
-import { waitForTaskStatus } from '../helpers/wait.mjs';
+import { waitForTaskIdle, waitForTaskStatus } from '../helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
 const { MAX_TASK_FILES } = require('../../src/orchestrator/tasks/attachments');
 
-function extractDeveloperInstructions(args = []) {
-  const entry = args.find(
-    (arg) => typeof arg === 'string' && arg.startsWith('developer_instructions=')
-  );
-  if (!entry) {
-    return null;
-  }
-  return JSON.parse(entry.slice('developer_instructions='.length));
+function extractAppServerDeveloperInstructions(call) {
+  return call?.messages?.find((message) => message.method === 'thread/start')
+    ?.params?.developerInstructions || null;
 }
 
 describe('Orchestrator task attachments', () => {
@@ -64,7 +59,7 @@ describe('Orchestrator task attachments', () => {
     expect(volumeMounts.some((entry) => entry.endsWith('=/root/.codex'))).toBe(true);
     expect(volumeMounts.some((entry) => entry.endsWith('=/attachments:ro'))).toBe(true);
 
-    const developerInstructions = extractDeveloperInstructions(runCall.args);
+    const developerInstructions = extractAppServerDeveloperInstructions(runCall);
     expect(developerInstructions).toContain('User-uploaded files');
     expect(developerInstructions).toContain('/attachments/notes.txt');
     expect(developerInstructions).toContain('/root/.artifacts');
@@ -93,6 +88,7 @@ describe('Orchestrator task attachments', () => {
       prompt: 'Do work'
     });
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    await waitForTaskIdle(orchestrator, task.taskId);
 
     await fs.mkdir(orchestrator.uploadsDir(), { recursive: true });
     const firstUpload = path.join(orchestrator.uploadsDir(), 'report.txt');

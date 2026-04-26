@@ -1,47 +1,17 @@
-const fs = require('node:fs');
-const path = require('node:path');
 const {
   DEFAULT_CONTEXT_REPOS_TEMPLATE_FILE,
   DEFAULT_ATTACHMENTS_TEMPLATE_FILE,
   DEFAULT_INNER_ARTIFACTS_DIR
 } = require('../constants');
-const { DEVELOPER_AGENT_INSTRUCTIONS } = require('../agent-instructions');
 const { buildAttachmentsSection, buildContextReposSection } = require('../context');
-const { readUserInstructions } = require('../user-instructions');
 
-const ORCHESTRATOR_INSTRUCTIONS_PATH = path.resolve(
-  __dirname,
-  '../../../../ORCHESTRATOR_DEVELOPER_INSTRUCTIONS.md'
-);
-
-function buildStaticInstructions(baseInstructions, includeRuntimePreamble = true) {
-  if (!includeRuntimePreamble) {
-    return (baseInstructions || '').trim();
-  }
+function buildStaticInstructions() {
   return [
     'You are running inside an ephemeral Docker container with unrestricted access to the container filesystem and process environment.',
     '',
-    '- The container is disposable. You are expected to do whatever is necessary to complete the work and verify results: install any tool, dependency, or system package; run any command, service, server, build, test, installer, or long-running process; and take any other action you need, without asking for approval first.',
-    '- Prefer keeping temporary downloads, caches, and generated artifacts outside the repository when practical.',
-    '',
-    baseInstructions
+    '- The container is disposable. You are expected to do whatever is necessary to complete the work and verify results: install any tool, dependency, or system package; run any command, service, server, build, test, installer, long-running process; and take any other action you need, without asking the user for approval first.',
+    '- Prefer keeping temporary downloads, caches, and generated artifacts outside the repository when practical.'
   ].join('\n').trim();
-}
-
-function readOrchestratorInstructions() {
-  return fs.readFileSync(ORCHESTRATOR_INSTRUCTIONS_PATH, 'utf8').trim();
-}
-
-function buildEnvVarsSection(envVars) {
-  if (!envVars || typeof envVars !== 'object') {
-    return '';
-  }
-  const keys = Object.keys(envVars).filter(Boolean).sort();
-  if (keys.length === 0) {
-    return '';
-  }
-  const lines = keys.map((key) => `- \`${key}\``);
-  return `## Environment variables\nThese variables are passed into the Codex container:\n${lines.join('\n')}`;
 }
 
 function buildDockerSection(useHostDockerSocket) {
@@ -70,24 +40,12 @@ function buildArtifactsSection() {
 }
 
 function buildTaskInstructions({
-  baseInstructions,
-  taskInstructionsLabel,
-  includeRuntimePreamble = true,
   useHostDockerSocket,
   contextRepos,
   attachments,
-  envVars,
   exposedPaths
 }) {
-  const staticInstructions = buildStaticInstructions(baseInstructions, includeRuntimePreamble);
-  const userInstructions = readUserInstructions(this.codexHome);
-  const sections = [];
-  if (userInstructions) {
-    sections.push(userInstructions);
-  }
-  if (staticInstructions) {
-    sections.push(staticInstructions);
-  }
+  const sections = [buildStaticInstructions()];
   const contextEntries = exposedPaths?.contextRepos || contextRepos;
   const contextSection = buildContextReposSection(contextEntries, {
     repositoriesPath: exposedPaths?.repositoriesPath,
@@ -100,50 +58,25 @@ function buildTaskInstructions({
   });
   const dockerSection = buildDockerSection(useHostDockerSocket);
   const artifactsSection = buildArtifactsSection();
-  const envVarsSection = buildEnvVarsSection(envVars);
   for (const section of [
     dockerSection,
     contextSection,
     attachmentsSection,
-    artifactsSection,
-    envVarsSection
+    artifactsSection
   ]) {
     if (section) {
       sections.push(section.trimEnd());
     }
   }
-  if (sections.length === 0) {
-    return '';
-  }
-  if (sections.length === 1) {
-    return `${sections[0]}\n`;
-  }
-  const [firstSection, secondSection, ...remainingSections] = sections;
-  const combined = [firstSection, secondSection].join(
-    userInstructions ? `\n\n--- ${taskInstructionsLabel} ---\n\n` : '\n\n'
-  );
-  const tail = remainingSections.length === 0
-    ? ''
-    : `\n\n${remainingSections.join('\n\n')}`;
-  return `${userInstructions ? `${combined}${tail}` : sections.join('\n\n')}\n`;
+  return `${sections.join('\n\n')}\n`;
 }
 
 function buildDeveloperInstructions(options) {
-  return buildTaskInstructions.call(this, {
-    ...options,
-    baseInstructions: DEVELOPER_AGENT_INSTRUCTIONS,
-    includeRuntimePreamble: true,
-    taskInstructionsLabel: 'task-developer-instructions'
-  });
+  return buildTaskInstructions.call(this, options);
 }
 
 function buildOrchestratorInstructions(options) {
-  return buildTaskInstructions.call(this, {
-    ...options,
-    baseInstructions: readOrchestratorInstructions(),
-    includeRuntimePreamble: false,
-    taskInstructionsLabel: 'task-orchestrator-instructions'
-  });
+  return buildTaskInstructions.call(this, options);
 }
 
 module.exports = {

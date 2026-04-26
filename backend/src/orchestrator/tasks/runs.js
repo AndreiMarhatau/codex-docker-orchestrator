@@ -4,6 +4,9 @@ const path = require('node:path');
 const { readJson, writeJson } = require('../../storage');
 const { buildRunEnv, createOutputTracker, updateRunMeta } = require('./run-helpers');
 const { createDeferredRunState, createStoppedDuringStartupError, isAbortError } = require('./deferred-run-state');
+const { runAppServerTurn } = require('./app-server-runner');
+const { computeGitFingerprint } = require('./git-fingerprint');
+const { createBoundedChildShutdown } = require('./process-shutdown');
 
 function createTaskBusyError() {
   const error = new Error('Wait for the current run to finish before continuing this task.');
@@ -48,7 +51,12 @@ function claimTaskRunTransition(orchestrator, taskId) {
   ) {
     throw createTaskBusyError();
   }
-  const claim = { token: Symbol(taskId), stopRequested: false, runtimeActive: false };
+  const claim = {
+    token: Symbol(taskId),
+    stopRequested: false,
+    runtimeActive: false,
+    cancelCallbacks: new Set()
+  };
   taskRunClaims.set(taskId, claim);
   const release = () => {
     if (taskRunClaims.get(taskId) === claim) {
@@ -57,6 +65,17 @@ function claimTaskRunTransition(orchestrator, taskId) {
   };
   release.claim = claim;
   return release;
+}
+
+function requestClaimStop(claim) {
+  claim.stopRequested = true;
+  for (const cancel of claim.cancelCallbacks || []) {
+    try {
+      cancel('SIGTERM');
+    } catch {
+      // Cancellation callbacks are best-effort; stop still updates task state.
+    }
+  }
 }
 
 async function resolveCurrentBranch(exec, worktreePath) {
@@ -115,7 +134,11 @@ function attachFailRunStartMethod(Orchestrator) {
 }
 function attachDeferredRunStartMethod(Orchestrator) {
   Orchestrator.prototype.startCodexRunDeferred = function startCodexRunDeferred(options) {
-    const { taskId, runLabel, prompt, useHostDockerSocket } = options;
+    const { taskId, runLabel, prompt, useHostDockerSocket, transitionClaim } = options;
+    if (transitionClaim?.stopRequested) {
+      void this.failRunStart(taskId, runLabel, prompt, createStoppedDuringStartupError());
+      return;
+    }
     const pendingRun = createDeferredRunState();
     pendingRun.startController = new AbortController();
     this.running.set(taskId, pendingRun);
@@ -198,6 +221,23 @@ function attachFinalizeRunMethod(Orchestrator) {
       // Best-effort: keep task finalization resilient to auth sync issues.
     }
     await this.maybeAutoRotate(taskId, prompt, { ...result, usageLimit, meta });
+    if (
+      !result.stopped &&
+      result.code === 0 &&
+      meta.autoReview === true &&
+      Number(runEntry?.autoReviewRemaining || 0) > 0 &&
+      runEntry?.gitFingerprintBefore &&
+      runEntry?.gitFingerprintAfter &&
+      runEntry.gitFingerprintBefore !== runEntry.gitFingerprintAfter
+    ) {
+      this.runAfterTaskFinalization(taskId, () => {
+        void this.runAutoReviewForTask(taskId, runLabel).catch((error) => {
+          void this.appendRunAgentMessage(taskId, runLabel, `Auto review failed: ${error.message}`)
+            .catch(() => {});
+          this.notifyTasksChanged(taskId);
+        });
+      });
+    }
     this.notifyTasksChanged(taskId);
   };
 }
@@ -206,8 +246,9 @@ function attachStartRunMethod(Orchestrator) {
     taskId,
     runLabel,
     prompt,
+    codexPrompt,
     cwd,
-    args,
+    appServerConfig,
     workspaceDir,
     volumeMounts = [],
     envOverrides,
@@ -227,21 +268,26 @@ function attachStartRunMethod(Orchestrator) {
       envOverrides
     });
     const useProcessGroup = process.platform !== 'win32';
-    const child = this.spawn('codex-docker', args, {
+    const child = this.spawn('codex-docker', ['app-server'], {
       cwd,
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
       detached: useProcessGroup
     });
-    if (child.stdin) {
-      child.stdin.end();
-    }
+    const shutdown = createBoundedChildShutdown({
+      child,
+      useProcessGroup,
+      stopTimeoutMs: this.appServerShutdownTimeoutMs
+    });
     const runState = { child, stopRequested: false, stopTimeout: null, useProcessGroup };
     this.running.set(taskId, runState);
     const tracker = createOutputTracker({ logStream, stderrStream });
-    child.stdout.on('data', tracker.onStdout);
-    child.stderr.on('data', tracker.onStderr);
+    let finalized = false;
     const finalize = async (code, signal) => {
+      if (finalized) {
+        return;
+      }
+      finalized = true;
       const releaseFinalizing = beginTaskRunFinalization(this, taskId);
       if (runState.stopTimeout) {
         clearTimeout(runState.stopTimeout);
@@ -251,7 +297,7 @@ function attachStartRunMethod(Orchestrator) {
         if (activeRun === runState) {
           this.running.delete(taskId);
         }
-        const result = tracker.getResult();
+        const result = { ...tracker.getResult(), ...(runState.resultOverrides || {}) };
         result.code = code ?? 1;
         const isStopped = () =>
           runState.stopRequested ||
@@ -282,6 +328,35 @@ function attachStartRunMethod(Orchestrator) {
       finalize(1, null).catch(() => {});
     });
     child.on('close', (code, signal) => { finalize(code, signal).catch(() => {}); });
+    void (async () => {
+      try {
+        runState.gitFingerprintBefore = await computeGitFingerprint(this.exec, cwd);
+        const turnResult = await runAppServerTurn({
+          child,
+          tracker,
+          prompt: codexPrompt ?? prompt,
+          workspaceDir,
+          appServerConfig
+        });
+        runState.resultOverrides = {
+          threadId: turnResult.threadId,
+          gitFingerprintBefore: runState.gitFingerprintBefore,
+          gitFingerprintAfter: await computeGitFingerprint(this.exec, cwd)
+        };
+        await finalize(turnResult.code, null);
+        shutdown.stop('SIGTERM');
+      } catch (error) {
+        if (!runState.stopRequested) {
+          tracker.onStderr(Buffer.from(`\n${error?.message || 'Codex app-server run failed.'}`));
+        }
+        runState.resultOverrides = {
+          gitFingerprintBefore: runState.gitFingerprintBefore,
+          gitFingerprintAfter: await computeGitFingerprint(this.exec, cwd).catch(() => null)
+        };
+        await finalize(1, null);
+        shutdown.stop('SIGTERM');
+      }
+    })();
   };
 }
 function attachTaskRunMethods(Orchestrator) {
@@ -298,9 +373,27 @@ function attachTaskRunMethods(Orchestrator) {
     if (!claim) {
       return false;
     }
-    claim.stopRequested = true;
+    requestClaimStop(claim);
     return true;
   };
+  Orchestrator.prototype.registerTaskRunTransitionCancel =
+    function registerTaskRunTransitionCancel(taskId, cancel) {
+      const claim = this.getTaskRunTransitionClaim(taskId);
+      if (!claim || typeof cancel !== 'function') {
+        return () => {};
+      }
+      claim.cancelCallbacks.add(cancel);
+      if (claim.stopRequested) {
+        try {
+          cancel('SIGTERM');
+        } catch {
+          // Ignore immediate cancellation failures.
+        }
+      }
+      return () => {
+        claim.cancelCallbacks.delete(cancel);
+      };
+    };
   Orchestrator.prototype.markTaskRunTransitionRuntimeActive =
     function markTaskRunTransitionRuntimeActive(claim) {
       if (claim) {

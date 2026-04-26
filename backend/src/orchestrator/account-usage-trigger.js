@@ -1,29 +1,14 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { buildCodexArgs } = require('./context');
+const { AppServerClient } = require('./app-server-client');
 
 const USAGE_TRIGGER_PROMPT = 'Do not do any work. Reply with exactly "Hi" and nothing else.';
 
-function buildUsageTriggerArgs() {
-  const args = buildCodexArgs({ prompt: USAGE_TRIGGER_PROMPT });
-  if (args[0] === 'exec') {
-    args.splice(1, 0, '--skip-git-repo-check');
-  }
-  return args;
-}
-
-function waitForTriggerExit(child) {
+function waitForTriggerTurn(client) {
   return new Promise((resolve, reject) => {
     let settled = false;
-    let stdout = '';
-    let stderr = '';
     const timeout = setTimeout(() => {
-      try {
-        child.kill('SIGTERM');
-      } catch (error) {
-        // Ignore kill errors on timeout cleanup.
-      }
       finalize(new Error('Timed out triggering Codex usage.'));
     }, 120000);
 
@@ -40,37 +25,54 @@ function waitForTriggerExit(child) {
       resolve();
     };
 
-    child.stdout.on('data', (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on('error', (error) => finalize(error));
-    child.on('close', (code) => {
-      if (code === 0) {
+    client.on('notification', (message) => {
+      if (message.method !== 'turn/completed') {
+        return;
+      }
+      if ((message.params?.turn?.status || 'completed') === 'completed') {
         finalize(null);
         return;
       }
-      const message = stderr.trim() || stdout.trim() || `codex-docker exited with code ${code}.`;
-      finalize(new Error(message));
+      finalize(new Error(message.params?.turn?.error?.message || 'Codex usage trigger failed.'));
     });
+    client.on('close', () => finalize(new Error('Codex app-server exited before responding.')));
   });
 }
 
 async function runAccountUsageTrigger({ spawn, env }) {
   const triggerCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-usage-trigger-'));
+  let child = null;
   try {
-    const child = spawn('codex-docker', buildUsageTriggerArgs(), {
+    child = spawn('codex-docker', ['app-server'], {
       cwd: triggerCwd,
       env,
       stdio: ['pipe', 'pipe', 'pipe']
     });
-    if (child.stdin) {
-      child.stdin.end();
-    }
-    await waitForTriggerExit(child);
+    const client = new AppServerClient({ child });
+    await client.initialize();
+    const threadResponse = await client.request('thread/start', {
+      cwd: triggerCwd,
+      approvalPolicy: 'never',
+      sandbox: 'danger-full-access',
+      ephemeral: true
+    });
+    const completion = waitForTriggerTurn(client);
+    await client.request('turn/start', {
+      threadId: threadResponse.thread?.id,
+      input: [{ type: 'text', text: USAGE_TRIGGER_PROMPT }],
+      cwd: triggerCwd,
+      approvalPolicy: 'never',
+      sandboxPolicy: { type: 'dangerFullAccess' }
+    });
+    await completion;
   } finally {
+    if (child) {
+      try {
+        child.kill('SIGTERM');
+      } catch (error) {
+        // Ignore kill errors on shutdown cleanup.
+      }
+    }
     try {
       fs.rmSync(triggerCwd, { recursive: true, force: true });
     } catch (error) {

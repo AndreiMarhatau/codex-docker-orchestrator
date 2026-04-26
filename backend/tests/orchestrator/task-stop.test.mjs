@@ -1,10 +1,8 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { EventEmitter } from 'node:events';
-import { PassThrough } from 'node:stream';
 import { describe, expect, it, vi } from 'vitest';
 import { createRequire } from 'node:module';
-import { createMockExec, createTempDir } from '../helpers.mjs';
+import { createManualAppServerSpawn, createMockExec, createTempDir } from '../helpers.mjs';
 import { waitForTaskStatus } from '../helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
@@ -24,61 +22,34 @@ async function readTaskMeta(orchHome, taskId) {
 }
 
 function createManualRunSpawn() {
-  const calls = [];
-  let runChild = null;
-  const spawn = (command, args, options = {}) => {
-    calls.push({ command, args, options });
-    const child = new EventEmitter();
-    child.stdout = new PassThrough();
-    child.stderr = new PassThrough();
-    child.stdin = new PassThrough();
-    child.kill = vi.fn(() => {});
-    if (command === 'codex-docker' && args[0] !== 'app-server') {
-      runChild = child;
-      return child;
+  return createManualAppServerSpawn();
+}
+
+async function waitForRunServer(spawn) {
+  const deadline = Date.now() + 2000;
+  while (Date.now() < deadline) {
+    const server = spawn.latestServer();
+    if (server) {
+      await server.waitForTurnStart();
+      return server;
     }
-    setImmediate(() => {
-      child.stdout.end();
-      child.emit('close', 0, null);
-    });
-    return child;
-  };
-  spawn.calls = calls;
-  spawn.getRunChild = () => runChild;
-  return spawn;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error('Timed out waiting for app-server run');
 }
 
 describe('Orchestrator stopTask', () => {
   it('signals the spawned process group when available', async () => {
     const orchHome = await createTempDir();
     const exec = createMockExec({ branches: ['main'] });
-    const childrenByPid = new Map();
-    const spawn = (command, args) => {
-      const child = new EventEmitter();
-      child.stdout = new PassThrough();
-      child.stderr = new PassThrough();
-      child.stdin = new PassThrough();
-      child.kill = vi.fn(() => {});
-
-      if (command === 'codex-docker' && args[0] !== 'app-server') {
-        child.pid = 43210;
-        childrenByPid.set(child.pid, child);
-      } else {
-        setImmediate(() => {
-          child.stdout.end();
-          child.emit('close', 0, null);
-        });
-      }
-
-      return child;
-    };
+    const spawn = createManualAppServerSpawn({ pid: 43210 });
 
     const killSpy = vi.spyOn(process, 'kill').mockImplementation((pid, signal) => {
       if (pid < 0) {
-        const child = childrenByPid.get(Math.abs(pid));
-        if (child) {
+        const server = spawn.latestServer();
+        if (server) {
           setImmediate(() => {
-            child.emit('close', 143, signal);
+            server.close(143, signal);
           });
         }
       }
@@ -102,6 +73,7 @@ describe('Orchestrator stopTask', () => {
         ref: 'main',
         prompt: 'Do work'
       });
+      await waitForRunServer(spawn);
 
       await orchestrator.stopTask(task.taskId);
       await waitForTaskStatus(orchestrator, task.taskId, 'stopped');
@@ -194,7 +166,8 @@ describe('Orchestrator stopTask during finalization', () => {
       prompt: 'Do work'
     });
 
-    spawn.getRunChild().emit('close', 0, null);
+    const server = await waitForRunServer(spawn);
+    server.completeTurn();
     await finalizeStarted;
     expect(orchestrator.running.get(task.taskId)).toBeUndefined();
 

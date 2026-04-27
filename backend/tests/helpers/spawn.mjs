@@ -1,6 +1,7 @@
 /* eslint-disable complexity */
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
+import { isCodexAppServerArgs } from '../../src/orchestrator/app-server-args.js';
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -179,7 +180,7 @@ export function createMockSpawn({
     };
     call.child = child;
 
-    if (command === 'codex-docker' && args[0] === 'app-server') {
+    if (command === 'codex-docker' && isCodexAppServerArgs(args)) {
       appServerResponder(child, call, options);
       return child;
     }

@@ -3,6 +3,7 @@ import path from 'node:path';
 import fsSync from 'node:fs';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
+import { isCodexAppServerArgs } from '../../src/orchestrator/app-server-args.js';
 
 export const defaultRateLimits = {
   primary: { usedPercent: 25, windowDurationMins: 15, resetsAt: 1730947200 },
@@ -198,7 +199,7 @@ export function buildSpawnWithUsageLimit({
       spawnCalls.push(call);
     }
     const child = createChild();
-    if (command === 'codex-docker' && args[0] === 'app-server') {
+    if (command === 'codex-docker' && isCodexAppServerArgs(args)) {
       attachAppServerResponder(child, options, {
         rateLimitsByToken,
         refreshedAuthByToken,

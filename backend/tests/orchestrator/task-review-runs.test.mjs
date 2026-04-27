@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { createMockExec, createMockSpawn } from '../helpers.mjs';
 import { waitForTaskStatus } from '../helpers/wait.mjs';
 import { createCompletedTaskContext } from './task-fixture-helpers.mjs';
+import { buildCodexAppServerArgs } from '../../src/orchestrator/app-server-args.js';
 
 function createDeferred() {
   let resolve = null;
@@ -73,9 +74,13 @@ describe('task auto review runs', () => {
     releaseReview.resolve();
     const result = await reviewPromise;
     const completed = await orchestrator.getTask(taskId);
+    const reviewCall = spawn.calls.find((call) =>
+      call.messages.some((message) => message.method === 'review/start')
+    );
 
     expect(result).toEqual({ review: 'No findings.', resumed: false });
     expect(completed.status).toBe('completed');
+    expect(reviewCall?.args).toEqual(buildCodexAppServerArgs());
   });
 });
 

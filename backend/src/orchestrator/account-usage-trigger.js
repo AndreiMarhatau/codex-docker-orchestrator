@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { AppServerClient } = require('./app-server-client');
+const { buildCodexAppServerArgs } = require('./app-server-args');
 
 const USAGE_TRIGGER_PROMPT = 'Do not do any work. Reply with exactly "Hi" and nothing else.';
 
@@ -43,7 +44,7 @@ async function runAccountUsageTrigger({ spawn, env }) {
   const triggerCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-usage-trigger-'));
   let child = null;
   try {
-    child = spawn('codex-docker', ['app-server'], {
+    child = spawn('codex-docker', buildCodexAppServerArgs(), {
       cwd: triggerCwd,
       env,
       stdio: ['pipe', 'pipe', 'pipe']

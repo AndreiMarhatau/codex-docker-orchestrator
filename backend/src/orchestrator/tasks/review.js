@@ -560,7 +560,7 @@ function attachTaskReviewMethods(Orchestrator) {
       if (!context) {
         return null;
       }
-      return executeAutoReviewContext(this, {
+      return await executeAutoReviewContext(this, {
         taskId,
         runLabel,
         releaseTaskRunTransition,

@@ -81,14 +81,19 @@ function createTasksRouter(orchestrator) {
   });
   router.post(
     '/tasks/:taskId/push',
-    createTaskMutationRoute((req) => orchestrator.pushTask(req.params.taskId))
+    createTaskMutationRoute(
+      (req) => orchestrator.startPushTask(req.params.taskId),
+      (res, value) => res.status(202).json(value)
+    )
   );
   router.post(
     '/tasks/:taskId/commit-push',
-    createTaskMutationRoute((req) =>
-      orchestrator.commitAndPushTask(req.params.taskId, {
-        message: req.body?.message
-      })
+    createTaskMutationRoute(
+      (req) =>
+        orchestrator.startCommitAndPushTask(req.params.taskId, {
+          message: req.body?.message
+        }),
+      (res, value) => res.status(202).json(value)
     )
   );
   router.post(

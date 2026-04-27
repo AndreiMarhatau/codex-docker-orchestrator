@@ -11,7 +11,8 @@ function renderActions({
   hasTaskDetail = true,
   isRunning = false,
   loading = false,
-  showCommitPush = true
+  showCommitPush = true,
+  status = 'completed'
 } = {}) {
   render(
     <TaskDetailActions
@@ -21,7 +22,7 @@ function renderActions({
       showCommitPush={showCommitPush}
       tasksState={{
         actions: { handleCommitPushTask: vi.fn(), handleReviewTask: vi.fn() },
-        detail: {},
+        detail: { taskDetail: { status } },
         handleResumeModelChoiceChange: vi.fn()
       }}
     />
@@ -40,5 +41,12 @@ describe('TaskDetailActions', () => {
 
     expect(screen.getByRole('button', { name: 'Ask for changes' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Commit & Push' })).toBeEnabled();
+  });
+
+  it('shows commit and push as disabled while pushing is in progress', () => {
+    renderActions({ status: 'pushing' });
+
+    expect(screen.getByRole('button', { name: 'Pushing' })).toBeDisabled();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 });

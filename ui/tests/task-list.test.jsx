@@ -173,9 +173,9 @@ describe('TaskList', () => {
     expect(setSelectedTaskId).not.toHaveBeenCalled();
   });
 
-  it('does not render stop for stopping tasks', () => {
+  it('does not render stop for non-stoppable active task states', () => {
     useMediaQueryMock.mockReturnValue(false);
-    const task = createTask('task-stopping', { status: 'stopping' });
+    const task = createTask('task-pushing', { status: 'pushing' });
 
     renderTaskList({ tasks: [task] });
 

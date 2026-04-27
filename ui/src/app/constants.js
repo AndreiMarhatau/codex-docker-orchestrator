@@ -64,6 +64,13 @@ const STATUS_CONFIG = {
     bg: 'rgba(124, 58, 237, 0.12)',
     border: '#8b5cf6'
   },
+  pushing: {
+    label: 'Pushing',
+    icon: 'CloudUploadOutlinedIcon',
+    fg: '#0891b2',
+    bg: 'rgba(8, 145, 178, 0.12)',
+    border: '#06b6d4'
+  },
   stopping: {
     label: 'Stopping',
     icon: 'HourglassTopIcon',

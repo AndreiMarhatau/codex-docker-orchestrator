@@ -194,7 +194,7 @@ it(
         resumeRequestBody = body;
         return {};
       },
-      'POST /api/tasks/task-1/push': {},
+      'POST /api/tasks/task-1/commit-push': {},
       'POST /api/tasks/task-2/stop': {},
       'DELETE /api/tasks/task-2': {},
       'DELETE /api/tasks/task-1': {},

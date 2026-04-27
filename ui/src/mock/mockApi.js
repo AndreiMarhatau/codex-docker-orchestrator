@@ -56,6 +56,18 @@ function buildStateSnapshot(state) {
   };
 }
 
+function dispatchStateEvent(state, type, payload) {
+  for (const source of state.eventSources || []) {
+    if (!source.closed) {
+      source.dispatch(type, payload);
+    }
+  }
+}
+
+function notifyTasksChanged(state, taskId) {
+  dispatchStateEvent(state, STATE_EVENT_TYPES.tasksChanged, { taskId });
+}
+
 function syncTaskSummary(state, taskId) {
   const detail = state.taskDetails[taskId];
   if (!detail) {
@@ -89,6 +101,44 @@ function syncTaskSummary(state, taskId) {
     return;
   }
   state.tasks[existingIndex] = nextTask;
+}
+
+function scheduleMockPushCompletion(state, taskId, { committed = false, message = '' } = {}) {
+  window.setTimeout(() => {
+    const detail = state.taskDetails[taskId];
+    if (!detail || detail.status !== 'pushing') {
+      return;
+    }
+    detail.status = 'completed';
+    detail.gitStatus = {
+      hasChanges: false,
+      pushed: true,
+      dirty: false,
+      diffStats: { additions: 0, deletions: 0 }
+    };
+    const latestRun = detail.runLogs?.[detail.runLogs.length - 1];
+    if (latestRun) {
+      latestRun.entries = [
+        ...(latestRun.entries || []),
+        {
+          id: `entry-${taskId}-push-completed`,
+          type: 'item.completed',
+          parsed: {
+            type: 'item.completed',
+            item: {
+              type: 'agent_message',
+              text: committed
+                ? `Commit & push completed.\nCommit: ${message || 'Update mock task'}`
+                : 'Push completed.'
+            }
+          },
+          raw: `entry-${taskId}-push-completed`
+        }
+      ];
+    }
+    syncTaskSummary(state, taskId);
+    notifyTasksChanged(state, taskId);
+  }, 1200);
 }
 
 function computeUploadSize(body) {
@@ -422,14 +472,11 @@ function handleApiRequest(state, url, method, body) {
     if (!detail) {
       return { status: 404, text: 'Task not found' };
     }
-    detail.gitStatus = {
-      hasChanges: false,
-      pushed: true,
-      dirty: false,
-      diffStats: { additions: 0, deletions: 0 }
-    };
+    detail.status = 'pushing';
     syncTaskSummary(state, taskId);
-    return { status: 200, body: { pushed: true } };
+    notifyTasksChanged(state, taskId);
+    scheduleMockPushCompletion(state, taskId);
+    return { status: 202, body: { started: true } };
   }
   const taskCommitPushMatch = pathname.match(/^\/api\/tasks\/([^/]+)\/commit-push$/);
   if (taskCommitPushMatch && method === 'POST') {
@@ -438,21 +485,14 @@ function handleApiRequest(state, url, method, body) {
     if (!detail) {
       return { status: 404, text: 'Task not found' };
     }
-    detail.gitStatus = {
-      hasChanges: false,
-      pushed: true,
-      dirty: false,
-      diffStats: { additions: 0, deletions: 0 }
-    };
+    detail.status = 'pushing';
     syncTaskSummary(state, taskId);
-    return {
-      status: 200,
-      body: {
-        pushed: true,
-        committed: true,
-        commitMessage: String(body?.message || 'Update mock task')
-      }
-    };
+    notifyTasksChanged(state, taskId);
+    scheduleMockPushCompletion(state, taskId, {
+      committed: true,
+      message: String(body?.message || 'Update mock task')
+    });
+    return { status: 202, body: { started: true } };
   }
   const taskReviewMatch = pathname.match(/^\/api\/tasks\/([^/]+)\/review$/);
   if (taskReviewMatch && method === 'POST') {
@@ -613,6 +653,8 @@ function createMockEventSource(state) {
       this.url = url;
       this.closed = false;
       this.listeners = new Map();
+      state.eventSources = state.eventSources || new Set();
+      state.eventSources.add(this);
       window.setTimeout(() => {
         if (this.closed) {
           return;
@@ -649,6 +691,7 @@ function createMockEventSource(state) {
 
     close() {
       this.closed = true;
+      state.eventSources?.delete(this);
       this.listeners.clear();
     }
   };

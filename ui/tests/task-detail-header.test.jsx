@@ -110,4 +110,10 @@ describe('TaskDetailHeader', () => {
     expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Task duration 0:30')).toBeInTheDocument();
   });
+
+  it('does not render stop for push operations', () => {
+    renderHeader(createTaskDetail({ status: 'pushing' }));
+
+    expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument();
+  });
 });

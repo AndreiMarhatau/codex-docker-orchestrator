@@ -1,6 +1,6 @@
 const { listDirs, pathExists, readJson, writeJson } = require('../../storage');
 
-const ACTIVE_TASK_STATUSES = new Set(['running', 'reviewing', 'stopping']);
+const ACTIVE_TASK_STATUSES = new Set(['running', 'reviewing', 'pushing', 'stopping']);
 const LOST_RUNNER_ERROR = 'Task interrupted because the runner process is no longer active.';
 const USER_STOPPED_ERROR = 'Stopped by user.';
 

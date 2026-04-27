@@ -12,8 +12,14 @@ const { createBoundedChildShutdown } = require('./process-shutdown');
 
 const REVIEW_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 const REVIEW_REQUEST_TIMEOUT_MS = 60_000;
-const AUTO_REVIEW_FIX_PROMPT =
-  'Fix the following comments. If any of them is worth not fixing due to conflict with user instructions or too broad changes, just mention it without fixing.';
+const AUTO_REVIEW_FIX_PROMPT = [
+  'Reviewer left a message.',
+  'If it flagged any issues, decide whether they need to be addressed.',
+  'Ignore an issue if fixing it would require touching a larger scope or would conflict with the user request.',
+  "If there are no issues to address, don't do anything.",
+  '',
+  'Message:'
+].join('\n');
 
 function normalizeReviewTarget(input = {}) {
   const type = input.type || input.targetType || 'uncommittedChanges';

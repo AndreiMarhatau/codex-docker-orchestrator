@@ -3,6 +3,7 @@ import { useState } from 'react';
 import {
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -26,7 +27,11 @@ function TaskDetailActions({ data, hasTaskDetail, isRunning = false, showCommitP
   const [resumeDialogOpen, setResumeDialogOpen] = useState(() => readComposeQuery() === 'resume');
   const [commitDialogOpen, setCommitDialogOpen] = useState(false);
   const [commitMessage, setCommitMessage] = useState('');
+  const [commitSubmitting, setCommitSubmitting] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const isPushing = detail.taskDetail?.status === 'pushing';
+  const actionBusy = data.loading || isRunning || isPushing;
+  const commitBusy = data.loading || commitSubmitting || isPushing;
   const [reviewForm, setReviewForm] = useState({
     type: 'uncommittedChanges',
     branch: detail.taskDetail?.ref || 'main',
@@ -46,10 +51,15 @@ function TaskDetailActions({ data, hasTaskDetail, isRunning = false, showCommitP
   }
 
   async function submitCommitPush() {
-    const ok = await actions.handleCommitPushTask(commitMessage);
-    if (ok) {
-      setCommitDialogOpen(false);
-      setCommitMessage('');
+    setCommitSubmitting(true);
+    try {
+      const ok = await actions.handleCommitPushTask(commitMessage);
+      if (ok) {
+        setCommitDialogOpen(false);
+        setCommitMessage('');
+      }
+    } finally {
+      setCommitSubmitting(false);
     }
   }
 
@@ -81,7 +91,7 @@ function TaskDetailActions({ data, hasTaskDetail, isRunning = false, showCommitP
             <Button
               variant="outlined"
               onClick={openResumeDialog}
-              disabled={data.loading || isRunning}
+              disabled={actionBusy}
             >
               Ask for changes
             </Button>
@@ -90,7 +100,7 @@ function TaskDetailActions({ data, hasTaskDetail, isRunning = false, showCommitP
             <Button
               variant="outlined"
               onClick={() => setReviewDialogOpen(true)}
-              disabled={data.loading || isRunning}
+              disabled={actionBusy}
             >
               Review
             </Button>
@@ -99,9 +109,10 @@ function TaskDetailActions({ data, hasTaskDetail, isRunning = false, showCommitP
             <Button
               variant="contained"
               onClick={() => setCommitDialogOpen(true)}
-              disabled={data.loading || isRunning}
+              disabled={actionBusy}
+              startIcon={isPushing ? <CircularProgress size={16} color="inherit" /> : null}
             >
-              Commit &amp; Push
+              {isPushing ? 'Pushing' : 'Commit & Push'}
             </Button>
           )}
         </Stack>
@@ -115,7 +126,16 @@ function TaskDetailActions({ data, hasTaskDetail, isRunning = false, showCommitP
         open={resumeDialogOpen}
         onClose={closeResumeDialog}
       />
-      <Dialog open={commitDialogOpen} onClose={() => setCommitDialogOpen(false)} fullWidth maxWidth="sm">
+      <Dialog
+        open={commitDialogOpen}
+        onClose={() => {
+          if (!commitBusy) {
+            setCommitDialogOpen(false);
+          }
+        }}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>Commit &amp; Push</DialogTitle>
         <DialogContent>
           <TextField
@@ -128,9 +148,14 @@ function TaskDetailActions({ data, hasTaskDetail, isRunning = false, showCommitP
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCommitDialogOpen(false)} disabled={data.loading}>Cancel</Button>
-          <Button variant="contained" onClick={submitCommitPush} disabled={data.loading}>
-            Commit &amp; Push
+          <Button onClick={() => setCommitDialogOpen(false)} disabled={commitBusy}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={submitCommitPush}
+            disabled={commitBusy}
+            startIcon={commitSubmitting ? <CircularProgress size={16} color="inherit" /> : null}
+          >
+            {commitSubmitting ? 'Starting' : 'Commit & Push'}
           </Button>
         </DialogActions>
       </Dialog>

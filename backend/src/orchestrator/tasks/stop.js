@@ -38,6 +38,9 @@ function attachTaskStopMethods(Orchestrator) {
     meta = await this.reconcileTaskRuntimeState(taskId, meta);
     const run = this.running.get(taskId);
     if (!run) {
+      if (meta.status === 'pushing') {
+        return meta;
+      }
       if (this.requestFinalizingTaskStop(taskId) || this.requestTaskRunTransitionStop(taskId)) {
         return stopActiveClaimedTask(this, taskId, meta);
       }

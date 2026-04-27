@@ -1,10 +1,11 @@
 /* eslint-disable max-lines, max-lines-per-function */
-const { readJson, removePath, pathExists } = require('../../storage');
+const { readJson, removePath, pathExists, writeJson } = require('../../storage');
 const { repoNameFromUrl } = require('../utils');
 const { runStructuredCodex } = require('./structured-output');
 const { buildTaskRunEnvOverrides, buildTaskRunVolumeMounts } = require('./mounts');
 
 const COMMIT_MESSAGE_RETRY_LIMIT = 3;
+const TASK_PUSH_STATUS = 'pushing';
 const COMMIT_MESSAGE_SCHEMA = {
   type: 'object',
   properties: {
@@ -24,6 +25,88 @@ function assertTaskMutationNotStopped(claim) {
   if (claim?.stopRequested) {
     throw createTaskMutationStoppedError();
   }
+}
+
+function latestRunLabel(meta) {
+  const runs = Array.isArray(meta?.runs) ? meta.runs : [];
+  return runs[runs.length - 1]?.runId || null;
+}
+
+async function appendPushAgentMessage(orch, taskId, runLabel, text) {
+  if (!runLabel || typeof orch.appendRunAgentMessage !== 'function') {
+    return;
+  }
+  try {
+    await orch.appendRunAgentMessage(taskId, runLabel, text);
+  } catch {
+    // Best-effort: push status must not depend on log append success.
+  }
+}
+
+async function beginTaskPush(orch, taskId, meta, message) {
+  const pushState = {
+    previousError: meta.error || null,
+    previousStatus: meta.status || 'completed',
+    runLabel: latestRunLabel(meta)
+  };
+  await writeJson(orch.taskMetaPath(taskId), {
+    ...meta,
+    status: TASK_PUSH_STATUS,
+    updatedAt: orch.now()
+  });
+  await appendPushAgentMessage(orch, taskId, pushState.runLabel, message);
+  orch.notifyTasksChanged(taskId);
+  return pushState;
+}
+
+function pushCompleteMessage(result, fallback) {
+  const lines = [fallback];
+  if (result?.committed && result.commitMessage) {
+    lines.push(`Commit: ${result.commitMessage}`);
+  }
+  if (result?.prCreated && result.prUrl) {
+    lines.push(`PR: ${result.prUrl}`);
+  }
+  return lines.join('\n');
+}
+
+async function finishTaskPush(orch, {
+  taskId,
+  pushState,
+  result,
+  error,
+  transitionClaim,
+  failureMessage,
+  successMessage
+}) {
+  let meta = null;
+  try {
+    meta = await readJson(orch.taskMetaPath(taskId));
+  } catch {
+    return;
+  }
+  if (transitionClaim?.stopRequested || meta.status !== TASK_PUSH_STATUS) {
+    return;
+  }
+  const updatedMeta = error
+    ? {
+        ...meta,
+        status: 'failed',
+        error: `${failureMessage}: ${error?.message || 'Unknown error'}`,
+        updatedAt: orch.now()
+      }
+    : {
+        ...meta,
+        status: pushState.previousStatus || 'completed',
+        error: pushState.previousError,
+        updatedAt: orch.now()
+      };
+  await writeJson(orch.taskMetaPath(taskId), updatedMeta);
+  const message = error
+    ? `${failureMessage}: ${error?.message || 'Unknown error'}`
+    : pushCompleteMessage(result, successMessage);
+  await appendPushAgentMessage(orch, taskId, pushState.runLabel, message);
+  orch.notifyTasksChanged(taskId);
 }
 
 async function removeWorktree({ exec, mirrorPath, worktreePath }) {
@@ -248,7 +331,8 @@ function attachTaskCleanupMethods(Orchestrator) {
   };
 
   Orchestrator.prototype.commitAndPushTask = async function commitAndPushTask(taskId, options = {}) {
-    const releaseTaskRunTransition = this.claimTaskRunTransition(taskId);
+    const releaseTaskRunTransition = options.transitionClaim || this.claimTaskRunTransition(taskId);
+    const ownsTaskRunTransition = !options.transitionClaim;
     const transitionClaim = releaseTaskRunTransition.claim;
     try {
       await this.init();
@@ -299,7 +383,97 @@ function attachTaskCleanupMethods(Orchestrator) {
       this.notifyTasksChanged(taskId);
       return { ...pushResult, committed, commitMessage };
     } finally {
-      releaseTaskRunTransition();
+      if (ownsTaskRunTransition) {
+        releaseTaskRunTransition();
+      }
+    }
+  };
+
+  Orchestrator.prototype.startPushTask = async function startPushTask(taskId) {
+    const releaseTaskRunTransition = this.claimTaskRunTransition(taskId);
+    const transitionClaim = releaseTaskRunTransition.claim;
+    let scheduled = false;
+    try {
+      await this.init();
+      let meta = await readJson(this.taskMetaPath(taskId));
+      meta = await this.reconcileTaskRuntimeState(taskId, meta);
+      this.markTaskRunTransitionRuntimeActive(transitionClaim);
+      const pushState = await beginTaskPush(this, taskId, meta, 'Push started.');
+      scheduled = true;
+      void this.pushTask(taskId, { transitionClaim: releaseTaskRunTransition })
+        .then((result) =>
+          finishTaskPush(this, {
+            taskId,
+            pushState,
+            result,
+            transitionClaim,
+            failureMessage: 'Push failed',
+            successMessage: 'Push completed.'
+          })
+        )
+        .catch((error) =>
+          finishTaskPush(this, {
+            taskId,
+            pushState,
+            error,
+            transitionClaim,
+            failureMessage: 'Push failed',
+            successMessage: 'Push completed.'
+          })
+        )
+        .finally(() => releaseTaskRunTransition());
+      return { started: true };
+    } finally {
+      if (!scheduled) {
+        releaseTaskRunTransition();
+      }
+    }
+  };
+
+  Orchestrator.prototype.startCommitAndPushTask = async function startCommitAndPushTask(
+    taskId,
+    options = {}
+  ) {
+    const releaseTaskRunTransition = this.claimTaskRunTransition(taskId);
+    const transitionClaim = releaseTaskRunTransition.claim;
+    let scheduled = false;
+    try {
+      await this.init();
+      let meta = await readJson(this.taskMetaPath(taskId));
+      meta = await this.reconcileTaskRuntimeState(taskId, meta);
+      this.markTaskRunTransitionRuntimeActive(transitionClaim);
+      const pushState = await beginTaskPush(this, taskId, meta, 'Commit & push started.');
+      scheduled = true;
+      void this.commitAndPushTask(taskId, {
+        message: options.message,
+        transitionClaim: releaseTaskRunTransition
+      })
+        .then((result) =>
+          finishTaskPush(this, {
+            taskId,
+            pushState,
+            result,
+            transitionClaim,
+            failureMessage: 'Commit & push failed',
+            successMessage: 'Commit & push completed.'
+          })
+        )
+        .catch((error) =>
+          finishTaskPush(this, {
+            taskId,
+            pushState,
+            error,
+            transitionClaim,
+            failureMessage: 'Commit & push failed',
+            successMessage: 'Commit & push completed.'
+          })
+        )
+        .finally(() => releaseTaskRunTransition());
+      return { started: true };
+    } finally {
+      if (!scheduled) {
+        releaseTaskRunTransition();
+      }
     }
   };
 }

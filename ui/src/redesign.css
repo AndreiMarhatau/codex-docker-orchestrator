@@ -426,6 +426,11 @@ body::before {
   background: rgba(124, 58, 237, 0.12);
 }
 
+.status-pill--pushing {
+  color: #0891b2;
+  background: rgba(8, 145, 178, 0.12);
+}
+
 .status-pill--completed {
   color: var(--ui-success);
   background: var(--ui-success-soft);

@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { createMockSpawn } from './spawn.mjs';
+import { isCodexAppServerArgs } from '../../src/orchestrator/app-server-args.js';
 
 function createChild(pid) {
   const child = new EventEmitter();
@@ -108,7 +109,7 @@ export function createManualAppServerSpawn({
   const spawn = (command, args, options = {}) => {
     const isMainAppServer =
       command === 'codex-docker' &&
-      args[0] === 'app-server' &&
+      isCodexAppServerArgs(args) &&
       options?.env?.ORCH_STRUCTURED_CODEX !== '1';
     if (!isMainAppServer) {
       return baseSpawn(command, args, options);
@@ -131,7 +132,7 @@ export function countAppServerTaskRuns(calls) {
   return calls.filter(
     (call) =>
       call.command === 'codex-docker' &&
-      call.args[0] === 'app-server' &&
+      isCodexAppServerArgs(call.args) &&
       call.options?.env?.ORCH_STRUCTURED_CODEX !== '1' &&
       (!Array.isArray(call.messages) ||
         call.messages.some((message) => ['turn/start', 'review/start'].includes(message.method)))

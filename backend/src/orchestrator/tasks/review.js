@@ -4,6 +4,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { readJson, writeJson } = require('../../storage');
 const { AppServerClient } = require('../app-server-client');
+const { buildCodexAppServerArgs } = require('../app-server-args');
 const { buildRunEnv } = require('./run-helpers');
 const { buildTaskRunEnvOverrides, buildTaskRunVolumeMounts } = require('./mounts');
 const { repoNameFromUrl } = require('../utils');
@@ -138,7 +139,7 @@ async function runCodexReview({
     envOverrides
   });
   const useProcessGroup = process.platform !== 'win32';
-  const child = orchestrator.spawn('codex-docker', ['app-server'], {
+  const child = orchestrator.spawn('codex-docker', buildCodexAppServerArgs(), {
     cwd: meta.worktreePath,
     env,
     stdio: ['pipe', 'pipe', 'pipe'],

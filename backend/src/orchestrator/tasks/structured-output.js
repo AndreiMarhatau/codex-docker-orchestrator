@@ -1,6 +1,7 @@
 const { buildRunEnv } = require('./run-helpers');
 const { runAppServerTurn } = require('./app-server-runner');
 const { createBoundedChildShutdown } = require('./process-shutdown');
+const { buildCodexAppServerArgs } = require('../app-server-args');
 
 function createMemoryTracker() {
   let stdout = '';
@@ -60,7 +61,7 @@ async function runStructuredCodex({
   });
   env.ORCH_STRUCTURED_CODEX = '1';
   const useProcessGroup = process.platform !== 'win32';
-  const child = orchestrator.spawn('codex-docker', ['app-server'], {
+  const child = orchestrator.spawn('codex-docker', buildCodexAppServerArgs(), {
     cwd,
     env,
     stdio: ['pipe', 'pipe', 'pipe'],

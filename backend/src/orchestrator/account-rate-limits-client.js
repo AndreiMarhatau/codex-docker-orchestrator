@@ -1,3 +1,5 @@
+const { buildCodexAppServerArgs } = require('./app-server-args');
+
 function createRateLimitPayloads() {
   const initRequestId = 1;
   const rateLimitRequestId = 2;
@@ -111,7 +113,7 @@ function readRateLimits(child, payloads) {
 }
 
 async function readAccountRateLimits({ spawn, env }) {
-  const child = spawn('codex-docker', ['app-server'], {
+  const child = spawn('codex-docker', buildCodexAppServerArgs(), {
     env,
     stdio: ['pipe', 'pipe', 'pipe']
   });

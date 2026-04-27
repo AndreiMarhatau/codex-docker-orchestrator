@@ -8,6 +8,10 @@ import { createMockExec, createMockSpawn, createTempDir } from '../helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
+const {
+  buildCodexAppServerArgs,
+  isCodexAppServerArgs
+} = require('../../src/orchestrator/app-server-args');
 
 function resolveMountedPath(options, targetPath) {
   const mounts = String(options?.env?.CODEX_VOLUME_MOUNTS || '')
@@ -43,7 +47,7 @@ function createRateLimitSpawn({ updatedAuth, responseDelayMs = 0 } = {}) {
       });
     };
 
-    if (command !== 'codex-docker' || args[0] !== 'app-server') {
+    if (command !== 'codex-docker' || !isCodexAppServerArgs(args)) {
       setImmediate(() => child.emit('close', 0, null));
       return child;
     }
@@ -156,10 +160,11 @@ describe('Orchestrator account rate-limit reads', () => {
     const triggerCall = spawn.calls.find(
       (call) =>
         call.command === 'codex-docker' &&
-        call.args[0] === 'app-server' &&
+        isCodexAppServerArgs(call.args) &&
         call.messages.some((message) => message.method === 'turn/start')
     );
     expect(triggerCall).toBeTruthy();
+    expect(triggerCall.args).toEqual(buildCodexAppServerArgs());
     const threadStart = triggerCall.messages.find((message) => message.method === 'thread/start');
     expect(threadStart.params.ephemeral).toBe(true);
     expect(triggerCall.options.cwd).toContain('codex-usage-trigger-');

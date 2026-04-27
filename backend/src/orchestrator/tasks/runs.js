@@ -2,6 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { readJson, writeJson } = require('../../storage');
+const { buildCodexAppServerArgs } = require('../app-server-args');
 const { buildRunEnv, createOutputTracker, updateRunMeta } = require('./run-helpers');
 const { createDeferredRunState, createStoppedDuringStartupError, isAbortError } = require('./deferred-run-state');
 const { runAppServerTurn } = require('./app-server-runner');
@@ -268,7 +269,7 @@ function attachStartRunMethod(Orchestrator) {
       envOverrides
     });
     const useProcessGroup = process.platform !== 'win32';
-    const child = this.spawn('codex-docker', ['app-server'], {
+    const child = this.spawn('codex-docker', buildCodexAppServerArgs(), {
       cwd,
       env,
       stdio: ['pipe', 'pipe', 'pipe'],

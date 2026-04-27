@@ -47,7 +47,11 @@ function canScrollInDirection(metrics, direction) {
 }
 
 function FloatingScrollButton() {
-  const [scrollState, setScrollState] = useState({ direction: '', visible: false });
+  const [scrollState, setScrollState] = useState({
+    direction: '',
+    rendered: false,
+    visible: false
+  });
   const hideTimerRef = useRef(null);
   const lastPositionsRef = useRef(new WeakMap());
   const targetRef = useRef(null);
@@ -92,7 +96,7 @@ function FloatingScrollButton() {
       }
 
       targetRef.current = target;
-      setScrollState({ direction, visible: true });
+      setScrollState({ direction, rendered: true, visible: true });
       scheduleHide();
     }
 
@@ -113,7 +117,7 @@ function FloatingScrollButton() {
     target.scrollTo({ behavior: 'smooth', top });
   }
 
-  if (!scrollState.visible) {
+  if (!scrollState.rendered) {
     return null;
   }
 
@@ -122,9 +126,15 @@ function FloatingScrollButton() {
   return (
     <button
       type="button"
-      className="floating-scroll-button"
+      className={`floating-scroll-button${scrollState.visible ? ' is-visible' : ''}`}
       onClick={handleJump}
+      onTransitionEnd={() => {
+        if (!scrollState.visible) {
+          setScrollState((current) => ({ ...current, rendered: false }));
+        }
+      }}
       aria-label={label}
+      tabIndex={scrollState.visible ? 0 : -1}
     >
       {scrollState.direction === 'up'
         ? <KeyboardArrowUpRoundedIcon fontSize="small" />

@@ -10,6 +10,12 @@ import useTaskFormState from './useTaskFormState.js';
 import useTaskFiles from './useTaskFiles.js';
 import useTaskSelection from './useTaskSelection.js';
 
+const ACTIVE_TASK_STATUSES = new Set(['running', 'reviewing', 'stopping']);
+
+function isActiveTaskStatus(status) {
+  return ACTIVE_TASK_STATUSES.has(status);
+}
+
 function useTasksState({ enabled, envs, refreshAll, setError, setLoading, tasks }) {
   const selection = useTaskSelection();
   const formState = useTaskFormState({
@@ -105,15 +111,10 @@ function useTasksState({ enabled, envs, refreshAll, setError, setLoading, tasks 
   }, [selection, tasks]);
 
   const hasActiveRuns = useMemo(() => {
-    const taskRunning = tasks.some(
-      (task) => task.status === 'running' || task.status === 'stopping'
-    );
-    const detailRunning =
-      detail.taskDetail?.status === 'running' || detail.taskDetail?.status === 'stopping';
+    const taskRunning = tasks.some((task) => isActiveTaskStatus(task.status));
+    const detailRunning = isActiveTaskStatus(detail.taskDetail?.status);
     const detailRuns = detail.taskDetail?.runs || detail.taskDetail?.runLogs || [];
-    const runRunning = detailRuns.some(
-      (run) => run.status === 'running' || run.status === 'stopping'
-    );
+    const runRunning = detailRuns.some((run) => isActiveTaskStatus(run.status));
     return taskRunning || detailRunning || runRunning;
   }, [detail.taskDetail, tasks]);
 
@@ -121,9 +122,7 @@ function useTasksState({ enabled, envs, refreshAll, setError, setLoading, tasks 
 
   const taskStats = useMemo(() => {
     const total = tasks.length;
-    const running = tasks.filter(
-      (task) => task.status === 'running' || task.status === 'stopping'
-    ).length;
+    const running = tasks.filter((task) => isActiveTaskStatus(task.status)).length;
     const failed = tasks.filter((task) => task.status === 'failed').length;
     return { failed, running, total };
   }, [tasks]);

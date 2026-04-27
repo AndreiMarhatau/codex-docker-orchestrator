@@ -5,6 +5,7 @@ import { MAX_TASK_FILES } from '../../../constants.js';
 import { formatBytes } from '../../../formatters.js';
 import TaskFormBasics from './TaskFormBasics.jsx';
 import TaskFormContextRepos from './TaskFormContextRepos.jsx';
+import TaskDockerToggle from './TaskDockerToggle.jsx';
 import TaskFormModel from './TaskFormModel.jsx';
 
 function TaskFileList({ files }) {
@@ -95,6 +96,18 @@ function TaskCreateBody({ envs, files, formState, loading, selectedEnv }) {
           <UploadProgress progress={files.taskFileUploadProgress} />
           <TaskFileList files={files} />
         </Box>
+
+        <TaskDockerToggle
+          checked={formState.taskForm.autoReview}
+          helperText="Automatically run review mode when a task changes files."
+          label="Auto review changed runs"
+          onChange={(event) =>
+            formState.setTaskForm((prev) => ({
+              ...prev,
+              autoReview: event.target.checked
+            }))
+          }
+        />
       </Stack>
 
       <Stack spacing={2.25} className="task-compose-column">

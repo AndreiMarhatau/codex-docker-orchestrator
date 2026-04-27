@@ -28,7 +28,7 @@ async function createTestApp() {
 
 describe('API task context and attachments', () => {
   it('attaches context repos to tasks', async () => {
-    const { app, spawn } = await createTestApp();
+    const { app, orchestrator, spawn } = await createTestApp();
 
     const primaryEnvRes = await request(app)
       .post('/api/envs')
@@ -53,6 +53,7 @@ describe('API task context and attachments', () => {
     expect(taskRes.body.contextRepos[0].envId).toBe(contextEnvRes.body.envId);
     expect(taskRes.body.contextRepos[0].worktreePath).toBeTruthy();
 
+    await waitForTaskIdle(orchestrator, taskRes.body.taskId);
     const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
     expect(runCall.options.env.CODEX_VOLUME_MOUNTS).toContain(
       `/readonly/context:ro`

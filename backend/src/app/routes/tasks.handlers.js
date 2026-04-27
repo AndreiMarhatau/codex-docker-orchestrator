@@ -33,7 +33,8 @@ function createTaskHandler(orchestrator) {
         reasoningEffort,
         useHostDockerSocket,
         autoReview,
-        contextRepos: normalizedContextRepos
+        contextRepos: normalizedContextRepos,
+        deferStartup: true
       });
       res.status(201).json(task);
     } catch (error) {

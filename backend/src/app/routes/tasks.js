@@ -93,7 +93,10 @@ function createTasksRouter(orchestrator) {
   );
   router.post(
     '/tasks/:taskId/review',
-    createTaskMutationRoute((req) => orchestrator.runTaskReview(req.params.taskId, req.body || {}))
+    createTaskMutationRoute(
+      (req) => orchestrator.startTaskReview(req.params.taskId, req.body || {}),
+      (res, value) => res.status(202).json(value)
+    )
   );
   router.delete('/tasks/:taskId', createTaskMutationRoute(
     (req) => orchestrator.deleteTask(req.params.taskId),

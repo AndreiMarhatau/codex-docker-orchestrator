@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createMockExec, createMockSpawn, createTempDir, prepareOrchestratorSetup } from './helpers.mjs';
+import { waitForTaskIdle } from './helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
 const { createApp } = require('../src/app');
@@ -22,12 +23,12 @@ async function createTestApp() {
     now: () => '2025-12-19T00:00:00.000Z'
   });
   await prepareOrchestratorSetup(orchestrator);
-  return { app: await createApp({ orchestrator }), orchHome, spawn };
+  return { app: await createApp({ orchestrator }), orchHome, orchestrator, spawn };
 }
 
 describe('API uploads', () => {
   it('uploads files and attaches them to new tasks', async () => {
-    const { app, orchHome, spawn } = await createTestApp();
+    const { app, orchHome, orchestrator, spawn } = await createTestApp();
 
     const envRes = await request(app)
       .post('/api/envs')
@@ -55,6 +56,7 @@ describe('API uploads', () => {
     const attachmentsDir = path.join(orchHome, 'tasks', taskRes.body.taskId, 'attachments');
     expect(attachmentPath.startsWith(attachmentsDir)).toBe(true);
 
+    await waitForTaskIdle(orchestrator, taskRes.body.taskId);
     const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
     expect(runCall.args).not.toContain('--image');
     expect(runCall.options.env.CODEX_MOUNT_PATHS_RO).toBeUndefined();

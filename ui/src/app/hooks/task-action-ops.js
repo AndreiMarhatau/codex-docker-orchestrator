@@ -23,13 +23,12 @@ function createHandleCommitPushTask({ refreshTaskDetail, selectedTaskId, setErro
   };
 }
 
-function createHandleReviewTask({ refreshTaskDetail, selectedTaskId, setError, setLoading }) {
+function createHandleReviewTask({ refreshTaskDetail, selectedTaskId, setError }) {
   return async function handleReviewTask(reviewInput) {
     if (!selectedTaskId) {
       return false;
     }
     setError('');
-    setLoading(true);
     try {
       await apiRequest(`/api/tasks/${selectedTaskId}/review`, {
         method: 'POST',
@@ -40,8 +39,6 @@ function createHandleReviewTask({ refreshTaskDetail, selectedTaskId, setError, s
     } catch (err) {
       setError(err.message);
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 }

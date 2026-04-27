@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "node src/server.js",
     "start": "node src/server.js",
-    "test": "vitest run --coverage",
+    "test": "node -e \"require('node:fs').rmSync('coverage', { recursive: true, force: true })\" && vitest run --coverage",
     "lint": "eslint --rulesdir eslint-rules --ext .js,.mjs src tests --max-warnings=0"
   },
   "dependencies": {

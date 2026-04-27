@@ -234,6 +234,95 @@ async function stopCreatedTaskAfterStartupError(orch, taskId, error, claim) {
   }
 }
 
+async function finishCreateTaskStartup(orch, {
+  taskId,
+  env,
+  fileUploads,
+  prompt,
+  meta,
+  workspaceDir,
+  runLabel,
+  normalizedModel,
+  normalizedReasoningEffort,
+  shouldUseHostDockerSocket,
+  resolvedContextRepos,
+  preparedRunContext,
+  transitionClaim,
+  removeTaskOnFailure
+}) {
+  try {
+    await orch.ensureActiveAuth();
+    if (transitionClaim?.stopRequested) {
+      return orch.stopPersistedTaskRun(taskId, meta);
+    }
+    const branchName = await generateTaskBranchNameForCreate(orch, {
+      taskId,
+      prompt,
+      env,
+      worktreePath: meta.worktreePath,
+      workspaceDir,
+      runLabel,
+      model: normalizedModel,
+      reasoningEffort: normalizedReasoningEffort
+    });
+    if (transitionClaim?.stopRequested) {
+      return orch.stopPersistedTaskRun(taskId, meta);
+    }
+    meta.branchName = await checkoutTaskBranch(orch, meta.worktreePath, branchName);
+    if (transitionClaim?.stopRequested) {
+      return orch.stopPersistedTaskRun(taskId, meta);
+    }
+    const { orchestratorInstructions, volumeMounts } = preparedRunContext ||
+      (await prepareCreateRunContext(orch, {
+        taskId,
+        env,
+        resolvedContextRepos,
+        fileUploads,
+        meta,
+        workspaceDir,
+        shouldUseHostDockerSocket
+      }));
+    if (transitionClaim?.stopRequested) {
+      return orch.stopPersistedTaskRun(taskId, meta);
+    }
+    meta = await writeStartupPreparedMeta(orch, taskId, meta, transitionClaim);
+    orch.startCodexRunDeferred({
+      taskId,
+      runLabel,
+      prompt,
+      cwd: meta.worktreePath,
+      appServerConfig: {
+        model: normalizedModel,
+        reasoningEffort: normalizedReasoningEffort,
+        developerInstructions: orchestratorInstructions
+      },
+      workspaceDir,
+      volumeMounts,
+      useHostDockerSocket: shouldUseHostDockerSocket,
+      envOverrides: buildTaskRunEnvOverrides(env.envVars, shouldUseHostDockerSocket),
+      stopTaskDockerSidecarOnExit: shouldUseHostDockerSocket,
+      transitionClaim
+    });
+    if (transitionClaim?.stopRequested) {
+      return orch.stopPersistedTaskRun(taskId, meta);
+    }
+    orch.notifyTasksChanged(taskId);
+    return meta;
+  } catch (error) {
+    const stopped = await stopCreatedTaskAfterStartupError(orch, taskId, error, transitionClaim);
+    if (stopped) {
+      return stopped;
+    }
+    await cleanupFailedWorktree(orch, env.mirrorPath, meta.worktreePath);
+    if (removeTaskOnFailure) {
+      await removePath(orch.taskDir(taskId));
+      throw error;
+    }
+    await orch.failRunStart(taskId, runLabel, prompt, error);
+    return readJson(orch.taskMetaPath(taskId));
+  }
+}
+
 function attachTaskCreateMethods(Orchestrator) {
   Orchestrator.prototype.createTask = async function createTask({
     envId,
@@ -244,7 +333,8 @@ function attachTaskCreateMethods(Orchestrator) {
     reasoningEffort,
     useHostDockerSocket,
     autoReview,
-    contextRepos
+    contextRepos,
+    deferStartup = false
   }) {
     await this.init();
     const env = await this.readEnv(envId);
@@ -256,14 +346,16 @@ function attachTaskCreateMethods(Orchestrator) {
     const runLabel = nextRunLabel(1);
     const releaseTaskRunTransition = this.claimTaskRunTransition(taskId);
     let createdWorktreePath = null;
+    let meta = null;
+    let resolvedContextRepos = [];
     try {
       await ensureDir(this.taskDir(taskId));
       await ensureDir(this.taskLogsDir(taskId));
-      const resolvedContextRepos = await this.resolveContextRepos(taskId, contextRepos);
+      resolvedContextRepos = await this.resolveContextRepos(taskId, contextRepos);
       const { worktreePath, baseSha, targetRef } = await setupWorktree(this, { env, ref, taskId });
       createdWorktreePath = worktreePath;
       await ensureDir(this.runArtifactsDir(taskId, runLabel));
-      let meta = await persistInitialTaskMeta(this, {
+      meta = await persistInitialTaskMeta(this, {
         taskId,
         envId,
         env,
@@ -279,76 +371,75 @@ function attachTaskCreateMethods(Orchestrator) {
         runLabel,
         transitionClaim: releaseTaskRunTransition.claim
       });
-      await this.ensureActiveAuth();
-      if (releaseTaskRunTransition.claim?.stopRequested) {
-        return this.stopPersistedTaskRun(taskId, meta);
-      }
-      const workspaceDir = `/workspace/${repoNameFromUrl(env.repoUrl)}`;
-      const branchName = await generateTaskBranchNameForCreate(this, {
-        taskId,
-        prompt,
-        env,
-        worktreePath,
-        workspaceDir,
-        runLabel,
-        model: normalizedModel,
-        reasoningEffort: normalizedReasoningEffort
-      });
-      if (releaseTaskRunTransition.claim?.stopRequested) {
-        return this.stopPersistedTaskRun(taskId, meta);
-      }
-      meta.branchName = await checkoutTaskBranch(this, worktreePath, branchName);
-      if (releaseTaskRunTransition.claim?.stopRequested) {
-        return this.stopPersistedTaskRun(taskId, meta);
-      }
-      const { orchestratorInstructions, volumeMounts } = await prepareCreateRunContext(this, {
-        taskId,
-        env,
-        resolvedContextRepos,
-        fileUploads,
-        meta,
-        workspaceDir,
-        shouldUseHostDockerSocket
-      });
-      if (releaseTaskRunTransition.claim?.stopRequested) {
-        return this.stopPersistedTaskRun(taskId, meta);
-      }
-      meta = await writeStartupPreparedMeta(this, taskId, meta, releaseTaskRunTransition.claim);
-      this.startCodexRunDeferred({
-        taskId,
-        runLabel,
-        prompt,
-        cwd: worktreePath,
-        appServerConfig: {
-          model: normalizedModel,
-          reasoningEffort: normalizedReasoningEffort,
-          developerInstructions: orchestratorInstructions
-        },
-        workspaceDir,
-        volumeMounts,
-        useHostDockerSocket: shouldUseHostDockerSocket,
-        envOverrides: buildTaskRunEnvOverrides(env.envVars, shouldUseHostDockerSocket),
-        stopTaskDockerSidecarOnExit: shouldUseHostDockerSocket,
-        transitionClaim: releaseTaskRunTransition.claim
-      });
-      if (releaseTaskRunTransition.claim?.stopRequested) {
-        return this.stopPersistedTaskRun(taskId, meta);
-      }
-      this.notifyTasksChanged(taskId);
-      return meta;
     } catch (error) {
-      const stopped = await stopCreatedTaskAfterStartupError(
-        this,
-        taskId,
-        error,
-        releaseTaskRunTransition.claim
-      );
-      if (stopped) {
-        return stopped;
-      }
+      releaseTaskRunTransition();
       await cleanupFailedWorktree(this, env.mirrorPath, createdWorktreePath);
       await removePath(this.taskDir(taskId));
       throw error;
+    }
+    const workspaceDir = `/workspace/${repoNameFromUrl(env.repoUrl)}`;
+    let preparedRunContext = null;
+    if (deferStartup) {
+      try {
+        preparedRunContext = await prepareCreateRunContext(this, {
+          taskId,
+          env,
+          resolvedContextRepos,
+          fileUploads,
+          meta,
+          workspaceDir,
+          shouldUseHostDockerSocket
+        });
+        if (releaseTaskRunTransition.claim?.stopRequested) {
+          releaseTaskRunTransition();
+          return this.stopPersistedTaskRun(taskId, meta);
+        }
+        meta = await writeStartupPreparedMeta(this, taskId, meta, releaseTaskRunTransition.claim);
+        if (meta.status === 'stopped') {
+          releaseTaskRunTransition();
+          return meta;
+        }
+      } catch (error) {
+        const stopped = await stopCreatedTaskAfterStartupError(
+          this,
+          taskId,
+          error,
+          releaseTaskRunTransition.claim
+        );
+        releaseTaskRunTransition();
+        if (stopped) {
+          return stopped;
+        }
+        await cleanupFailedWorktree(this, env.mirrorPath, createdWorktreePath);
+        await removePath(this.taskDir(taskId));
+        throw error;
+      }
+    }
+    const startupOptions = {
+      taskId,
+      env,
+      fileUploads,
+      prompt,
+      meta,
+      workspaceDir,
+      runLabel,
+      normalizedModel,
+      normalizedReasoningEffort,
+      shouldUseHostDockerSocket,
+      resolvedContextRepos,
+      preparedRunContext,
+      transitionClaim: releaseTaskRunTransition.claim,
+      removeTaskOnFailure: !deferStartup
+    };
+    if (deferStartup) {
+      this.notifyTasksChanged(taskId);
+      void finishCreateTaskStartup(this, startupOptions)
+        .catch(() => {})
+        .finally(() => releaseTaskRunTransition());
+      return meta;
+    }
+    try {
+      return await finishCreateTaskStartup(this, startupOptions);
     } finally {
       releaseTaskRunTransition();
     }

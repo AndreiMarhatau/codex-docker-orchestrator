@@ -210,6 +210,23 @@ function appendReviewToRun(run, reviewEntry) {
   };
 }
 
+async function restoreTaskAfterReview(orchestrator, taskId, reviewState, claim) {
+  if (!reviewState || claim?.stopRequested) {
+    return;
+  }
+  let meta = await readJson(orchestrator.taskMetaPath(taskId));
+  if (meta.status !== 'reviewing') {
+    return;
+  }
+  meta = {
+    ...meta,
+    status: reviewState.previousStatus || 'completed',
+    updatedAt: orchestrator.now()
+  };
+  await writeJson(orchestrator.taskMetaPath(taskId), meta);
+  orchestrator.notifyTasksChanged(taskId);
+}
+
 async function appendRunAgentMessage(orchestrator, taskId, runLabel, text) {
   const logPath = path.join(orchestrator.taskLogsDir(taskId), `${runLabel}.jsonl`);
   const payload = {
@@ -221,6 +238,79 @@ async function appendRunAgentMessage(orchestrator, taskId, runLabel, text) {
     }
   };
   await fs.appendFile(logPath, `${JSON.stringify(payload)}\n`);
+}
+
+async function beginTaskReview(orchestrator, {
+  taskId,
+  meta,
+  latestRun,
+  target,
+  automatic
+}) {
+  const reviewState = {
+    previousStatus: meta.status || 'completed',
+    runId: latestRun.runId
+  };
+  const startedAt = orchestrator.now();
+  await writeJson(orchestrator.taskMetaPath(taskId), {
+    ...meta,
+    status: 'reviewing',
+    updatedAt: startedAt
+  });
+  try {
+    const prefix = automatic ? 'Auto review started' : 'Review started';
+    await appendRunAgentMessage(
+      orchestrator,
+      taskId,
+      latestRun.runId,
+      `${prefix}: ${reviewTargetLabel(target)}`
+    );
+  } catch (error) {
+    await restoreTaskAfterReview(orchestrator, taskId, reviewState);
+    throw error;
+  }
+  orchestrator.notifyTasksChanged(taskId);
+  return reviewState;
+}
+
+async function recordTaskReview(orchestrator, {
+  taskId,
+  runLabel,
+  target,
+  automatic,
+  review
+}) {
+  const reviewEntry = {
+    id: crypto.randomUUID(),
+    target,
+    automatic,
+    createdAt: orchestrator.now(),
+    review
+  };
+  const prefix = automatic ? 'Auto review' : 'Review';
+  const text = `${prefix}: ${reviewTargetLabel(target)}\n\n${review || 'No review output.'}`;
+  await appendRunAgentMessage(orchestrator, taskId, runLabel, text);
+  const meta = await readJson(orchestrator.taskMetaPath(taskId));
+  const runIndex = meta.runs.findIndex((run) => run.runId === runLabel);
+  if (runIndex !== -1) {
+    meta.runs[runIndex] = appendReviewToRun(meta.runs[runIndex], reviewEntry);
+    meta.updatedAt = orchestrator.now();
+    await writeJson(orchestrator.taskMetaPath(taskId), meta);
+  }
+  orchestrator.notifyTasksChanged(taskId);
+  return { review, target };
+}
+
+async function appendReviewFailure(orchestrator, {
+  taskId,
+  runLabel,
+  automatic,
+  error
+}) {
+  const prefix = automatic ? 'Auto review failed' : 'Review failed';
+  const message = error?.message || 'Unknown error';
+  await appendRunAgentMessage(orchestrator, taskId, runLabel, `${prefix}: ${message}`);
+  orchestrator.notifyTasksChanged(taskId);
 }
 
 async function prepareReviewRuntime(orchestrator, taskId, meta) {
@@ -258,6 +348,151 @@ async function prepareReviewRuntime(orchestrator, taskId, meta) {
   };
 }
 
+async function executeTaskReview(orchestrator, {
+  taskId,
+  meta,
+  target,
+  runLabel,
+  automatic,
+  transitionClaim
+}) {
+  assertTaskMutationNotStopped(transitionClaim);
+  await orchestrator.ensureActiveAuth();
+  assertTaskMutationNotStopped(transitionClaim);
+  const runtime = await prepareReviewRuntime(orchestrator, taskId, meta);
+  const review = await runCodexReview({
+    orchestrator,
+    taskId,
+    meta,
+    target,
+    ...runtime
+  });
+  assertTaskMutationNotStopped(transitionClaim);
+  return recordTaskReview(orchestrator, {
+    taskId,
+    runLabel,
+    target,
+    automatic,
+    review
+  });
+}
+
+async function prepareManualReviewContext(orchestrator, {
+  taskId,
+  targetInput,
+  transitionClaim
+}) {
+  await orchestrator.init();
+  let meta = await readJson(orchestrator.taskMetaPath(taskId));
+  meta = await orchestrator.reconcileTaskRuntimeState(taskId, meta);
+  if (!meta.threadId) {
+    throw new Error('Cannot review task without a Codex thread.');
+  }
+  const target = normalizeReviewTarget(targetInput);
+  const latestRun = meta.runs?.[meta.runs.length - 1] || null;
+  if (!latestRun) {
+    throw new Error('Cannot review task without a run.');
+  }
+  orchestrator.markTaskRunTransitionRuntimeActive(transitionClaim);
+  const reviewState = await beginTaskReview(orchestrator, {
+    taskId,
+    meta,
+    latestRun,
+    target,
+    automatic: false
+  });
+  return { latestRun, meta, reviewState, target };
+}
+
+async function executeManualReviewContext(orchestrator, {
+  taskId,
+  meta,
+  latestRun,
+  reviewState,
+  target,
+  transitionClaim
+}) {
+  try {
+    return await executeTaskReview(orchestrator, {
+      taskId,
+      meta,
+      target,
+      runLabel: latestRun.runId,
+      automatic: false,
+      transitionClaim
+    });
+  } finally {
+    await restoreTaskAfterReview(orchestrator, taskId, reviewState, transitionClaim);
+  }
+}
+
+async function prepareAutoReviewContext(orchestrator, {
+  taskId,
+  runLabel,
+  transitionClaim
+}) {
+  await orchestrator.init();
+  let meta = await readJson(orchestrator.taskMetaPath(taskId));
+  meta = await orchestrator.reconcileTaskRuntimeState(taskId, meta);
+  if (meta.status !== 'completed' || !meta.threadId) {
+    return null;
+  }
+  const gitStatus = await orchestrator.getTaskGitStatus(meta);
+  if (gitStatus?.dirty !== true) {
+    return null;
+  }
+  const target = { type: 'uncommittedChanges' };
+  const latestRun = meta.runs?.find((run) => run.runId === runLabel) ||
+    meta.runs?.[meta.runs.length - 1] ||
+    null;
+  if (!latestRun) {
+    return null;
+  }
+  orchestrator.markTaskRunTransitionRuntimeActive(transitionClaim);
+  const reviewState = await beginTaskReview(orchestrator, {
+    taskId,
+    meta,
+    latestRun,
+    target,
+    automatic: true
+  });
+  return { latestRun, meta, reviewState, target };
+}
+
+async function executeAutoReviewContext(orchestrator, {
+  taskId,
+  runLabel,
+  releaseTaskRunTransition,
+  reviewState,
+  meta,
+  target,
+  transitionClaim
+}) {
+  let result = null;
+  try {
+    result = await executeTaskReview(orchestrator, {
+      taskId,
+      meta,
+      target,
+      runLabel,
+      automatic: true,
+      transitionClaim
+    });
+  } finally {
+    await restoreTaskAfterReview(orchestrator, taskId, reviewState, transitionClaim);
+  }
+  const review = result?.review || '';
+  if (!hasActionableReviewFeedback(review)) {
+    return { review, resumed: false };
+  }
+  assertTaskMutationNotStopped(transitionClaim);
+  const fixPrompt = `${AUTO_REVIEW_FIX_PROMPT}\n\n${review}`;
+  return orchestrator.resumeTask(taskId, fixPrompt, {
+    transitionClaim: releaseTaskRunTransition,
+    autoReviewRemaining: 0
+  });
+}
+
 function attachTaskReviewMethods(Orchestrator) {
   Orchestrator.prototype.appendRunAgentMessage = async function appendRunAgentMessageMethod(
     taskId,
@@ -267,52 +502,47 @@ function attachTaskReviewMethods(Orchestrator) {
     await appendRunAgentMessage(this, taskId, runLabel, text);
   };
 
-  Orchestrator.prototype.runTaskReview = async function runTaskReview(taskId, targetInput) {
+  Orchestrator.prototype.runTaskReview = async function runTaskReview(
+    taskId,
+    targetInput,
+    options = {}
+  ) {
     const releaseTaskRunTransition = this.claimTaskRunTransition(taskId);
     const transitionClaim = releaseTaskRunTransition.claim;
+    let scheduled = false;
     try {
-      await this.init();
-      let meta = await readJson(this.taskMetaPath(taskId));
-      meta = await this.reconcileTaskRuntimeState(taskId, meta);
-      if (!meta.threadId) {
-        throw new Error('Cannot review task without a Codex thread.');
-      }
-      const target = normalizeReviewTarget(targetInput);
-      const latestRun = meta.runs?.[meta.runs.length - 1] || null;
-      if (!latestRun) {
-        throw new Error('Cannot review task without a run.');
-      }
-      await this.ensureActiveAuth();
-      const runtime = await prepareReviewRuntime(this, taskId, meta);
-      const review = await runCodexReview({
-        orchestrator: this,
+      const context = await prepareManualReviewContext(this, {
         taskId,
-        meta,
-        target,
-        ...runtime
+        targetInput,
+        transitionClaim
       });
-      assertTaskMutationNotStopped(transitionClaim);
-      const reviewEntry = {
-        id: crypto.randomUUID(),
-        target,
-        automatic: false,
-        createdAt: this.now(),
-        review
+      const execute = async () => {
+        return executeManualReviewContext(this, { taskId, transitionClaim, ...context });
       };
-      const text = `Review: ${reviewTargetLabel(target)}\n\n${review || 'No review output.'}`;
-      await appendRunAgentMessage(this, taskId, latestRun.runId, text);
-      meta = await readJson(this.taskMetaPath(taskId));
-      const runIndex = meta.runs.findIndex((run) => run.runId === latestRun.runId);
-      if (runIndex !== -1) {
-        meta.runs[runIndex] = appendReviewToRun(meta.runs[runIndex], reviewEntry);
-        meta.updatedAt = this.now();
-        await writeJson(this.taskMetaPath(taskId), meta);
+      if (options.defer === true) {
+        scheduled = true;
+        void execute()
+          .catch((error) =>
+            appendReviewFailure(this, {
+              taskId,
+              runLabel: context.latestRun.runId,
+              automatic: false,
+              error
+            }).catch(() => {})
+          )
+          .finally(() => releaseTaskRunTransition());
+        return { started: true, target: context.target };
       }
-      this.notifyTasksChanged(taskId);
-      return { review, target };
+      return await execute();
     } finally {
-      releaseTaskRunTransition();
+      if (!scheduled) {
+        releaseTaskRunTransition();
+      }
     }
+  };
+
+  Orchestrator.prototype.startTaskReview = async function startTaskReview(taskId, targetInput) {
+    return this.runTaskReview(taskId, targetInput, { defer: true });
   };
 
   Orchestrator.prototype.runAutoReviewForTask = async function runAutoReviewForTask(
@@ -322,52 +552,20 @@ function attachTaskReviewMethods(Orchestrator) {
     const releaseTaskRunTransition = this.claimTaskRunTransition(taskId);
     const transitionClaim = releaseTaskRunTransition.claim;
     try {
-      await this.init();
-      let meta = await readJson(this.taskMetaPath(taskId));
-      meta = await this.reconcileTaskRuntimeState(taskId, meta);
-      if (meta.status !== 'completed' || !meta.threadId) {
-        return null;
-      }
-      const gitStatus = await this.getTaskGitStatus(meta);
-      if (gitStatus?.dirty !== true) {
-        return null;
-      }
-      const target = { type: 'uncommittedChanges' };
-      await this.ensureActiveAuth();
-      const runtime = await prepareReviewRuntime(this, taskId, meta);
-      const review = await runCodexReview({
-        orchestrator: this,
+      const context = await prepareAutoReviewContext(this, {
         taskId,
-        meta,
-        target,
-        ...runtime
+        runLabel,
+        transitionClaim
       });
-      assertTaskMutationNotStopped(transitionClaim);
-      const reviewEntry = {
-        id: crypto.randomUUID(),
-        target,
-        automatic: true,
-        createdAt: this.now(),
-        review
-      };
-      const text = `Auto review: ${reviewTargetLabel(target)}\n\n${review || 'No review output.'}`;
-      await appendRunAgentMessage(this, taskId, runLabel, text);
-      meta = await readJson(this.taskMetaPath(taskId));
-      const runIndex = meta.runs.findIndex((run) => run.runId === runLabel);
-      if (runIndex !== -1) {
-        meta.runs[runIndex] = appendReviewToRun(meta.runs[runIndex], reviewEntry);
-        meta.updatedAt = this.now();
-        await writeJson(this.taskMetaPath(taskId), meta);
+      if (!context) {
+        return null;
       }
-      this.notifyTasksChanged(taskId);
-      if (!hasActionableReviewFeedback(review)) {
-        return { review, resumed: false };
-      }
-      assertTaskMutationNotStopped(transitionClaim);
-      const fixPrompt = `${AUTO_REVIEW_FIX_PROMPT}\n\n${review}`;
-      return this.resumeTask(taskId, fixPrompt, {
-        transitionClaim: releaseTaskRunTransition,
-        autoReviewRemaining: 0
+      return executeAutoReviewContext(this, {
+        taskId,
+        runLabel,
+        releaseTaskRunTransition,
+        transitionClaim,
+        ...context
       });
     } finally {
       releaseTaskRunTransition();

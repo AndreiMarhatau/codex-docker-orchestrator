@@ -183,6 +183,7 @@ function TaskResumeDialogBody({
             detail.setResumeUseHostDockerSocket(event.target.checked);
             detail.setResumeDockerTouched(true);
           }}
+          warningTooltip="Runs Docker using the orchestrator's isolated per-task sidecar daemon."
         />
 
         <Stack spacing={1.15} className="task-compose-section">

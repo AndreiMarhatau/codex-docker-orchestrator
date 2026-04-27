@@ -57,7 +57,7 @@ function getSummaryButtonProps(setSelectedTaskId, task, loading = false) {
 }
 
 function TaskActionButton({ handleStopTask, loading, task }) {
-  if (task.status !== 'running') {
+  if (task.status !== 'running' && task.status !== 'reviewing') {
     return null;
   }
   return (

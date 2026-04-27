@@ -3,19 +3,15 @@ import fs from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 import { createMockExec, createMockSpawn, createTempDir } from '../helpers.mjs';
-import { waitForTaskStatus } from '../helpers/wait.mjs';
+import { waitForTaskIdle, waitForTaskStatus } from '../helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
 
-function extractDeveloperInstructions(args = []) {
-  const index = args.findIndex(
-    (arg) => typeof arg === 'string' && arg.startsWith('developer_instructions=')
-  );
-  if (index === -1) {
-    return null;
-  }
-  return JSON.parse(args[index].slice('developer_instructions='.length));
+function extractAppServerDeveloperInstructions(call) {
+  return call?.messages?.find((message) =>
+    ['thread/start', 'thread/resume'].includes(message.method)
+  )?.params?.developerInstructions || null;
 }
 
 async function waitForExecCalls(execCalls, predicate, minCount = 1) {
@@ -73,20 +69,18 @@ describe('Orchestrator task context', () => {
     expect(runCall.options?.env?.CODEX_PASSTHROUGH_ENV || '').not.toContain('CODEX_HOME');
     expect(runCall.options?.env?.CODEX_AGENTS_APPEND_FILE).toBeUndefined();
 
-    const developerInstructions = extractDeveloperInstructions(runCall.args);
-    expect(developerInstructions).toContain('Preserve my team rules.');
-    expect(developerInstructions).toContain('task-orchestrator-instructions');
+    const developerInstructions = extractAppServerDeveloperInstructions(runCall);
+    expect(developerInstructions).not.toContain('Preserve my team rules.');
+    expect(developerInstructions).not.toContain('task-orchestrator-instructions');
     expect(developerInstructions).toContain('ephemeral Docker container');
     expect(developerInstructions).toContain('Read-only reference repositories');
     expect(developerInstructions).toContain('/readonly/context');
     expect(developerInstructions).toContain('Docker is disabled for this task.');
     expect(developerInstructions).toContain('/root/.artifacts');
-    expect(developerInstructions).toContain('Environment variables');
-    expect(developerInstructions).toContain('API_TOKEN');
-    expect(developerInstructions).toContain('FEATURE_FLAG');
-    expect(developerInstructions).toContain('You are the top-level orchestrator for user requests.');
-    expect(developerInstructions).toContain('spawn_agent');
-    expect(developerInstructions).toContain("'reviewer' has to review the changes");
+    expect(developerInstructions).not.toContain('Environment variables');
+    expect(developerInstructions).not.toContain('You are the top-level orchestrator for user requests.');
+    expect(developerInstructions).not.toContain('spawn_agent');
+    expect(developerInstructions).not.toContain("'reviewer' has to review the changes");
     expect(developerInstructions).not.toContain('You are the developer agent.');
   });
 
@@ -109,6 +103,7 @@ describe('Orchestrator task context', () => {
       useHostDockerSocket: true
     });
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    await waitForTaskIdle(orchestrator, task.taskId);
 
     const createCall = spawn.calls.find((call) => call.command === 'codex-docker');
     const createVolumeMounts = (createCall.options?.env?.CODEX_VOLUME_MOUNTS || '').split(',');
@@ -116,8 +111,8 @@ describe('Orchestrator task context', () => {
     expect(createCall.options?.env?.DOCKER_HOST).toBeUndefined();
     expect(createCall.options?.env?.CODEX_CONTAINER_ENV_DOCKER_HOST).toBe('unix:///var/run/orch-task-docker/docker.sock');
     expect(createCall.options?.env?.CODEX_PASSTHROUGH_ENV || '').not.toContain('CODEX_CONTAINER_ENV_DOCKER_HOST');
-    const createDeveloperInstructions = extractDeveloperInstructions(createCall.args);
-    expect(createDeveloperInstructions).toContain('You are the top-level orchestrator for user requests.');
+    const createDeveloperInstructions = extractAppServerDeveloperInstructions(createCall);
+    expect(createDeveloperInstructions).not.toContain('You are the top-level orchestrator for user requests.');
     expect(createDeveloperInstructions).toContain('Docker is enabled for this task via an isolated per-task Docker sidecar daemon.');
     expect(createDeveloperInstructions).toContain('/root/.artifacts');
     expect(createDeveloperInstructions).not.toContain('Environment variables');
@@ -141,8 +136,8 @@ describe('Orchestrator task context', () => {
     const resumeCalls = spawn.calls.filter((call) => call.command === 'codex-docker');
     const resumeCall = resumeCalls[1];
     expect(resumeCall.options?.env?.CODEX_VOLUME_MOUNTS || '').not.toContain('/var/run/orch-task-docker');
-    const resumeDeveloperInstructions = extractDeveloperInstructions(resumeCall.args);
-    expect(resumeDeveloperInstructions).toContain('You are the top-level orchestrator for user requests.');
+    const resumeDeveloperInstructions = extractAppServerDeveloperInstructions(resumeCall);
+    expect(resumeDeveloperInstructions).not.toContain('You are the top-level orchestrator for user requests.');
     expect(resumeDeveloperInstructions).toContain('Docker is disabled for this task.');
 
     const metaPath = path.join(orchHome, 'tasks', task.taskId, 'meta.json');
@@ -183,6 +178,7 @@ describe('Orchestrator task context resume', () => {
       contextRepos: [{ envId: contextEnvA.envId, ref: 'main' }]
     });
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    await waitForTaskIdle(orchestrator, task.taskId);
 
     const contextPathA = orchestrator.taskContextWorktree(
       task.taskId,

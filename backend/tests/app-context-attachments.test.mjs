@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createMockExec, createMockSpawn, createTempDir, prepareOrchestratorSetup } from './helpers.mjs';
+import { waitForTaskIdle } from './helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
 const { createApp } = require('../src/app');
@@ -22,7 +23,7 @@ async function createTestApp() {
     now: () => '2025-12-19T00:00:00.000Z'
   });
   await prepareOrchestratorSetup(orchestrator);
-  return { app: await createApp({ orchestrator }), spawn };
+  return { app: await createApp({ orchestrator }), orchestrator, spawn };
 }
 
 describe('API task context and attachments', () => {
@@ -59,7 +60,7 @@ describe('API task context and attachments', () => {
   });
 
   it('adds and removes task attachments', async () => {
-    const { app } = await createTestApp();
+    const { app, orchestrator } = await createTestApp();
 
     const envRes = await request(app)
       .post('/api/envs')
@@ -70,6 +71,7 @@ describe('API task context and attachments', () => {
       .post('/api/tasks')
       .send({ envId: envRes.body.envId, ref: 'main', prompt: 'Do work' })
       .expect(201);
+    await waitForTaskIdle(orchestrator, taskRes.body.taskId);
 
     const tempDir = await createTempDir();
     const textPath = path.join(tempDir, 'resume.txt');

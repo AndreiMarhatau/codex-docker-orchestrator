@@ -38,7 +38,7 @@ describe('task instruction roles', () => {
     });
   });
 
-  it('keeps orchestrator and delegated developer instruction roles separate', async () => {
+  it('does not inject orchestrator or delegated developer workflows', async () => {
     const rawOrchestratorInstructions = await fs.readFile(ORCHESTRATOR_DEVELOPER_INSTRUCTIONS_FILE, 'utf8');
     const orchestratorInstructions = buildOrchestratorInstructions.call({}, buildInstructionOptions());
     const delegatedInstructions = buildDeveloperInstructions.call({}, buildInstructionOptions());
@@ -49,14 +49,16 @@ describe('task instruction roles', () => {
     expect(rawOrchestratorInstructions).toContain("delegate to the 'developer' subagent");
     expect(rawOrchestratorInstructions).not.toContain('Fully address the request in the repository');
 
-    expect(orchestratorInstructions).toContain('top-level orchestrator');
-    expect(orchestratorInstructions).toContain('coordinate, delegate, control');
-    expect(orchestratorInstructions).toContain("Create a meaningful branch with name starting with 'codex/' if not yet done.");
-    expect(orchestratorInstructions).toContain('spawn_agent');
+    expect(orchestratorInstructions).toContain('ephemeral Docker container');
+    expect(orchestratorInstructions).not.toContain('top-level orchestrator');
+    expect(orchestratorInstructions).not.toContain('coordinate, delegate, control');
+    expect(orchestratorInstructions).not.toContain("Create a meaningful branch with name starting with 'codex/' if not yet done.");
+    expect(orchestratorInstructions).not.toContain('spawn_agent');
     expect(orchestratorInstructions).not.toContain('You are the developer agent.');
 
-    expect(delegatedInstructions).toContain('Fully address the request. Investigate, make the required changes, and finish the implementation before stopping.');
-    expect(delegatedInstructions).toContain('Do not add fallbacks or backward-compatibility work unless the request context explicitly asks for it');
+    expect(delegatedInstructions).toContain('ephemeral Docker container');
+    expect(delegatedInstructions).not.toContain('Fully address the request. Investigate, make the required changes, and finish the implementation before stopping.');
+    expect(delegatedInstructions).not.toContain('Do not add fallbacks or backward-compatibility work unless the request context explicitly asks for it');
     expect(delegatedInstructions).not.toContain('spawn_agent');
     expect(delegatedInstructions).not.toContain('top-level orchestrator');
   });
@@ -66,16 +68,16 @@ describe('task instruction roles', () => {
     const preambleCount = instructions.split('You are running inside an ephemeral Docker container').length - 1;
 
     expect(instructions).toContain('ephemeral Docker container');
-    expect(instructions).toContain('without asking the user for approval at all');
-    expect(instructions).toContain('You are the top-level orchestrator for user requests.');
-    expect(instructions).toContain('Stage and commit using a concise commit message.');
-    expect(instructions).toContain("Create a meaningful branch with name starting with 'codex/' if not yet done.");
+    expect(instructions).toContain('without asking the user for approval first');
+    expect(instructions).not.toContain('You are the top-level orchestrator for user requests.');
+    expect(instructions).not.toContain('Stage and commit using a concise commit message.');
+    expect(instructions).not.toContain("Create a meaningful branch with name starting with 'codex/' if not yet done.");
     expect(instructions).toContain('Docker is disabled for this task.');
     expect(instructions).toContain('/root/.artifacts');
-    expect(instructions).toContain('spawn_agent');
-    expect(instructions).toContain('fork_context = false');
-    expect(instructions).toContain("'architect' review");
-    expect(instructions).toContain("'reviewer' has to review the changes");
+    expect(instructions).not.toContain('spawn_agent');
+    expect(instructions).not.toContain('fork_context = false');
+    expect(instructions).not.toContain("'architect' review");
+    expect(instructions).not.toContain("'reviewer' has to review the changes");
     expect(instructions).not.toContain('Environment variables');
     expect(instructions).not.toContain('You are the developer agent.');
     expect(preambleCount).toBe(1);
@@ -85,10 +87,10 @@ describe('task instruction roles', () => {
     const instructions = buildDeveloperInstructions.call({}, buildInstructionOptions());
 
     expect(instructions).toContain('ephemeral Docker container');
-    expect(instructions).toContain('without asking for approval first');
-    expect(instructions).toContain('Fully address the request. Investigate, make the required changes, and finish the implementation before stopping.');
-    expect(instructions).toContain('Do not add fallbacks or backward-compatibility work unless the request context explicitly asks for it');
-    expect(instructions).toContain('call out the case in your return summary');
+    expect(instructions).toContain('without asking the user for approval first');
+    expect(instructions).not.toContain('Fully address the request. Investigate, make the required changes, and finish the implementation before stopping.');
+    expect(instructions).not.toContain('Do not add fallbacks or backward-compatibility work unless the request context explicitly asks for it');
+    expect(instructions).not.toContain('call out the case in your return summary');
     expect(instructions).toContain('Docker is disabled for this task.');
     expect(instructions).toContain('/root/.artifacts');
     expect(instructions).not.toContain('spawn_agent');
@@ -112,12 +114,12 @@ describe('task instruction config merging', () => {
       buildInstructionOptions({ envVars: {} })
     );
 
-    expect(instructions).toContain('Follow the local handbook.');
-    expect(instructions).toContain('task-orchestrator-instructions');
-    expect(instructions).toContain('You are the top-level orchestrator for user requests.');
+    expect(instructions).not.toContain('Follow the local handbook.');
+    expect(instructions).not.toContain('task-orchestrator-instructions');
+    expect(instructions).not.toContain('You are the top-level orchestrator for user requests.');
     expect(instructions).toContain('Docker is disabled for this task.');
     expect(instructions).toContain('/root/.artifacts');
-    expect(instructions).toContain('decide if you need \'architect\' review');
+    expect(instructions).not.toContain('decide if you need \'architect\' review');
     expect(instructions).not.toContain('Environment variables');
   });
 
@@ -138,11 +140,11 @@ describe('task instruction config merging', () => {
 
     expect(instructions).toContain('Docker is enabled for this task via an isolated per-task Docker sidecar daemon.');
     expect(instructions).toContain('/root/.artifacts');
-    expect(instructions).toContain('Environment variables');
-    expect(instructions).toContain('SAMPLE_FLAG');
-    expect(instructions).toContain('Keep working with the \'developer\' subagent until acceptance criteria are met fully and verified.');
-    expect(instructions).toContain('Stage and commit using a concise commit message.');
+    expect(instructions).not.toContain('Environment variables');
+    expect(instructions).not.toContain('SAMPLE_FLAG');
+    expect(instructions).not.toContain('Keep working with the \'developer\' subagent until acceptance criteria are met fully and verified.');
+    expect(instructions).not.toContain('Stage and commit using a concise commit message.');
     expect(instructions).not.toContain('task-orchestrator-instructions');
-    expect(instructions).toContain('Provide user request, any additional details, including what YOU as an orchestrator expect from the subagent.');
+    expect(instructions).not.toContain('Provide user request, any additional details, including what YOU as an orchestrator expect from the subagent.');
   });
 });

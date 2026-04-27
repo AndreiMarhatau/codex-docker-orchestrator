@@ -2,8 +2,9 @@ import { apiRequest } from '../../api.js';
 import { emptyResumeConfig, emptyTaskForm } from '../constants.js';
 import { resolveModelValue, resolveReasoningEffortValue } from '../model-helpers.js';
 import {
+  createHandleCommitPushTask,
   createHandleDeleteTask,
-  createHandlePushTask,
+  createHandleReviewTask,
   createHandleStopTask
 } from './task-action-ops.js';
 import { uploadTaskFiles } from './task-upload-helpers.js';
@@ -55,6 +56,7 @@ function createHandleCreateTask({
           model: modelValue || undefined,
           reasoningEffort: reasoningEffortValue || undefined,
           useHostDockerSocket: taskForm.useHostDockerSocket,
+          autoReview: taskForm.autoReview,
           contextRepos: contextRepos.length > 0 ? contextRepos : undefined
         })
       });
@@ -148,8 +150,9 @@ function createHandleResumeTask({
 
 export {
   createHandleCreateTask,
+  createHandleCommitPushTask,
   createHandleDeleteTask,
-  createHandlePushTask,
+  createHandleReviewTask,
   createHandleResumeTask,
   createHandleStopTask
 };

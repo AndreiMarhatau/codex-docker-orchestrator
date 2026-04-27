@@ -141,44 +141,60 @@ function attachTaskAttachmentMethods(Orchestrator) {
 
   Orchestrator.prototype.addTaskAttachments = async function addTaskAttachments(taskId, uploads) {
     await this.init();
-    const meta = await readJson(this.taskMetaPath(taskId));
-    const nextAttachments = await this.prepareTaskAttachments(
-      taskId,
-      uploads,
-      meta.attachments
-    );
-    meta.attachments = nextAttachments;
-    meta.updatedAt = this.now();
-    await writeJson(this.taskMetaPath(taskId), meta);
-    this.notifyTasksChanged(taskId);
-    return meta.attachments;
+    const releaseTaskRunTransition = this.claimTaskRunTransition(taskId);
+    try {
+      const meta = await this.reconcileTaskRuntimeState(
+        taskId,
+        await readJson(this.taskMetaPath(taskId))
+      );
+      const nextAttachments = await this.prepareTaskAttachments(
+        taskId,
+        uploads,
+        meta.attachments
+      );
+      meta.attachments = nextAttachments;
+      meta.updatedAt = this.now();
+      await writeJson(this.taskMetaPath(taskId), meta);
+      this.notifyTasksChanged(taskId);
+      return meta.attachments;
+    } finally {
+      releaseTaskRunTransition();
+    }
   };
 
   Orchestrator.prototype.removeTaskAttachments = async function removeTaskAttachments(taskId, names) {
     await this.init();
-    const meta = await readJson(this.taskMetaPath(taskId));
-    const removeNames = validateNames(names);
-    const attachmentsDir = this.taskAttachmentsDir(taskId);
-    const attachments = normalizeAttachmentList(meta.attachments);
-    const remaining = [];
-    for (const attachment of attachments) {
-      if (!removeNames.includes(attachment.name)) {
-        remaining.push(attachment);
-        continue;
+    const releaseTaskRunTransition = this.claimTaskRunTransition(taskId);
+    try {
+      const meta = await this.reconcileTaskRuntimeState(
+        taskId,
+        await readJson(this.taskMetaPath(taskId))
+      );
+      const removeNames = validateNames(names);
+      const attachmentsDir = this.taskAttachmentsDir(taskId);
+      const attachments = normalizeAttachmentList(meta.attachments);
+      const remaining = [];
+      for (const attachment of attachments) {
+        if (!removeNames.includes(attachment.name)) {
+          remaining.push(attachment);
+          continue;
+        }
+        const resolvedPath = path.resolve(attachment.path);
+        if (
+          resolvedPath !== attachmentsDir &&
+          resolvedPath.startsWith(`${attachmentsDir}${path.sep}`)
+        ) {
+          await removePath(resolvedPath);
+        }
       }
-      const resolvedPath = path.resolve(attachment.path);
-      if (
-        resolvedPath !== attachmentsDir &&
-        resolvedPath.startsWith(`${attachmentsDir}${path.sep}`)
-      ) {
-        await removePath(resolvedPath);
-      }
+      meta.attachments = remaining;
+      meta.updatedAt = this.now();
+      await writeJson(this.taskMetaPath(taskId), meta);
+      this.notifyTasksChanged(taskId);
+      return meta.attachments;
+    } finally {
+      releaseTaskRunTransition();
     }
-    meta.attachments = remaining;
-    meta.updatedAt = this.now();
-    await writeJson(this.taskMetaPath(taskId), meta);
-    this.notifyTasksChanged(taskId);
-    return meta.attachments;
   };
 }
 

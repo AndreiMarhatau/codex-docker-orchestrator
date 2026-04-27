@@ -1,15 +1,19 @@
+const fs = require('node:fs/promises');
 const { asyncHandler } = require('../middleware/async-handler');
 const { normalizeAttachmentNamesInput, normalizeAttachmentUploadsInput, normalizeContextReposInput } = require('../validators');
 const { finalizeStartedResumeStage, NOOP_RESUME_ATTACHMENT_STAGE, rollbackFailedResumeStage, stageResumeAttachments } = require('./tasks.resume-attachments');
 
 function createTaskHandler(orchestrator) {
   return asyncHandler(async (req, res) => {
-    const { envId, ref, prompt, fileUploads, model, reasoningEffort, useHostDockerSocket, contextRepos } = req.body;
+    const { envId, ref, prompt, fileUploads, model, reasoningEffort, useHostDockerSocket, autoReview, contextRepos } = req.body;
     if (!envId || !prompt) {
       return res.status(400).send('envId and prompt are required');
     }
     if (useHostDockerSocket !== undefined && typeof useHostDockerSocket !== 'boolean') {
       return res.status(400).send('useHostDockerSocket must be a boolean');
+    }
+    if (autoReview !== undefined && typeof autoReview !== 'boolean') {
+      return res.status(400).send('autoReview must be a boolean');
     }
     let normalizedContextRepos = null;
     let normalizedFileUploads = null;
@@ -28,6 +32,7 @@ function createTaskHandler(orchestrator) {
         model,
         reasoningEffort,
         useHostDockerSocket,
+        autoReview,
         contextRepos: normalizedContextRepos
       });
       res.status(201).json(task);
@@ -62,8 +67,12 @@ function createTaskAttachmentsHandler(orchestrator, uploadFiles) {
         );
         res.status(201).json({ attachments });
       } catch (error) {
+        await Promise.allSettled(files.map((file) => fs.unlink(file.path)));
         if (error.code === 'INVALID_ATTACHMENT') {
           return res.status(400).send(error.message);
+        }
+        if (error.code === 'TASK_BUSY') {
+          return res.status(409).send(error.message);
         }
         if (error.code === 'ENOENT') {
           return res.status(404).send('Task not found');
@@ -83,6 +92,9 @@ function createRemoveTaskAttachmentsHandler(orchestrator) {
     } catch (error) {
       if (error.code === 'INVALID_ATTACHMENT') {
         return res.status(400).send(error.message);
+      }
+      if (error.code === 'TASK_BUSY') {
+        return res.status(409).send(error.message);
       }
       if (error.code === 'ENOENT') {
         return res.status(404).send('Task not found');

@@ -1,3 +1,4 @@
+/* eslint-disable complexity, max-lines */
 import path from 'node:path';
 import fsSync from 'node:fs';
 import { EventEmitter } from 'node:events';
@@ -56,13 +57,31 @@ function getRateLimitsForOptions(options, rateLimitsByToken) {
   }
 }
 
-function attachAppServerResponder(child, options, config) {
+function attachAppServerResponder(child, options, config, call = null) {
   const {
     rateLimitsByToken = {},
     refreshedAuthByToken = null,
     refreshedAuthRawByToken = null
   } = config || {};
   let buffer = '';
+  let turnCount = 0;
+  let threadId = 'thread-1';
+  const write = (payload) => {
+    child.stdout.write(`${JSON.stringify(payload)}\n`);
+  };
+  const emitCompletedTurn = ({ status = 'completed', text = 'OK', error = null }) => {
+    turnCount += 1;
+    const turnId = `turn-${turnCount}`;
+    const item = { id: `item-${turnCount}`, type: 'agentMessage', text };
+    setImmediate(() => {
+      write({ method: 'turn/started', params: { turn: { id: turnId, status: 'inProgress', items: [] } } });
+      if (status === 'completed') {
+        write({ method: 'item/completed', params: { item } });
+      }
+      write({ method: 'turn/completed', params: { turn: { id: turnId, status, items: status === 'completed' ? [item] : [], error } } });
+    });
+    return turnId;
+  };
   child.stdin.on('data', (chunk) => {
     buffer += chunk.toString();
     let newlineIndex = buffer.indexOf('\n');
@@ -76,8 +95,11 @@ function attachAppServerResponder(child, options, config) {
         } catch (error) {
           message = null;
         }
+        if (message && call) {
+          call.messages.push(message);
+        }
         if (message?.method === 'initialize' && message.id !== undefined) {
-          child.stdout.write(`${JSON.stringify({ id: message.id, result: { userAgent: 'codex-mock' } })}\n`);
+          write({ id: message.id, result: { userAgent: 'codex-mock' } });
         }
         if (message?.method === 'account/rateLimits/read' && message.id !== undefined) {
           const rateLimits = getRateLimitsForOptions(options, rateLimitsByToken);
@@ -99,9 +121,37 @@ function attachAppServerResponder(child, options, config) {
               // Ignore mock refresh persistence failures in tests.
             }
           }
-          child.stdout.write(`${JSON.stringify({ id: message.id, result: { rateLimits } })}\n`);
+          write({ id: message.id, result: { rateLimits } });
           child.stdout.end();
           child.emit('close', 0, null);
+        }
+        if (message?.method === 'thread/start' && message.id !== undefined) {
+          const thread = { id: threadId, status: 'loaded', turns: [] };
+          write({ id: message.id, result: { thread, model: 'mock', modelProvider: 'mock', cwd: message.params?.cwd || '/workspace/repo' } });
+          write({ method: 'thread/started', params: { thread } });
+        }
+        if (message?.method === 'thread/resume' && message.id !== undefined) {
+          threadId = message.params?.threadId || threadId;
+          const thread = { id: threadId, status: 'loaded', turns: [] };
+          write({ id: message.id, result: { thread, model: 'mock', modelProvider: 'mock', cwd: message.params?.cwd || '/workspace/repo' } });
+          write({ method: 'thread/started', params: { thread } });
+        }
+        if (message?.method === 'turn/start' && message.id !== undefined) {
+          const text = message.params?.input?.[0]?.text || '';
+          const responseText = text.includes('branch name')
+            ? JSON.stringify({ branchName: 'codex/mock-branch' })
+            : text.includes('commit message')
+              ? JSON.stringify({ message: 'Update mock task' })
+              : 'OK';
+          Promise.resolve(config.consumeUsageLimit?.()).then((usageLimited) => {
+            const status = usageLimited ? 'failed' : 'completed';
+            const error = status === 'failed' ? { message: "You've hit your usage limit." } : null;
+            const turnId = emitCompletedTurn({ status, text: responseText, error });
+            write({
+              id: message.id,
+              result: { turn: { id: turnId, status: 'inProgress', items: [], error: null } }
+            });
+          });
         }
       }
       newlineIndex = buffer.indexOf('\n');
@@ -143,14 +193,31 @@ export function buildSpawnWithUsageLimit({
 }) {
   let runCount = 0;
   return (command, args, options = {}) => {
-    spawnCalls.push({ command, args, options });
+    const call = { command, args, options, messages: [] };
+    if (options?.env?.ORCH_STRUCTURED_CODEX !== '1') {
+      spawnCalls.push(call);
+    }
     const child = createChild();
     if (command === 'codex-docker' && args[0] === 'app-server') {
       attachAppServerResponder(child, options, {
         rateLimitsByToken,
         refreshedAuthByToken,
-        refreshedAuthRawByToken
-      });
+        refreshedAuthRawByToken,
+        consumeUsageLimit: async () => {
+          if (options?.env?.ORCH_STRUCTURED_CODEX === '1') {
+            return false;
+          }
+          if (runCount !== 0) {
+            runCount += 1;
+            return false;
+          }
+          if (onBeforeLimit) {
+            await onBeforeLimit();
+          }
+          runCount += 1;
+          return true;
+        }
+      }, call);
       return child;
     }
     const isResume = args.includes('resume');

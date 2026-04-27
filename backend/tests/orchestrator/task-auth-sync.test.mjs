@@ -1,10 +1,13 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { EventEmitter } from 'node:events';
-import { PassThrough } from 'node:stream';
 import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
-import { createMockExec, createTempDir } from '../helpers.mjs';
+import {
+  createManualAppServerSpawn,
+  createMockExec,
+  createMockSpawn,
+  createTempDir
+} from '../helpers.mjs';
 import { waitForTaskStatus } from '../helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
@@ -33,34 +36,37 @@ function resolveMountedPath(options, targetPath) {
 }
 
 function createRunSpawn({ threadId, authFactory, closeDelayMs = 0, onClosed } = {}) {
-  return (command, args, options = {}) => {
-    const child = new EventEmitter();
-    child.stdout = new PassThrough();
-    child.stderr = new PassThrough();
-    child.stdin = new PassThrough();
-    child.kill = () => {
-      setImmediate(() => {
-        child.emit('close', 143, 'SIGTERM');
-      });
-    };
+  return createMockSpawn({
+    threadId,
+    turnCompletionDelayMs: closeDelayMs,
+    onBeforeTurnComplete: async ({ options }) => {
+      if (options?.env?.ORCH_STRUCTURED_CODEX === '1') {
+        return;
+      }
+      const codexHome = resolveMountedPath(options, '/root/.codex');
+      const authContent = authFactory(codexHome);
+      await fs.writeFile(path.join(codexHome, 'auth.json'), JSON.stringify(authContent, null, 2));
+      onClosed?.();
+    }
+  });
+}
 
-    setImmediate(async () => {
-      child.stdout.write(JSON.stringify({ type: 'thread.started', thread_id: threadId }) + '\n');
-      setTimeout(async () => {
-        const codexHome = resolveMountedPath(options, '/root/.codex');
-        const authContent = authFactory(codexHome);
-        await fs.writeFile(
-          path.join(codexHome, 'auth.json'),
-          JSON.stringify(authContent, null, 2)
-        );
-        child.stdout.end();
-        child.emit('close', 0, null);
-        onClosed?.();
-      }, closeDelayMs);
-    });
+async function waitForRunServer(spawn) {
+  const deadline = Date.now() + 2000;
+  while (Date.now() < deadline) {
+    const server = spawn.latestServer();
+    if (server) {
+      await server.waitForTurnStart();
+      return server;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error('Timed out waiting for app-server run');
+}
 
-    return child;
-  };
+async function writeAuthForServer(server, authContent) {
+  const codexHome = resolveMountedPath(server.call.options, '/root/.codex');
+  await fs.writeFile(path.join(codexHome, 'auth.json'), JSON.stringify(authContent, null, 2));
 }
 
 async function createOrchestratorWithPrimary(orchHome) {
@@ -120,21 +126,7 @@ describe('Orchestrator run-account sync targeting', () => {
     const orchHome = await createTempDir();
     const { codexHome, exec } = await createOrchestratorWithPrimary(orchHome);
 
-    let finishSignal;
-    const finished = new Promise((resolve) => {
-      finishSignal = resolve;
-    });
-    const spawn = createRunSpawn({
-      threadId: 'thread-race',
-      closeDelayMs: 100,
-      authFactory: () => ({
-        tokens: {
-          access_token: 'primary-new',
-          refresh_token: 'primary-new-refresh'
-        }
-      }),
-      onClosed: () => finishSignal()
-    });
+    const spawn = createManualAppServerSpawn({ threadId: 'thread-race' });
 
     const orchestrator = new Orchestrator({
       orchHome,
@@ -165,12 +157,19 @@ describe('Orchestrator run-account sync targeting', () => {
 
     const env = await orchestrator.createEnv({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' });
     const task = await orchestrator.createTask({ envId: env.envId, ref: 'main', prompt: 'Do work' });
+    const server = await waitForRunServer(spawn);
 
     const accountsBefore = await orchestrator.listAccounts();
     const primaryRunAccountId = task.runs[0].accountId;
     const secondary = accountsBefore.accounts.find((account) => account.id !== primaryRunAccountId);
     await orchestrator.activateAccount(secondary.id);
-    await finished;
+    await writeAuthForServer(server, {
+      tokens: {
+        access_token: 'primary-new',
+        refresh_token: 'primary-new-refresh'
+      }
+    });
+    server.completeTurn();
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
 
     const accountsAfter = await orchestrator.listAccounts();

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createRequire } from 'node:module';
 import { createMockExec, createMockSpawn, createTempDir, prepareOrchestratorSetup } from './helpers.mjs';
+import { waitForTaskIdle } from './helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
 const { createApp } = require('../src/app');
@@ -66,6 +67,7 @@ describe('tasks resume route concurrency', () => {
       prompt: 'Do work'
     });
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    await waitForTaskIdle(orchestrator, task.taskId);
 
     const authStarted = createDeferred();
     const releaseAuth = createDeferred();
@@ -105,5 +107,5 @@ describe('tasks resume route concurrency', () => {
 
     const updated = await orchestrator.getTask(task.taskId);
     expect(updated.runs).toHaveLength(2);
-  });
+  }, 15000);
 });

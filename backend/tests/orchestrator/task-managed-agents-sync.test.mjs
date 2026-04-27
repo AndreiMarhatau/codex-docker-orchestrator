@@ -3,13 +3,13 @@ import fs from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 import { createMockExec, createMockSpawn, createTempDir } from '../helpers.mjs';
-import { waitForTaskStatus } from '../helpers/wait.mjs';
+import { waitForTaskIdle, waitForTaskStatus } from '../helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
 
 describe('task managed agent syncing', () => {
-  it('refreshes managed developer agents before create and resume after config changes', async () => {
+  it('does not create managed developer agents for task runs', async () => {
     const orchHome = await createTempDir();
     const codexHome = path.join(orchHome, 'codex-home');
     const exec = createMockExec({ branches: ['main'] });
@@ -38,9 +38,10 @@ describe('task managed agent syncing', () => {
       prompt: 'Do work'
     });
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    await waitForTaskIdle(orchestrator, task.taskId);
 
     const developerPath = path.join(codexHome, 'agents', 'developer.toml');
-    expect(await fs.readFile(developerPath, 'utf8')).toContain('First rule.');
+    await expect(fs.readFile(developerPath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
 
     await fs.writeFile(
       path.join(codexHome, 'config.toml'),
@@ -50,8 +51,6 @@ describe('task managed agent syncing', () => {
     await orchestrator.resumeTask(task.taskId, 'Continue');
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
 
-    const refreshedDeveloper = await fs.readFile(developerPath, 'utf8');
-    expect(refreshedDeveloper).toContain('Second rule.');
-    expect(refreshedDeveloper).not.toContain('First rule.');
+    await expect(fs.readFile(developerPath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
   });
 });

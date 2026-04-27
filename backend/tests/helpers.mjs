@@ -1,5 +1,9 @@
 export { createMockExec } from './helpers/exec.mjs';
 export { createMockSpawn } from './helpers/spawn.mjs';
+export {
+  countAppServerTaskRuns,
+  createManualAppServerSpawn
+} from './helpers/app-server-spawn.mjs';
 export { createTempDir } from './helpers/temp.mjs';
 
 export async function prepareOrchestratorSetup(orchestrator, options = {}) {

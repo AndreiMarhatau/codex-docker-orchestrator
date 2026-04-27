@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { createRequire } from 'node:module';
 import { createMockExec, createMockSpawn, createTempDir, prepareOrchestratorSetup } from './helpers.mjs';
+import { waitForTaskIdle } from './helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
 const fsPromises = require('node:fs/promises');
@@ -59,6 +60,7 @@ describe('tasks resume finalize failures', () => {
       prompt: 'Do work'
     });
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    await waitForTaskIdle(orchestrator, task.taskId);
     const [existingAttachment] = await orchestrator.addTaskAttachments(task.taskId, [
       await createUploadInfo(orchestrator, 'existing.txt', 'existing attachment')
     ]);

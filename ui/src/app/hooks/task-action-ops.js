@@ -1,17 +1,45 @@
 import { apiRequest } from '../../api.js';
 
-function createHandlePushTask({ refreshTaskDetail, selectedTaskId, setError, setLoading }) {
-  return async function handlePushTask() {
+function createHandleCommitPushTask({ refreshTaskDetail, selectedTaskId, setError, setLoading }) {
+  return async function handleCommitPushTask(message = '') {
     if (!selectedTaskId) {
       return;
     }
     setError('');
     setLoading(true);
     try {
-      await apiRequest(`/api/tasks/${selectedTaskId}/push`, { method: 'POST' });
+      await apiRequest(`/api/tasks/${selectedTaskId}/commit-push`, {
+        method: 'POST',
+        body: JSON.stringify({ message })
+      });
       await refreshTaskDetail(selectedTaskId);
+      return true;
     } catch (err) {
       setError(err.message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+}
+
+function createHandleReviewTask({ refreshTaskDetail, selectedTaskId, setError, setLoading }) {
+  return async function handleReviewTask(reviewInput) {
+    if (!selectedTaskId) {
+      return false;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      await apiRequest(`/api/tasks/${selectedTaskId}/review`, {
+        method: 'POST',
+        body: JSON.stringify(reviewInput)
+      });
+      await refreshTaskDetail(selectedTaskId);
+      return true;
+    } catch (err) {
+      setError(err.message);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -67,4 +95,9 @@ function createHandleDeleteTask({
   };
 }
 
-export { createHandleDeleteTask, createHandlePushTask, createHandleStopTask };
+export {
+  createHandleCommitPushTask,
+  createHandleDeleteTask,
+  createHandleReviewTask,
+  createHandleStopTask
+};

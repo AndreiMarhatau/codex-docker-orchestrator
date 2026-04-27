@@ -1,9 +1,37 @@
+/* eslint-disable complexity */
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 
-function createAppServerResponder({ rateLimits }) {
-  return (child) => {
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function createAppServerResponder({
+  rateLimits,
+  defaultAgentMessageText,
+  onBeforeTurnComplete,
+  turnCompletionDelayMs
+}) {
+  return (child, call = null, options = {}) => {
     let buffer = '';
+    let lastThreadId = '019b341f-04d9-73b3-8263-2c05ca63d690';
+    let turnCount = 0;
+    const write = (payload) => {
+      child.stdout.write(`${JSON.stringify(payload)}\n`);
+    };
+    const emitTurn = ({ turnId, item, message }) => {
+      setImmediate(async () => {
+        write({ method: 'turn/started', params: { turn: { id: turnId, status: 'inProgress', items: [] } } });
+        if (onBeforeTurnComplete) {
+          await onBeforeTurnComplete({ child, call, options, message, turnId });
+        }
+        if (turnCompletionDelayMs > 0) {
+          await delay(turnCompletionDelayMs);
+        }
+        write({ method: 'item/completed', params: { item } });
+        write({ method: 'turn/completed', params: { turn: { id: turnId, status: 'completed', items: [item] } } });
+      });
+    };
     child.stdin.on('data', (chunk) => {
       buffer += chunk.toString();
       let newlineIndex = buffer.indexOf('\n');
@@ -17,15 +45,55 @@ function createAppServerResponder({ rateLimits }) {
           } catch (error) {
             message = null;
           }
+          if (message && call) {
+            call.messages.push(message);
+          }
           if (message?.method === 'initialize' && message.id !== undefined) {
-            child.stdout.write(
-              `${JSON.stringify({ id: message.id, result: { userAgent: 'codex-mock' } })}\n`
-            );
+            write({ id: message.id, result: { userAgent: 'codex-mock' } });
           }
           if (message?.method === 'account/rateLimits/read' && message.id !== undefined) {
-            child.stdout.write(`${JSON.stringify({ id: message.id, result: { rateLimits } })}\n`);
+            write({ id: message.id, result: { rateLimits } });
             child.stdout.end();
             child.emit('close', 0, null);
+          }
+          if (message?.method === 'thread/start' && message.id !== undefined) {
+            lastThreadId = message.params?.ephemeral ? `thread-ephemeral-${Date.now()}` : lastThreadId;
+            const thread = { id: lastThreadId, status: 'loaded', turns: [] };
+            write({ id: message.id, result: { thread, model: 'mock', modelProvider: 'mock', cwd: message.params?.cwd || '/workspace/repo' } });
+            write({ method: 'thread/started', params: { thread } });
+          }
+          if (message?.method === 'thread/resume' && message.id !== undefined) {
+            lastThreadId = message.params?.threadId || lastThreadId;
+            const thread = { id: lastThreadId, status: 'loaded', turns: [] };
+            write({ id: message.id, result: { thread, model: 'mock', modelProvider: 'mock', cwd: message.params?.cwd || '/workspace/repo' } });
+            write({ method: 'thread/started', params: { thread } });
+          }
+          if (message?.method === 'turn/start' && message.id !== undefined) {
+            turnCount += 1;
+            const turnId = `turn-${turnCount}`;
+            const text = message.params?.input?.[0]?.text || '';
+            let responseText = text.includes('commit message')
+              ? JSON.stringify({ message: 'Update mock task' })
+              : defaultAgentMessageText;
+            if (message.params?.outputSchema && text.includes('branch name')) {
+              responseText = JSON.stringify({ branchName: 'codex/mock-branch' });
+            }
+            const item = { id: `item-${turnCount}`, type: 'agentMessage', text: responseText };
+            write({ id: message.id, result: { turn: { id: turnId, status: 'inProgress', items: [], error: null } } });
+            emitTurn({ turnId, item, message });
+          }
+          if (message?.method === 'review/start' && message.id !== undefined) {
+            turnCount += 1;
+            const turnId = `turn-${turnCount}`;
+            const item = { id: `review-${turnCount}`, type: 'exitedReviewMode', review: 'No findings.' };
+            write({
+              id: message.id,
+              result: {
+                turn: { id: turnId, status: 'inProgress', items: [], error: null },
+                reviewThreadId: `review-${lastThreadId}`
+              }
+            });
+            emitTurn({ turnId, item, message });
           }
         }
         newlineIndex = buffer.indexOf('\n');
@@ -60,26 +128,59 @@ export function createMockSpawn({
     secondary: null,
     credits: null,
     planType: null
-  }
+  },
+  defaultAgentMessageText = 'OK',
+  onBeforeTurnComplete = null,
+  turnCompletionDelayMs = 0,
+  recordStructuredCodex = false,
+  ignoreSigterm = false,
+  childPid = null
 } = {}) {
   const calls = [];
-  const appServerResponder = createAppServerResponder({ rateLimits });
+  const appServerResponder = createAppServerResponder({
+    rateLimits,
+    defaultAgentMessageText,
+    onBeforeTurnComplete,
+    turnCompletionDelayMs
+  });
   const codexResponder = createCodexResponder({ threadId });
 
   const spawnMock = (command, args, options = {}) => {
-    calls.push({ command, args, options });
+    const shouldRecord =
+      recordStructuredCodex || options?.env?.ORCH_STRUCTURED_CODEX !== '1';
+    const call = { command, args, options, messages: [] };
+    if (shouldRecord) {
+      calls.push(call);
+    }
     const child = new EventEmitter();
     child.stdout = new PassThrough();
     child.stderr = new PassThrough();
     child.stdin = new PassThrough();
-    child.kill = () => {
+    if (Number.isInteger(childPid)) {
+      child.pid = childPid;
+    }
+    child.killedSignals = [];
+    child.closed = false;
+    child.on('close', () => {
+      child.closed = true;
+    });
+    child.kill = (signal = 'SIGTERM') => {
+      child.killedSignals.push(signal);
+      child.killedSignal = signal;
+      if (child.closed || (ignoreSigterm && signal === 'SIGTERM')) {
+        return true;
+      }
       setImmediate(() => {
-        child.emit('close', 143, 'SIGTERM');
+        if (!child.closed) {
+          child.emit('close', signal === 'SIGKILL' ? 137 : 143, signal);
+        }
       });
+      return true;
     };
+    call.child = child;
 
     if (command === 'codex-docker' && args[0] === 'app-server') {
-      appServerResponder(child);
+      appServerResponder(child, call, options);
       return child;
     }
 

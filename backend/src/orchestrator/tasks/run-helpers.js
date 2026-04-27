@@ -106,6 +106,7 @@ function createOutputTracker({ logStream, stderrStream }) {
 
   return { onStdout, onStderr, getResult };
 }
+// eslint-disable-next-line complexity
 async function updateRunMeta({
   taskId,
   runLabel,
@@ -149,6 +150,8 @@ async function updateRunMeta({
       finishedAt: currentTime,
       status: success ? 'completed' : stopped ? 'stopped' : 'failed',
       exitCode: result.code,
+      gitFingerprintBefore: result.gitFingerprintBefore || meta.runs[runIndex].gitFingerprintBefore || null,
+      gitFingerprintAfter: result.gitFingerprintAfter || meta.runs[runIndex].gitFingerprintAfter || null,
       artifacts
     };
   }

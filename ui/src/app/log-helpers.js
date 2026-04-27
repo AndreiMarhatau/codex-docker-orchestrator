@@ -101,6 +101,7 @@ function isAgentMessageEntry(entry) {
     itemRole === 'assistant' ||
     itemRole === 'agent' ||
     itemRole === 'model' ||
+    itemType === 'agentmessage' ||
     itemType === 'agent_message' ||
     itemType === 'assistant_message' ||
     itemType === 'agent' ||

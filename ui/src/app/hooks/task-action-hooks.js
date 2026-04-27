@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import {
+  createHandleCommitPushTask,
   createHandleCreateTask,
   createHandleDeleteTask,
-  createHandlePushTask,
+  createHandleReviewTask,
   createHandleResumeTask,
   createHandleStopTask
 } from './task-action-builders.js';
@@ -76,10 +77,23 @@ function useDeleteTaskHandler({
   );
 }
 
-function usePushTaskHandler({ refreshTaskDetail, selectedTaskId, setError, setLoading }) {
+function useCommitPushTaskHandler({ refreshTaskDetail, selectedTaskId, setError, setLoading }) {
   return useMemo(
     () =>
-      createHandlePushTask({
+      createHandleCommitPushTask({
+        refreshTaskDetail,
+        selectedTaskId,
+        setError,
+        setLoading
+      }),
+    [refreshTaskDetail, selectedTaskId, setError, setLoading]
+  );
+}
+
+function useReviewTaskHandler({ refreshTaskDetail, selectedTaskId, setError, setLoading }) {
+  return useMemo(
+    () =>
+      createHandleReviewTask({
         refreshTaskDetail,
         selectedTaskId,
         setError,
@@ -168,9 +182,10 @@ function useStopTaskHandler({ refreshTaskDetail, selectedTaskId, setError, setLo
 }
 
 export {
+  useCommitPushTaskHandler,
   useCreateTaskHandler,
   useDeleteTaskHandler,
-  usePushTaskHandler,
+  useReviewTaskHandler,
   useResumeTaskHandler,
   useStopTaskHandler
 };

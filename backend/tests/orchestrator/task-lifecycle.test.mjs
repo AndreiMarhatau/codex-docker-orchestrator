@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 import { createMockExec, createMockSpawn, createTempDir } from '../helpers.mjs';
-import { waitForTaskStatus } from '../helpers/wait.mjs';
+import { waitForTaskIdle, waitForTaskStatus } from '../helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
@@ -37,6 +37,7 @@ describe('Orchestrator task lifecycle', () => {
     expect(task.reasoningEffort).toBe('medium');
 
     const completed = await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    await waitForTaskIdle(orchestrator, task.taskId);
     expect(completed.threadId).toBe(spawn.threadId);
     expect(completed.initialPrompt).toBe('Do work');
 

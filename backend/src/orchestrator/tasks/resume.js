@@ -1,5 +1,4 @@
 const { ensureDir, readJson, writeJson } = require('../../storage');
-const { buildCodexArgs } = require('../context');
 const { nextRunLabel, normalizeOptionalString, repoNameFromUrl } = require('../utils');
 const { buildTaskRunEnvOverrides, buildTaskRunVolumeMounts } = require('./mounts');
 const {
@@ -70,7 +69,6 @@ function attachTaskResumeMethods(Orchestrator) {
         }
         const env = await this.readEnv(meta.envId);
         await this.ensureOwnership(env.mirrorPath);
-        await this.syncManagedAgents();
         const exposedPaths = await this.prepareTaskExposedPaths(taskId, {
           contextRepos: resolvedContextRepos,
           attachments
@@ -91,13 +89,6 @@ function attachTaskResumeMethods(Orchestrator) {
           normalizeOptionalString(options.reasoningEffort) ?? normalizeOptionalString(meta.reasoningEffort);
         await ensureDir(this.runArtifactsDir(taskId, runLabel));
         await this.ensureActiveAuth();
-        const args = buildCodexArgs({
-          prompt: codexPrompt,
-          model: runModel,
-          reasoningEffort: runReasoningEffort,
-          developerInstructions: orchestratorInstructions,
-          resumeThreadId: meta.threadId
-        });
         const workspaceDir = `/workspace/${repoNameFromUrl(meta.repoUrl)}`;
         const volumeMounts = await buildTaskRunVolumeMounts(this, {
           worktreePath: meta.worktreePath,
@@ -123,7 +114,9 @@ function attachTaskResumeMethods(Orchestrator) {
           activeAccount,
           runLabel,
           runModel,
-          runReasoningEffort
+          runReasoningEffort,
+          autoReviewRemaining:
+            options.autoReviewRemaining ?? (meta.autoReview === true ? 1 : 0)
         });
         this.markTaskRunTransitionRuntimeActive(transitionClaim);
         await writeJson(this.taskMetaPath(taskId), meta);
@@ -134,8 +127,14 @@ function attachTaskResumeMethods(Orchestrator) {
           taskId,
           runLabel,
           prompt,
+          codexPrompt,
           cwd: meta.worktreePath,
-          args,
+          appServerConfig: {
+            resumeThreadId: meta.threadId,
+            model: runModel,
+            reasoningEffort: runReasoningEffort,
+            developerInstructions: orchestratorInstructions
+          },
           workspaceDir,
           volumeMounts,
           useHostDockerSocket: shouldUseHostDockerSocket,

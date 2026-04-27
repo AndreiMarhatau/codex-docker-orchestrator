@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 import { createMockExec, createMockSpawn, createTempDir } from '../helpers.mjs';
-import { waitForTaskStatus } from '../helpers/wait.mjs';
+import { waitForTaskIdle, waitForTaskStatus } from '../helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
@@ -30,6 +30,7 @@ describe('Orchestrator task attachment validation', () => {
       prompt: 'Do work'
     });
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    await waitForTaskIdle(orchestrator, task.taskId);
 
     await expect(orchestrator.removeTaskAttachments(task.taskId, [])).rejects.toMatchObject({
       code: 'INVALID_ATTACHMENT'
@@ -57,6 +58,7 @@ describe('Orchestrator task attachment validation', () => {
       prompt: 'Do work'
     });
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    await waitForTaskIdle(orchestrator, task.taskId);
 
     await expect(
       orchestrator.prepareTaskAttachments(task.taskId, [
@@ -104,6 +106,7 @@ describe('Orchestrator task attachment validation', () => {
       prompt: 'Do work'
     });
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+    await waitForTaskIdle(orchestrator, task.taskId);
 
     const missingPath = path.join(orchestrator.uploadsDir(), 'missing.txt');
     await expect(

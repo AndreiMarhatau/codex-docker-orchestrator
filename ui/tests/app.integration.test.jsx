@@ -109,7 +109,9 @@ async function exerciseTaskDetail(user) {
   await waitFor(() => expect(continueButton).toBeEnabled());
   await user.click(continueButton);
   await waitFor(() => expect(screen.queryByText('Ask for Changes')).not.toBeInTheDocument());
-  await user.click(screen.getByRole('button', { name: 'Push' }));
+  await user.click(screen.getByRole('button', { name: 'Commit & Push' }));
+  const commitDialog = await screen.findByRole('dialog', { name: 'Commit & Push' });
+  await user.click(within(commitDialog).getByRole('button', { name: 'Commit & Push' }));
   await user.click(screen.getByLabelText('Back to tasks'));
   await user.click(screen.getByText('feature/preflight'));
   expect(screen.queryByRole('button', { name: /Task context/ })).not.toBeInTheDocument();

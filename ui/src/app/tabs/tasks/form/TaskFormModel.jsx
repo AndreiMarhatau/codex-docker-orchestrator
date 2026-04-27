@@ -1,4 +1,4 @@
-import { MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { Checkbox, FormControlLabel, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { EFFORT_LABELS, MODEL_CUSTOM_VALUE, MODEL_OPTIONS } from '../../../constants.js';
 import { getEffortOptionsForModel } from '../../../model-helpers.js';
 import TaskDockerToggle from './TaskDockerToggle.jsx';
@@ -87,6 +87,21 @@ function TaskFormModel({ handleTaskModelChoiceChange, setTaskForm, taskForm }) {
           }))
         }
         warningTooltip="Runs Docker using the orchestrator's isolated per-task sidecar daemon."
+      />
+
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={taskForm.autoReview}
+            onChange={(event) =>
+              setTaskForm((prev) => ({
+                ...prev,
+                autoReview: event.target.checked
+              }))
+            }
+          />
+        }
+        label="Auto review changed runs"
       />
     </Stack>
   );

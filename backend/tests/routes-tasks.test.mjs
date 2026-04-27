@@ -1,45 +1,22 @@
-import { EventEmitter } from 'node:events';
-import { PassThrough } from 'node:stream';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import { createRequire } from 'node:module';
-import { createMockExec, createMockSpawn, createTempDir, prepareOrchestratorSetup } from './helpers.mjs';
+import {
+  createManualAppServerSpawn,
+  createMockExec,
+  createMockSpawn,
+  createTempDir,
+  prepareOrchestratorSetup
+} from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { createApp } = require('../src/app');
 const { Orchestrator } = require('../src/orchestrator');
 
 function createPendingTaskSpawn() {
-  const baseSpawn = createMockSpawn();
-  const spawn = (command, args, options = {}) => {
-    if (command === 'codex-docker' && args[0] !== 'app-server') {
-      spawn.calls.push({ command, args, options });
-      const child = new EventEmitter();
-      child.stdout = new PassThrough();
-      child.stderr = new PassThrough();
-      child.stdin = new PassThrough();
-      child.kill = () => {
-        setImmediate(() => {
-          child.emit('close', 143, 'SIGTERM');
-        });
-      };
-      setImmediate(() => {
-        child.stdout.write(
-          'banner line\n' +
-            JSON.stringify({ type: 'thread.started', thread_id: baseSpawn.threadId }) +
-            '\n'
-        );
-      });
-      return child;
-    }
-    return baseSpawn(command, args, options);
-  };
-
-  spawn.calls = baseSpawn.calls;
-  spawn.threadId = baseSpawn.threadId;
-  return spawn;
+  return createManualAppServerSpawn();
 }
 
 async function createTestContext({ spawn = createMockSpawn() } = {}) {
@@ -182,5 +159,20 @@ describe('tasks routes', () => {
       .post('/api/tasks/missing/resume')
       .send({ prompt: 'Continue' })
       .expect(404);
+  });
+
+  it('returns 404 for missing task mutation routes', async () => {
+    const app = await createTestApp();
+
+    await request(app).post('/api/tasks/missing/push').expect(404);
+    await request(app)
+      .post('/api/tasks/missing/commit-push')
+      .send({ message: 'Update task' })
+      .expect(404);
+    await request(app)
+      .post('/api/tasks/missing/review')
+      .send({ type: 'uncommittedChanges' })
+      .expect(404);
+    await request(app).delete('/api/tasks/missing').expect(404);
   });
 });

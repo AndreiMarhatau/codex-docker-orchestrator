@@ -104,4 +104,15 @@ describe('AppLayout', () => {
 
     expect(handleBackToTasks).toHaveBeenCalled();
   });
+
+  it('returns to the task list when entering tasks from another tab', () => {
+    const { handleBackToTasks } = renderLayout({
+      activeTab: 2,
+      selectedTaskId: 'task-1'
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Tasks' }));
+
+    expect(handleBackToTasks).toHaveBeenCalled();
+  });
 });

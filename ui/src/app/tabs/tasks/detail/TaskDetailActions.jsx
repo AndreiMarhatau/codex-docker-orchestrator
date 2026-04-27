@@ -18,8 +18,10 @@ import AddCommentOutlinedIcon from '@mui/icons-material/AddCommentOutlined';
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import RateReviewOutlinedIcon from '@mui/icons-material/RateReviewOutlined';
+import StopOutlinedIcon from '@mui/icons-material/StopOutlined';
 import TaskResumeDialog from './TaskResumeDialog.jsx';
 import { readComposeQuery, writeComposeQuery } from '../../../query-state.js';
+import { isTaskStoppableStatus } from '../../../task-helpers.js';
 
 const REVIEW_TARGETS = [
   { value: 'uncommittedChanges', label: 'Uncommitted changes' },
@@ -46,11 +48,28 @@ function DetailActionIconButton({ children, color = 'primary', disabled, label, 
   );
 }
 
+function TaskDetailStopAction({ data, hasTaskDetail, onStop, task }) {
+  if (!hasTaskDetail || !isTaskStoppableStatus(task?.status)) {
+    return null;
+  }
+  return (
+    <DetailActionIconButton
+      color="error"
+      label="Stop"
+      onClick={onStop}
+      disabled={data.loading}
+    >
+      <StopOutlinedIcon fontSize="small" />
+    </DetailActionIconButton>
+  );
+}
+
 function TaskDetailActions({
   data,
   hasTaskDetail,
   isRunning = false,
   onRequestDeleteTask,
+  onRequestStopTask,
   showCommitPush,
   tasksState
 }) {
@@ -126,6 +145,17 @@ function TaskDetailActions({
     actions.handleDeleteTask?.(detail.taskDetail.taskId);
   }
 
+  function handleStopTask() {
+    if (!detail.taskDetail) {
+      return;
+    }
+    if (onRequestStopTask) {
+      onRequestStopTask(detail.taskDetail);
+      return;
+    }
+    actions.handleStopTask?.(detail.taskDetail.taskId);
+  }
+
   return (
     <>
       <Box className="task-detail-actions">
@@ -156,9 +186,15 @@ function TaskDetailActions({
             >
               {isPushing
                 ? <CircularProgress size={18} color="inherit" />
-                : <CloudUploadOutlinedIcon fontSize="small" />}
+              : <CloudUploadOutlinedIcon fontSize="small" />}
             </DetailActionIconButton>
           )}
+          <TaskDetailStopAction
+            data={data}
+            hasTaskDetail={hasTaskDetail}
+            onStop={handleStopTask}
+            task={detail.taskDetail}
+          />
           {hasTaskDetail && (
             <DetailActionIconButton
               color="error"

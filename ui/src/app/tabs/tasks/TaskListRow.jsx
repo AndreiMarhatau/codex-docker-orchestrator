@@ -4,7 +4,7 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import StopOutlinedIcon from '@mui/icons-material/StopOutlined';
 import { formatDuration } from '../../formatters.js';
 import { formatRepoDisplay } from '../../repo-helpers.js';
-import { getTaskRuntimeMs } from '../../task-helpers.js';
+import { getTaskRuntimeMs, isTaskStoppableStatus } from '../../task-helpers.js';
 import { GitDiffStats, GitStatusPill, StatusPill } from './TaskStatusPrimitives.jsx';
 const desktopSummarySx = {
   gridColumn: '1 / span 5',
@@ -57,16 +57,23 @@ function getSummaryButtonProps(setSelectedTaskId, task, loading = false) {
 }
 
 function TaskActionButton({ handleStopTask, loading, task }) {
-  if (task.status !== 'running' && task.status !== 'reviewing') {
+  if (!isTaskStoppableStatus(task.status)) {
     return null;
   }
+  const stopTask = (event) => {
+    event.stopPropagation();
+    handleStopTask(task);
+  };
+
   return (
     <Button
       className="task-inline-action"
       size="small"
       variant="outlined"
       startIcon={<StopOutlinedIcon fontSize="small" />}
-      onClick={() => handleStopTask(task.taskId)}
+      onClick={stopTask}
+      onMouseDown={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
       disabled={loading}
     >
       Stop

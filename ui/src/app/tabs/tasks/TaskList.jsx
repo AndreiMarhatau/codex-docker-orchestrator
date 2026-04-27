@@ -3,7 +3,9 @@ import { Box, Typography, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { DesktopTaskRow, MobileTaskCard } from './TaskListRow.jsx';
 import TaskDeleteConfirmationDialog from './TaskDeleteConfirmationDialog.jsx';
+import TaskStopConfirmationDialog from './TaskStopConfirmationDialog.jsx';
 import useTaskDeleteConfirmation from './useTaskDeleteConfirmation.js';
+import useTaskStopConfirmation from './useTaskStopConfirmation.js';
 
 const MOBILE_TASK_LIMIT = 4;
 
@@ -114,6 +116,7 @@ function TaskList({
   const mobileLayout = useMediaQuery(theme.breakpoints.down('md'));
   const { loading } = data;
   const taskDelete = useTaskDeleteConfirmation({ handleDeleteTask, loading });
+  const taskStop = useTaskStopConfirmation({ handleStopTask, loading });
 
   if (visibleTasks.length === 0) {
     return <EmptyTaskList />;
@@ -125,7 +128,7 @@ function TaskList({
         {mobileLayout ? (
           <MobileTaskTable
             handleDeleteTask={taskDelete.requestDeleteTask}
-            handleStopTask={handleStopTask}
+            handleStopTask={taskStop.requestStopTask}
             loading={loading}
             now={now}
             selectedTaskId={selectedTaskId}
@@ -135,7 +138,7 @@ function TaskList({
         ) : (
           <DesktopTaskTable
             handleDeleteTask={taskDelete.requestDeleteTask}
-            handleStopTask={handleStopTask}
+            handleStopTask={taskStop.requestStopTask}
             loading={loading}
             now={now}
             selectedTaskId={selectedTaskId}
@@ -145,6 +148,7 @@ function TaskList({
         )}
       </Box>
       <TaskDeleteConfirmationDialog {...taskDelete.deleteDialogProps} />
+      <TaskStopConfirmationDialog {...taskStop.stopDialogProps} />
     </>
   );
 }

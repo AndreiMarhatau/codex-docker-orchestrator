@@ -6,6 +6,7 @@ import SettingsTab from '../tabs/SettingsTab.jsx';
 import TasksTab from '../tabs/TasksTab.jsx';
 import AuthGate from './AuthGate.jsx';
 import { DesktopNavigation, MobileNavigation } from './AppNavigation.jsx';
+import FloatingScrollButton from './FloatingScrollButton.jsx';
 
 function AppTabPanel({ activeTab, children, tab }) {
   return (
@@ -33,7 +34,7 @@ function AppLayout({ accountsState, authState, data, envState, tabState, tasksSt
     locked || ((item.tab === 0 || item.tab === 1) && !setupReady);
 
   const handleNavSelect = (value) => {
-    if (value === 1 && activeTab === 1 && selectedTaskId) {
+    if (value === 1 && selectedTaskId) {
       handleBackToTasks();
     }
     setActiveTab(value);
@@ -95,6 +96,7 @@ function AppLayout({ accountsState, authState, data, envState, tabState, tasksSt
           <Typography color="error">{error}</Typography>
         </Box>
       )}
+      <FloatingScrollButton />
       {locked && <AuthGate authState={authState} />}
     </Box>
   );

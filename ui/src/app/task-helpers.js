@@ -43,6 +43,10 @@ function getTaskRuntimeMs(task, now) {
   return null;
 }
 
+function isTaskStoppableStatus(status) {
+  return status === 'running' || status === 'reviewing';
+}
+
 function encodeArtifactPath(value) {
   return value
     .split('/')
@@ -69,5 +73,6 @@ export {
   getLatestRun,
   getRunDurationMs,
   getTaskRuntimeMs,
+  isTaskStoppableStatus,
   isImageArtifact
 };

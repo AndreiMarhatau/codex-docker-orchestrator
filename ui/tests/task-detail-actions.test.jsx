@@ -13,10 +13,12 @@ function renderActions({
   isRunning = false,
   loading = false,
   onRequestDeleteTask = vi.fn(),
+  onRequestStopTask = vi.fn(),
   showCommitPush = true,
   status = 'completed'
 } = {}) {
   const handleDeleteTask = vi.fn();
+  const handleStopTask = vi.fn();
 
   render(
     <TaskDetailActions
@@ -24,16 +26,22 @@ function renderActions({
       hasTaskDetail={hasTaskDetail}
       isRunning={isRunning}
       onRequestDeleteTask={onRequestDeleteTask}
+      onRequestStopTask={onRequestStopTask}
       showCommitPush={showCommitPush}
       tasksState={{
-        actions: { handleCommitPushTask: vi.fn(), handleDeleteTask, handleReviewTask: vi.fn() },
+        actions: {
+          handleCommitPushTask: vi.fn(),
+          handleDeleteTask,
+          handleReviewTask: vi.fn(),
+          handleStopTask
+        },
         detail: { taskDetail: { branchName: 'feature/refactor', status, taskId: 'task-1' } },
         handleResumeModelChoiceChange: vi.fn()
       }}
     />
   );
 
-  return { handleDeleteTask, onRequestDeleteTask };
+  return { handleDeleteTask, handleStopTask, onRequestDeleteTask, onRequestStopTask };
 }
 
 describe('TaskDetailActions', () => {
@@ -54,7 +62,22 @@ describe('TaskDetailActions', () => {
     renderActions({ status: 'pushing' });
 
     expect(screen.getByRole('button', { name: 'Pushing' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('shows stop before delete for stoppable tasks', async () => {
+    const user = userEvent.setup();
+    const onRequestStopTask = vi.fn();
+    renderActions({ onRequestStopTask, status: 'running' });
+
+    const actionButtons = screen.getAllByRole('button').map((button) => button.getAttribute('aria-label'));
+    expect(actionButtons).toEqual(['Ask for changes', 'Review', 'Commit & Push', 'Stop', 'Delete']);
+
+    await user.click(screen.getByRole('button', { name: 'Stop' }));
+    expect(onRequestStopTask).toHaveBeenCalledWith(
+      expect.objectContaining({ taskId: 'task-1' })
+    );
   });
 
   it('routes delete through the confirmation requester', async () => {

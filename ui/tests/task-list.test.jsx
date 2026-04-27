@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
-import { fireEvent, render, screen, within } from './test-utils.jsx';
+import { fireEvent, render, screen, waitFor, within } from './test-utils.jsx';
 import TaskList from '../src/app/tabs/tasks/TaskList.jsx';
 import { DesktopTaskRow } from '../src/app/tabs/tasks/TaskListRow.jsx';
 
@@ -55,6 +55,12 @@ function renderTaskList({ loading = false, selectedTaskId = '', tasks = [] } = {
   return { handleDeleteTask, handleStopTask, setSelectedTaskId };
 }
 
+async function confirmStopDialog(user) {
+  const stopDialog = screen.getByRole('dialog', { name: 'Stop task?' });
+  expect(within(stopDialog).getByText(/branch-task-running/)).toBeInTheDocument();
+  await user.click(within(stopDialog).getByRole('button', { name: 'Stop' }));
+}
+
 afterEach(() => {
   useMediaQueryMock.mockReset();
 });
@@ -89,7 +95,11 @@ describe('TaskList', () => {
     ).toBe(false);
 
     await user.click(screen.getByRole('button', { name: 'Stop' }));
+    expect(handleStopTask).not.toHaveBeenCalled();
+
+    await confirmStopDialog(user);
     expect(handleStopTask).toHaveBeenCalledWith('task-running');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Stop task?' })).not.toBeInTheDocument());
 
     await user.click(screen.getByRole('button', { name: 'Open task task-stopped' }));
     expect(setSelectedTaskId).toHaveBeenCalledWith('task-stopped');
@@ -102,7 +112,9 @@ describe('TaskList', () => {
     await user.click(within(deleteDialog).getByRole('button', { name: 'Delete' }));
     expect(handleDeleteTask).toHaveBeenCalledWith('task-running');
   });
+});
 
+describe('TaskList interactions', () => {
   it('keeps delete clicks from bubbling to surrounding task selection handlers', async () => {
     const user = userEvent.setup();
     const task = createTask('task-delete');
@@ -145,6 +157,8 @@ describe('TaskList', () => {
 
     stopButton.focus();
     await user.keyboard('{Enter}');
+    const stopDialog = screen.getByRole('dialog', { name: 'Stop task?' });
+    await user.click(within(stopDialog).getByRole('button', { name: 'Stop' }));
     expect(handleStopTask).toHaveBeenCalledWith('task-running');
     expect(setSelectedTaskId).toHaveBeenCalledTimes(1);
   });
@@ -173,8 +187,9 @@ describe('TaskList', () => {
     expect(screen.getByText('branch-task-5')).toBeInTheDocument();
   });
 
-  it('supports keyboard opening for running tasks on mobile cards', () => {
+  it('supports keyboard opening for running tasks on mobile cards', async () => {
     useMediaQueryMock.mockReturnValue(true);
+    const user = userEvent.setup();
     const runningTask = createTask('task-running', { status: 'running' });
     const { handleStopTask, setSelectedTaskId } = renderTaskList({ tasks: [runningTask] });
 
@@ -187,6 +202,8 @@ describe('TaskList', () => {
     expect(setSelectedTaskId).toHaveBeenCalledWith('task-running');
 
     fireEvent.click(stopButton);
+    const stopDialog = screen.getByRole('dialog', { name: 'Stop task?' });
+    await user.click(within(stopDialog).getByRole('button', { name: 'Stop' }));
     expect(handleStopTask).toHaveBeenCalledWith('task-running');
     expect(setSelectedTaskId).toHaveBeenCalledTimes(1);
   });
@@ -207,7 +224,7 @@ describe('TaskList', () => {
 
   it('does not render stop for non-stoppable active task states', () => {
     useMediaQueryMock.mockReturnValue(false);
-    const task = createTask('task-pushing', { status: 'pushing' });
+    const task = createTask('task-stopping', { status: 'stopping' });
 
     renderTaskList({ tasks: [task] });
 

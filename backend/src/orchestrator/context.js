@@ -84,5 +84,6 @@ function buildAttachmentsSection(attachments, options = {}) {
 
 module.exports = {
   buildAttachmentsSection,
-  buildContextReposSection
+  buildContextReposSection,
+  renderTemplate
 };

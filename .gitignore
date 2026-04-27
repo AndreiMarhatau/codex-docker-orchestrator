@@ -8,3 +8,4 @@ coverage/
 backend/coverage/
 ui/coverage/
 test-results/
+.vite/

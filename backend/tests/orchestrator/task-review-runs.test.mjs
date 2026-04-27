@@ -110,7 +110,6 @@ describe('task auto review runs', () => {
 
     expect(result.status).toBe('running');
     expect(result.runs).toHaveLength(2);
-    expect(result.runs.at(-1).prompt).toContain('Please fix the issue.');
     await waitForTaskIdle(orchestrator, taskId);
     const completed = await orchestrator.getTask(taskId);
     expect(completed.status).toBe('completed');

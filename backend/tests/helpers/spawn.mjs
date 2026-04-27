@@ -9,10 +9,11 @@ function delay(ms) {
 
 function createAppServerResponder({
   rateLimits,
-  defaultAgentMessageText,
+  defaultAgentMessageText, reviewTexts,
   onBeforeTurnComplete,
   turnCompletionDelayMs
 }) {
+  let reviewCount = 0;
   return (child, call = null, options = {}) => {
     let buffer = '';
     let lastThreadId = '019b341f-04d9-73b3-8263-2c05ca63d690';
@@ -86,7 +87,8 @@ function createAppServerResponder({
           if (message?.method === 'review/start' && message.id !== undefined) {
             turnCount += 1;
             const turnId = `turn-${turnCount}`;
-            const item = { id: `review-${turnCount}`, type: 'exitedReviewMode', review: 'No findings.' };
+            const review = reviewTexts?.[Math.min(reviewCount++, reviewTexts.length - 1)] || 'No findings.';
+            const item = { id: `review-${turnCount}`, type: 'exitedReviewMode', review };
             write({
               id: message.id,
               result: {
@@ -130,7 +132,7 @@ export function createMockSpawn({
     credits: null,
     planType: null
   },
-  defaultAgentMessageText = 'OK',
+  defaultAgentMessageText = 'OK', reviewTexts = null,
   onBeforeTurnComplete = null,
   turnCompletionDelayMs = 0,
   recordStructuredCodex = false,
@@ -140,7 +142,7 @@ export function createMockSpawn({
   const calls = [];
   const appServerResponder = createAppServerResponder({
     rateLimits,
-    defaultAgentMessageText,
+    defaultAgentMessageText, reviewTexts,
     onBeforeTurnComplete,
     turnCompletionDelayMs
   });

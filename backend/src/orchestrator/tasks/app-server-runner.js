@@ -14,7 +14,8 @@ function mapItem(item) {
   if (item.type === 'exitedReviewMode') {
     return {
       id: item.id,
-      type: 'agent_message',
+      type: 'review',
+      phase: 'completed',
       text: item.review || ''
     };
   }

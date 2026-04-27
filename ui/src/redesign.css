@@ -991,6 +991,16 @@ body::before {
   background: rgba(34, 197, 94, 0.12);
 }
 
+.run-message--review {
+  background: rgba(124, 58, 237, 0.08);
+  border-color: rgba(124, 58, 237, 0.28);
+}
+
+:root[data-theme='dark'] .run-message--review {
+  background: rgba(124, 58, 237, 0.16);
+  border-color: rgba(167, 139, 250, 0.34);
+}
+
 .run-message-author {
   color: var(--ui-accent) !important;
   font-size: 0.78rem !important;
@@ -1000,6 +1010,14 @@ body::before {
 
 .run-message--agent .run-message-author {
   color: var(--ui-success) !important;
+}
+
+.run-message--review .run-message-author {
+  color: #7c3aed !important;
+}
+
+:root[data-theme='dark'] .run-message--review .run-message-author {
+  color: #c4b5fd !important;
 }
 
 .run-message-text {

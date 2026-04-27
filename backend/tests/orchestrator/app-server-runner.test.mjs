@@ -35,7 +35,7 @@ describe('app-server runner notification mapping', () => {
       params: { item: { id: 'review-1', type: 'exitedReviewMode', review: 'No findings.' } }
     })).toEqual({
       type: 'item.completed',
-      item: { id: 'review-1', type: 'agent_message', text: 'No findings.' }
+      item: { id: 'review-1', type: 'review', phase: 'completed', text: 'No findings.' }
     });
 
     expect(mapNotificationToLogEvent({
@@ -51,7 +51,10 @@ describe('app-server runner notification mapping', () => {
     expect(mapNotificationToLogEvent({
       method: 'item/completed',
       params: { item: { id: 'review-2', type: 'exitedReviewMode' } }
-    })).toEqual({ type: 'item.completed', item: { id: 'review-2', type: 'agent_message', text: '' } });
+    })).toEqual({
+      type: 'item.completed',
+      item: { id: 'review-2', type: 'review', phase: 'completed', text: '' }
+    });
   });
 
   it('maps completed, failed, and unknown turn notifications', () => {

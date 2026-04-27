@@ -114,9 +114,7 @@ function attachTaskResumeMethods(Orchestrator) {
           activeAccount,
           runLabel,
           runModel,
-          runReasoningEffort,
-          autoReviewRemaining:
-            options.autoReviewRemaining ?? (meta.autoReview === true ? 1 : 0)
+          runReasoningEffort
         });
         this.markTaskRunTransitionRuntimeActive(transitionClaim);
         await writeJson(this.taskMetaPath(taskId), meta);

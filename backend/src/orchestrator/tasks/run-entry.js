@@ -5,8 +5,7 @@ function buildRunEntry({
   reasoningEffort,
   now,
   account,
-  useHostDockerSocket,
-  autoReviewRemaining = 0
+  useHostDockerSocket
 }) {
   return {
     runId: runLabel,
@@ -20,7 +19,6 @@ function buildRunEntry({
     exitCode: null,
     failedBeforeSpawn: false,
     useHostDockerSocket,
-    autoReviewRemaining,
     gitFingerprintBefore: null,
     gitFingerprintAfter: null,
     accountId: account?.id || null,

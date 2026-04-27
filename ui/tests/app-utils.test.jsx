@@ -132,9 +132,21 @@ describe('app helpers', () => {
             item: { type: 'agent_message', text: 'hello' }
           }
         },
+        {
+          parsed: {
+            type: 'item.completed',
+            item: { type: 'agent_message', text: 'Review started: uncommitted changes' }
+          }
+        },
+        {
+          parsed: {
+            type: 'item.completed',
+            item: { type: 'review', text: 'Review: uncommitted changes' }
+          }
+        },
         { parsed: { type: 'item.completed', item: { type: 'tool_call', text: 'skip' } } }
       ])
-    ).toEqual(['hello']);
+    ).toEqual(['hello', 'Review started: uncommitted changes']);
     expect(collectAgentMessages([])).toEqual([]);
   });
 

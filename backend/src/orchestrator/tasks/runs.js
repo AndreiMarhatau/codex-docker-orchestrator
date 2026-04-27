@@ -226,15 +226,22 @@ function attachFinalizeRunMethod(Orchestrator) {
       !result.stopped &&
       result.code === 0 &&
       meta.autoReview === true &&
-      Number(runEntry?.autoReviewRemaining || 0) > 0 &&
       runEntry?.gitFingerprintBefore &&
       runEntry?.gitFingerprintAfter &&
       runEntry.gitFingerprintBefore !== runEntry.gitFingerprintAfter
     ) {
       this.runAfterTaskFinalization(taskId, () => {
         void this.runAutoReviewForTask(taskId, runLabel).catch((error) => {
-          void this.appendRunAgentMessage(taskId, runLabel, `Auto review failed: ${error.message}`)
-            .catch(() => {});
+          const text = `Auto review failed: ${error.message}`;
+          const appendFailure = this.appendRunReviewMessage
+            ? this.appendRunReviewMessage(taskId, runLabel, {
+              phase: 'failed',
+              automatic: true,
+              target: null,
+              text
+            })
+            : this.appendRunAgentMessage(taskId, runLabel, text);
+          void appendFailure.catch(() => {});
           this.notifyTasksChanged(taskId);
         });
       });

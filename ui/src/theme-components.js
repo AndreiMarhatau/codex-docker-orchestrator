@@ -8,7 +8,7 @@ function createButtonStyles(theme, subtleBackground) {
     styleOverrides: {
       root: {
         minHeight: 40,
-        borderRadius: 10,
+        borderRadius: '999px',
         paddingLeft: 16,
         paddingRight: 16,
         fontWeight: 600,
@@ -127,7 +127,7 @@ function createMiscStyles(theme, isDark) {
     MuiIconButton: {
       styleOverrides: {
         root: {
-          borderRadius: 10
+          borderRadius: '999px'
         }
       }
     },

@@ -1398,3 +1398,9 @@ pre {
     grid-template-columns: 1fr;
   }
 }
+
+button,
+.MuiButton-root,
+.MuiIconButton-root {
+  border-radius: 999px !important;
+}

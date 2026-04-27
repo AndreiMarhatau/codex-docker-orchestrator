@@ -9,10 +9,11 @@ const { buildRunEnv } = require('./run-helpers');
 const { buildTaskRunEnvOverrides, buildTaskRunVolumeMounts } = require('./mounts');
 const { repoNameFromUrl } = require('../utils');
 const { createBoundedChildShutdown } = require('./process-shutdown');
+const { DEFAULT_AUTO_REVIEW_FIX_PROMPT_TEMPLATE_FILE } = require('../constants');
+const { renderTemplate } = require('../context');
 
 const REVIEW_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 const REVIEW_REQUEST_TIMEOUT_MS = 60_000;
-const AUTO_REVIEW_FIX_PROMPT_PATH = path.join(__dirname, 'auto-review-fix-prompt.txt');
 
 function normalizeReviewTarget(input = {}) {
   const type = input.type || input.targetType || 'uncommittedChanges';
@@ -325,8 +326,8 @@ async function appendReviewFailure(orchestrator, {
 }
 
 async function buildAutoReviewFixPrompt(review) {
-  const template = await fs.readFile(AUTO_REVIEW_FIX_PROMPT_PATH, 'utf8');
-  return `${template.trimEnd()}\n\n${review || ''}`.trim();
+  const template = await fs.readFile(DEFAULT_AUTO_REVIEW_FIX_PROMPT_TEMPLATE_FILE, 'utf8');
+  return renderTemplate(template.trimEnd(), { message: review || '' }).trim();
 }
 
 async function prepareReviewRuntime(orchestrator, taskId, meta) {

@@ -69,7 +69,7 @@ function TaskDetailHeader({ loading = false, now, tasksState }) {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { actions, detail, selection } = tasksState;
   const taskDetail = detail.taskDetail;
-  const canStop = taskDetail.status === 'running';
+  const canStop = taskDetail.status === 'running' || taskDetail.status === 'reviewing';
   const showRuntime = taskDetail.status === 'running' || taskDetail.status === 'stopping';
   const runtimeMs = getTaskRuntimeMs(taskDetail, now);
   const [actionsMenuAnchor, setActionsMenuAnchor] = useState(null);

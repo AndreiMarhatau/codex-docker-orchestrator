@@ -421,6 +421,11 @@ body::before {
   background: var(--ui-info-soft);
 }
 
+.status-pill--reviewing {
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.12);
+}
+
 .status-pill--completed {
   color: var(--ui-success);
   background: var(--ui-success-soft);

@@ -462,25 +462,26 @@ function handleApiRequest(state, url, method, body) {
       return { status: 404, text: 'Task not found' };
     }
     const latestRun = detail.runLogs[detail.runLogs.length - 1];
+    detail.status = 'reviewing';
     if (latestRun) {
       latestRun.entries = [
         ...(latestRun.entries || []),
         {
-          id: `entry-${taskId}-review`,
+          id: `entry-${taskId}-review-started`,
           type: 'item.completed',
           parsed: {
             type: 'item.completed',
             item: {
               type: 'agent_message',
-              text: `Review: ${body?.type || 'uncommittedChanges'}\n\nNo findings.`
+              text: `Review started: ${body?.type || 'uncommittedChanges'}`
             }
           },
-          raw: `entry-${taskId}-review`
+          raw: `entry-${taskId}-review-started`
         }
       ];
     }
     syncTaskSummary(state, taskId);
-    return { status: 200, body: { review: 'No findings.', target: clone(body || {}) } };
+    return { status: 202, body: { started: true, target: clone(body || {}) } };
   }
   const taskAttachmentMatch = pathname.match(/^\/api\/tasks\/([^/]+)\/attachments$/);
   if (taskAttachmentMatch && method === 'POST') {

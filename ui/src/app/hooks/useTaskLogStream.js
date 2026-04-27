@@ -13,7 +13,7 @@ function useTaskLogStream({ selectedTaskId, taskDetail, setTaskDetail }) {
     if (!selectedTaskId || !status) {
       return;
     }
-    if (status !== 'running' && status !== 'stopping') {
+    if (status !== 'running' && status !== 'reviewing' && status !== 'stopping') {
       if (logStreamRef.current) {
         logStreamRef.current.close();
         logStreamRef.current = null;

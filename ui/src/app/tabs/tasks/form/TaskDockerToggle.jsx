@@ -6,15 +6,16 @@ function TaskDockerToggle({
   checked,
   disabled = false,
   helperText = 'Run the agent in a Docker container.',
+  label = 'Enable Docker',
   onChange,
   warningTooltip = ''
 }) {
   const checkboxId = useId();
   const labelId = `${checkboxId}-label`;
   const helperId = `${checkboxId}-helper`;
-  const warningIcon = (
+  const warningIcon = warningTooltip ? (
     <WarningAmberIcon className="task-compose-warning" color="warning" fontSize="small" />
-  );
+  ) : null;
 
   return (
     <div className="task-compose-toggle-block">
@@ -42,9 +43,9 @@ function TaskDockerToggle({
             htmlFor={checkboxId}
             className="task-compose-checkbox-label"
           >
-            Enable Docker
+            {label}
           </Typography>
-          {warningTooltip ? <Tooltip title={warningTooltip}>{warningIcon}</Tooltip> : warningIcon}
+          {warningIcon ? <Tooltip title={warningTooltip}>{warningIcon}</Tooltip> : null}
         </Stack>
         <Typography id={helperId} className="task-compose-helper">
           {helperText}

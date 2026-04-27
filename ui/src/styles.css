@@ -497,6 +497,11 @@ body::before {
   border-color: rgba(59, 130, 246, 0.24);
 }
 
+.status-pill--reviewing {
+  background: rgba(124, 58, 237, 0.12);
+  border-color: rgba(124, 58, 237, 0.24);
+}
+
 .status-pill--stopping {
   background: rgba(251, 191, 36, 0.1);
   border-color: rgba(251, 191, 36, 0.18);

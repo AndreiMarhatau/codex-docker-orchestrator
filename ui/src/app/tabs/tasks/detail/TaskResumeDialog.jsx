@@ -24,7 +24,9 @@ function TaskResumeDialog({
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const dialogBusy = data.loading || detail.resumeFiles.taskFileUploading;
   const taskIsActive =
-    detail.taskDetail?.status === 'running' || detail.taskDetail?.status === 'stopping';
+    detail.taskDetail?.status === 'running' ||
+    detail.taskDetail?.status === 'reviewing' ||
+    detail.taskDetail?.status === 'stopping';
   const uploadPercent = Math.max(
     0,
     Math.min(100, Math.round(detail.resumeFiles.taskFileUploadProgress?.percent || 0))

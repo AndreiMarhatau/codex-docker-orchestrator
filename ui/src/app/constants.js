@@ -35,7 +35,7 @@ const emptyTaskForm = {
   reasoningEffort: '',
   customReasoningEffort: '',
   useHostDockerSocket: false,
-  autoReview: false
+  autoReview: true
 };
 const emptyResumeConfig = {
   modelChoice: '',
@@ -56,6 +56,13 @@ const STATUS_CONFIG = {
     fg: '#2563eb',
     bg: 'rgba(59, 130, 246, 0.12)',
     border: '#3b82f6'
+  },
+  reviewing: {
+    label: 'Reviewing',
+    icon: 'RateReviewOutlinedIcon',
+    fg: '#7c3aed',
+    bg: 'rgba(124, 58, 237, 0.12)',
+    border: '#8b5cf6'
   },
   stopping: {
     label: 'Stopping',

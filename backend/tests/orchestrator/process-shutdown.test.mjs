@@ -6,7 +6,7 @@ const require = createRequire(import.meta.url);
 const {
   createBoundedChildShutdown,
   signalChildProcess
-} = require('../../src/orchestrator/tasks/process-shutdown');
+} = require('../../src/shared/process/shutdown');
 
 function createChild({ pid = null, throwOnKill = false } = {}) {
   const child = new EventEmitter();

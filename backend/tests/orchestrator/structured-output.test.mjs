@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { parseJsonObject } = require('../../src/orchestrator/tasks/structured-output');
+const { parseJsonObject } = require('../../src/shared/codex/structured-output');
 
 describe('structured output parsing', () => {
   it('parses direct and embedded JSON objects', () => {

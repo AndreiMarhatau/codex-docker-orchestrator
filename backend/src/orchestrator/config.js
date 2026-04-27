@@ -1,4 +1,4 @@
-const { runCommand } = require('../commands');
+const { runCommand } = require('../shared/process/commands');
 const { spawn } = require('node:child_process');
 const {
   DEFAULT_DATA_ROOT,
@@ -11,7 +11,7 @@ const {
   DEFAULT_TASK_DOCKER_READY_TIMEOUT_MS,
   DEFAULT_TASK_DOCKER_READY_INTERVAL_MS,
   DEFAULT_TASK_DOCKER_COMMAND_TIMEOUT_MS
-} = require('./constants');
+} = require('../shared/config/constants');
 
 function isPresent(value) {
   return value !== undefined && value !== null && value !== '';

@@ -1,6 +1,6 @@
-/* eslint-disable complexity, max-lines */
 import fs from 'node:fs/promises';
-import fsSync from 'node:fs';
+import { handleDockerCommand } from './docker-exec.mjs';
+
 function normalizeGitArgs(args) {
   const normalized = [];
   for (let i = 0; i < args.length; i += 1) {
@@ -14,79 +14,77 @@ function normalizeGitArgs(args) {
   }
   return normalized;
 }
+
+function ok(stdout = '') {
+  return Promise.resolve({ stdout, stderr: '', code: 0 });
+}
+
 function handleGitDirCommand({ normalizedArgs, branches, baseSha }) {
   if (normalizedArgs[0] === 'clone' && normalizedArgs[1] === '--bare') {
     const target = normalizedArgs[3];
     return fs.mkdir(target, { recursive: true }).then(() => ({ stdout: '', stderr: '', code: 0 }));
   }
-  if (normalizedArgs[0] === '--git-dir' && normalizedArgs[2] === 'config') {
-    return Promise.resolve({ stdout: '', stderr: '', code: 0 });
+  if (normalizedArgs[0] !== '--git-dir') {
+    return null;
   }
-  if (normalizedArgs[0] === '--git-dir' && normalizedArgs[2] === 'show-ref') {
+  if (normalizedArgs[2] === 'config' || normalizedArgs[2] === 'fetch') {
+    return ok();
+  }
+  if (normalizedArgs[2] === 'rev-parse') {
+    return ok(`${baseSha}\n`);
+  }
+  if (normalizedArgs[2] === 'show-ref') {
     const ref = normalizedArgs[4];
     const branch = ref.replace('refs/remotes/origin/', '').replace('refs/heads/', '');
-    if (branches.includes(branch)) {
-      return Promise.resolve({ stdout: ref, stderr: '', code: 0 });
-    }
-    return Promise.resolve({ stdout: '', stderr: 'not found', code: 1 });
+    return branches.includes(branch)
+      ? ok(ref)
+      : Promise.resolve({ stdout: '', stderr: 'not found', code: 1 });
   }
-  if (normalizedArgs[0] === '--git-dir' && normalizedArgs[2] === 'fetch') {
-    return Promise.resolve({ stdout: '', stderr: '', code: 0 });
-  }
-  if (normalizedArgs[0] === '--git-dir' && normalizedArgs[2] === 'rev-parse') {
-    return Promise.resolve({ stdout: `${baseSha}\n`, stderr: '', code: 0 });
-  }
-  if (normalizedArgs[0] === '--git-dir' && normalizedArgs[2] === 'worktree') {
-    if (normalizedArgs[3] === 'add') {
-      const detachIndex = normalizedArgs.indexOf('--detach');
-      const worktreePath = detachIndex !== -1 ? normalizedArgs[detachIndex + 1] : normalizedArgs[4];
-      return fs.mkdir(worktreePath, { recursive: true }).then(() => ({ stdout: '', stderr: '', code: 0 }));
-    }
-    if (normalizedArgs[3] === 'remove') {
-      const worktreePath = normalizedArgs[5];
-      return fs.rm(worktreePath, { recursive: true, force: true }).then(() => ({
-        stdout: '',
-        stderr: '',
-        code: 0
-      }));
-    }
+  if (normalizedArgs[2] === 'worktree') {
+    return handleGitWorktreeCommand(normalizedArgs);
   }
   return null;
 }
-function handleGitCCommand({ normalizedArgs, headSha, remoteHeadSha, statusPorcelain, diffHasChanges }) {
-  if (normalizedArgs[0] !== '-C') {
-    return null;
+
+function handleGitWorktreeCommand(normalizedArgs) {
+  if (normalizedArgs[3] === 'add') {
+    const detachIndex = normalizedArgs.indexOf('--detach');
+    const worktreePath = detachIndex !== -1 ? normalizedArgs[detachIndex + 1] : normalizedArgs[4];
+    return fs.mkdir(worktreePath, { recursive: true }).then(() => ({ stdout: '', stderr: '', code: 0 }));
   }
+  if (normalizedArgs[3] === 'remove') {
+    const worktreePath = normalizedArgs[5];
+    return fs.rm(worktreePath, { recursive: true, force: true }).then(() => ({
+      stdout: '',
+      stderr: '',
+      code: 0
+    }));
+  }
+  return null;
+}
+
+function handleSimpleGitCCommand(normalizedArgs) {
+  const simpleCommands = new Set(['checkout', 'add', 'config', 'commit', 'ls-files']);
   if (normalizedArgs[2] === 'check-ref-format') {
-    return Promise.resolve({ stdout: normalizedArgs[4] || '', stderr: '', code: 0 });
+    return ok(normalizedArgs[4] || '');
   }
   if (normalizedArgs[2] === 'show-ref') {
     return Promise.resolve({ stdout: '', stderr: 'not found', code: 1 });
   }
-  if (normalizedArgs[2] === 'checkout') {
-    return Promise.resolve({ stdout: '', stderr: '', code: 0 });
+  if (simpleCommands.has(normalizedArgs[2])) {
+    return normalizedArgs[2] === 'commit' ? ok('[mock] commit\n') : ok();
   }
-  if (normalizedArgs[2] === 'add') {
-    return Promise.resolve({ stdout: '', stderr: '', code: 0 });
+  return null;
+}
+
+function handleGitDiffCommand(normalizedArgs, diffHasChanges) {
+  if (normalizedArgs[2] !== 'diff') {
+    return null;
   }
-  if (normalizedArgs[2] === 'config') {
-    return Promise.resolve({ stdout: '', stderr: '', code: 0 });
-  }
-  if (normalizedArgs[2] === 'commit') {
-    return Promise.resolve({ stdout: '[mock] commit\n', stderr: '', code: 0 });
-  }
-  if (
-    normalizedArgs[2] === 'diff' &&
-    normalizedArgs[3] === '--cached' &&
-    normalizedArgs[4] === '--quiet'
-  ) {
+  if (normalizedArgs.includes('--quiet')) {
     return Promise.resolve({ stdout: '', stderr: '', code: diffHasChanges ? 1 : 0 });
   }
-  if (normalizedArgs[2] === 'diff' && normalizedArgs[3] === '--quiet') {
-    return Promise.resolve({ stdout: '', stderr: '', code: diffHasChanges ? 1 : 0 });
-  }
-  if (normalizedArgs[2] === 'diff') {
-    const diff = `diff --git a/README.md b/README.md
+  const diff = `diff --git a/README.md b/README.md
 index 0000000..1111111 100644
 --- a/README.md
 +++ b/README.md
@@ -94,86 +92,71 @@ index 0000000..1111111 100644
 -Old line
 +New line
 +Another line`;
-    return Promise.resolve({ stdout: diff, stderr: '', code: 0 });
-  }
-  if (normalizedArgs[2] === 'status') {
-    return Promise.resolve({ stdout: statusPorcelain, stderr: '', code: 0 });
-  }
-  if (normalizedArgs[2] === 'ls-files') {
-    return Promise.resolve({ stdout: '', stderr: '', code: 0 });
-  }
-  if (normalizedArgs[2] === 'rev-parse' && normalizedArgs[3] === 'HEAD') {
-    return Promise.resolve({ stdout: `${headSha}\n`, stderr: '', code: 0 });
-  }
-  if (normalizedArgs[2] === 'ls-remote' && normalizedArgs[3] === '--heads') {
-    const branch = normalizedArgs[5] || 'unknown';
-    if (!remoteHeadSha || String(branch).startsWith('codex/mock-branch')) {
-      return Promise.resolve({ stdout: '', stderr: '', code: 0 });
-    }
-    return Promise.resolve({
-      stdout: `${remoteHeadSha}\trefs/heads/${branch}\n`,
-      stderr: '',
-      code: 0
-    });
-  }
-  if (normalizedArgs.includes('push')) {
-    return Promise.resolve({ stdout: '', stderr: '', code: 0 });
-  }
-  return null;
+  return ok(diff);
 }
-function handleGitCommand({ args, branches, baseSha, headSha, remoteHeadSha, statusPorcelain, diffHasChanges }) {
-  const normalizedArgs = normalizeGitArgs(args);
-  const dirResult = handleGitDirCommand({ normalizedArgs, branches, baseSha });
+
+function handleGitRemoteCommand({ normalizedArgs, remoteHeadSha }) {
+  if (normalizedArgs[2] === 'rev-parse' && normalizedArgs[3] === 'HEAD') {
+    return null;
+  }
+  if (normalizedArgs[2] !== 'ls-remote' || normalizedArgs[3] !== '--heads') {
+    return null;
+  }
+  const branch = normalizedArgs[5] || 'unknown';
+  if (!remoteHeadSha || String(branch).startsWith('codex/mock-branch')) {
+    return ok();
+  }
+  return ok(`${remoteHeadSha}\trefs/heads/${branch}\n`);
+}
+
+function handleGitCCommand(options) {
+  const { normalizedArgs, headSha, statusPorcelain, diffHasChanges } = options;
+  if (normalizedArgs[0] !== '-C') {
+    return null;
+  }
+  return (
+    handleSimpleGitCCommand(normalizedArgs) ||
+    handleGitDiffCommand(normalizedArgs, diffHasChanges) ||
+    (normalizedArgs[2] === 'status' ? ok(statusPorcelain) : null) ||
+    (normalizedArgs[2] === 'rev-parse' && normalizedArgs[3] === 'HEAD' ? ok(`${headSha}\n`) : null) ||
+    handleGitRemoteCommand(options) ||
+    (normalizedArgs.includes('push') ? ok() : null)
+  );
+}
+
+function handleGitCommand(options) {
+  const normalizedArgs = normalizeGitArgs(options.args);
+  const dirResult = handleGitDirCommand({ ...options, normalizedArgs });
   if (dirResult) {
     return dirResult;
   }
-  return handleGitCCommand({ normalizedArgs, headSha, remoteHeadSha, statusPorcelain, diffHasChanges });
+  return handleGitCCommand({ ...options, normalizedArgs });
 }
-function handleDockerCommand({ args, dockerImageExists, dockerImageId, dockerCreatedAt }) {
-  if (args[0] === 'volume' && args[1] === 'create') {
-    return { stdout: `${args[2] || 'volume'}\n`, stderr: '', code: 0 };
-  }
-  if (args[0] === 'volume' && args[1] === 'rm') {
-    return { stdout: '', stderr: '', code: 0 };
-  }
-  if (args[0] === 'container' && args[1] === 'inspect') {
-    return { stdout: '', stderr: 'No such container', code: 1 };
-  }
-  if (args[0] === 'start' || args[0] === 'stop' || args[0] === 'rm') {
-    return { stdout: '', stderr: '', code: 0 };
-  }
-  if (args[0] === '--host' && args[2] === 'info') {
-    return { stdout: 'Server Version: mock\n', stderr: '', code: 0 };
-  }
-  if (args[0] === 'image' && args[1] === 'inspect') {
-    if (!dockerImageExists) {
-      return { stdout: '', stderr: 'No such image', code: 1 };
-    }
-    return { stdout: `${dockerImageId}|${dockerCreatedAt}`, stderr: '', code: 0 };
-  }
-  if (args[0] === 'pull') {
-    return { stdout: 'pulled', stderr: '', code: 0 };
-  }
-  if (args[0] === 'run') {
-    const socketMount = args.find((arg) => typeof arg === 'string' && arg.endsWith(':/var/run/orch-task-docker'));
-    if (socketMount) {
-      const socketDir = socketMount.split(':/var/run/orch-task-docker')[0];
-      try {
-        fsSync.mkdirSync(socketDir, { recursive: true });
-        fsSync.writeFileSync(`${socketDir}/docker.sock`, '');
-      } catch (error) {
-        void error;
-      }
-    }
-    return { stdout: '', stderr: '', code: 0 };
-  }
-  return null;
+
+function codexDockerResult(args, threadId) {
+  const resumeIndex = args.indexOf('resume');
+  const isResume = resumeIndex !== -1 && resumeIndex <= args.length - 3;
+  const stdout =
+    'banner line\n' +
+    JSON.stringify({ type: 'thread.started', thread_id: threadId }) +
+    '\n' +
+    JSON.stringify({
+      type: 'item.completed',
+      item: { id: 'item_1', type: 'agent_message', text: isResume ? 'RESUME' : 'OK' }
+    });
+  return { stdout, stderr: '', code: 0 };
 }
+
 export function createMockExec({
-  branches = ['main'], dockerImageExists = true, dockerImageId = 'sha256:mock-image',
-  dockerCreatedAt = '2025-12-18T12:34:56.000Z', baseSha = 'deadbeef1234567890',
-  headSha = 'cafebabefeedface', remoteHeadSha = 'cafebabefeedface',
-  statusPorcelain = '', diffHasChanges = true
+  branches = ['main'],
+  dockerImageExists = true,
+  dockerImageId = 'sha256:mock-image',
+  dockerCreatedAt = '2025-12-18T12:34:56.000Z',
+  baseSha = 'deadbeef1234567890',
+  headSha = 'cafebabefeedface',
+  remoteHeadSha = 'cafebabefeedface',
+  statusPorcelain = '',
+  diffHasChanges = true
 } = {}) {
   const calls = [];
   const threadId = '019b341f-04d9-73b3-8263-2c05ca63d690';
@@ -194,17 +177,7 @@ export function createMockExec({
       }
     }
     if (command === 'codex-docker') {
-      const resumeIndex = args.indexOf('resume');
-      const isResume = resumeIndex !== -1 && resumeIndex <= args.length - 3;
-      const stdout =
-        'banner line\n' +
-        JSON.stringify({ type: 'thread.started', thread_id: threadId }) +
-        '\n' +
-        JSON.stringify({
-          type: 'item.completed',
-          item: { id: 'item_1', type: 'agent_message', text: isResume ? 'RESUME' : 'OK' }
-        });
-      return { stdout, stderr: '', code: 0 };
+      return codexDockerResult(args, threadId);
     }
     if (command === 'docker') {
       const result = handleDockerCommand({

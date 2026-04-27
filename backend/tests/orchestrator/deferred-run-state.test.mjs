@@ -6,7 +6,7 @@ const {
   createDeferredRunState,
   createStoppedDuringStartupError,
   isAbortError
-} = require('../../src/orchestrator/tasks/deferred-run-state');
+} = require('../../src/domains/tasks/operations/deferred-run-state');
 
 describe('deferred run state helpers', () => {
   it('creates pending run state and stop errors', () => {

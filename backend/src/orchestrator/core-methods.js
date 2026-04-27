@@ -1,9 +1,9 @@
 const fs = require('node:fs');
-const { pathExists } = require('../storage');
+const { pathExists } = require('../shared/filesystem/storage');
 const {
   DEFAULT_ACCOUNT_ROTATION_LIMIT,
   DEFAULT_GIT_CREDENTIAL_HELPER
-} = require('./constants');
+} = require('../shared/config/constants');
 
 function parsePositiveInt(value, fallback) {
   const parsed = Number.parseInt(value, 10);

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { normalizeReviewTarget } = require('../../src/orchestrator/tasks/review');
+const { normalizeReviewTarget } = require('../../src/domains/tasks/operations/review');
 
 describe('review helpers', () => {
   it('normalizes supported review targets', () => {

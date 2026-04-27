@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { createTempDir } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
-const { AccountStore } = require('../src/accounts');
+const { AccountStore } = require('../src/domains/accounts/store');
 
 describe('AccountStore errors', () => {
   it('returns placeholder when active account metadata is missing', async () => {

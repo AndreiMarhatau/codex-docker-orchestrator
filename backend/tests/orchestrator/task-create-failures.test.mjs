@@ -75,4 +75,34 @@ describe('orchestrator create task failures', () => {
       exec.calls.some((call) => call.command === 'docker' && call.args[0] === 'rm')
     ).toBe(false);
   });
+
+  it('cleans the git worktree when initial file creation fails after checkout', async () => {
+    const orchHome = await createTempDir();
+    const exec = createMockExec({ branches: ['main'] });
+    const orchestrator = new Orchestrator({ orchHome, exec });
+    const env = await orchestrator.createEnv({
+      repoUrl: 'git@example.com:repo.git',
+      defaultBranch: 'main'
+    });
+    const blockedArtifactsRoot = path.join(orchHome, 'blocked-artifacts');
+    await fs.writeFile(blockedArtifactsRoot, 'not a directory');
+    orchestrator.runArtifactsDir = () => path.join(blockedArtifactsRoot, 'run-001');
+
+    await expect(
+      orchestrator.createTask({ envId: env.envId, ref: 'main', prompt: 'Do work' })
+    ).rejects.toThrow();
+
+    const addCall = exec.calls.find(
+      (call) => call.command === 'git' && call.args.includes('worktree') && call.args.includes('add')
+    );
+    const worktreePath = addCall.args[addCall.args.indexOf('add') + 1];
+    expect(exec.calls.some(
+      (call) =>
+        call.command === 'git' &&
+        call.args.includes('worktree') &&
+        call.args.includes('remove') &&
+        call.args.includes(worktreePath)
+    )).toBe(true);
+    await expect(fs.stat(worktreePath)).rejects.toThrow();
+  });
 });

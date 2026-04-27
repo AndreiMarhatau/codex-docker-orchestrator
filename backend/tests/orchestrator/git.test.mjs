@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { resolveRefInRepo, parseUnifiedDiff } = require('../../src/orchestrator/git');
+const { resolveRefInRepo, parseUnifiedDiff } = require('../../src/shared/git/repository');
 
 function createExecOrThrow({ tags = [] } = {}) {
   return async (command, args) => {

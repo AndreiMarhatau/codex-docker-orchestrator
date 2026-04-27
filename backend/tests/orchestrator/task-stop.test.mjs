@@ -7,7 +7,7 @@ import { waitForTaskStatus } from '../helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
-const { LOST_RUNNER_ERROR, USER_STOPPED_ERROR } = require('../../src/orchestrator/tasks/runtime-state');
+const { LOST_RUNNER_ERROR, USER_STOPPED_ERROR } = require('../../src/domains/tasks/operations/runtime-state');
 
 const NOW = '2026-01-02T03:04:05.000Z';
 

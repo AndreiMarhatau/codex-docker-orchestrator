@@ -4,7 +4,7 @@ const fs = require('node:fs/promises');
 const { asyncHandler } = require('../middleware/async-handler');
 const { extractPassword } = require('../middleware/auth');
 const { hasPassword, setPassword, verifyPassword } = require('../../ui-auth');
-const { writeText } = require('../../storage');
+const { writeText } = require('../../shared/filesystem/storage');
 
 const CONFIG_FILE_NAME = 'config.toml';
 

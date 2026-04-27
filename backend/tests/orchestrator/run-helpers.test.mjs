@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url);
 const {
   createOutputTracker,
   updateRunMeta
-} = require('../../src/orchestrator/tasks/run-helpers');
+} = require('../../src/domains/tasks/operations/run-helpers');
 
 describe('run helpers output', () => {
   it('tracks output and detects thread id', () => {

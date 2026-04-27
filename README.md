@@ -101,11 +101,10 @@ Optional overrides:
 - Mock UI preview: `npm -C ui run mock:preview`
 
 ## Prompt architecture
-- `ORCHESTRATOR_DEVELOPER_INSTRUCTIONS.md` is the outer prompt for the top-level orchestrator agent. It should talk only about coordination, delegation, scope control, review flow, and final completion/commit ownership.
-- Top-level task create/resume runs inject the orchestrator prompt plus task-specific Docker/context/artifact/env details via `developer_instructions=...`.
-- The delegated `developer` prompt has a single source of truth in `backend/src/orchestrator/agent-instructions.js`, and that text is used to generate the managed `developer` agent.
-- The orchestrator prompt remains separate because it targets a different runtime role. Delegated developer runs should not receive orchestrator-only delegation logic.
-- User `config.toml` `developer_instructions` are merged into both the top-level orchestrator prompt and the managed `developer` agent so local team rules still reach the agent that edits code.
+- Task create/resume runs build task-scoped Docker/context/artifact/env instructions in `backend/src/domains/tasks/operations/instructions.js`.
+- Managed agent prompts have a single source of truth in `backend/src/orchestrator/agent-instructions.js`.
+- User `config.toml` `developer_instructions` are merged only into the managed `developer` agent so local team rules reach the agent that edits code.
+- Dead standalone prompt files should not be kept; prompt text must be owned by the runtime module that uses it.
 
 ## Environment variables inside Codex
 - Each environment can define key/value pairs in the Environments tab; they are injected into every

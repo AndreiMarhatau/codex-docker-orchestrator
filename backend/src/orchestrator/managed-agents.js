@@ -1,6 +1,6 @@
 const crypto = require('node:crypto');
 const path = require('node:path');
-const { ensureDir, pathExists, readJson, removePath, writeJson, writeText } = require('../storage');
+const { ensureDir, pathExists, readJson, removePath, writeJson, writeText } = require('../shared/filesystem/storage');
 const {
   DEVELOPER_AGENT_INSTRUCTIONS,
   ARCHITECT_AGENT_INSTRUCTIONS,

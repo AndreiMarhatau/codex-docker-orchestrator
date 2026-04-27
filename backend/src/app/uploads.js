@@ -2,7 +2,7 @@ const multer = require('multer');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { MAX_TASK_FILES } = require('../orchestrator/tasks/attachments');
+const { MAX_TASK_FILES } = require('../domains/tasks/operations/attachments');
 
 const MAX_TASK_FILE_SIZE = 1024 * 1024 * 1024;
 

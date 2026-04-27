@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { createTempDir } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
-const { AccountStore } = require('../src/accounts');
+const { AccountStore } = require('../src/domains/accounts/store');
 
 describe('AccountStore bootstrap', () => {
   it('starts empty without bootstrapping from host auth.json', async () => {

@@ -83,13 +83,24 @@ function TaskRuntimePill({ task, now }) {
 }
 
 function TaskRowActions({ handleDeleteTask, handleStopTask, loading, task }) {
+  const stopEventPropagation = (event) => {
+    event.stopPropagation();
+  };
+
+  const deleteTask = (event) => {
+    stopEventPropagation(event);
+    handleDeleteTask(task);
+  };
+
   return (
     <Stack direction="row" spacing={1} alignItems="center" justifyContent="flex-end">
       <TaskActionButton handleStopTask={handleStopTask} loading={loading} task={task} />
       <IconButton
         className="task-delete-button"
         size="small"
-        onClick={() => handleDeleteTask(task)}
+        onClick={deleteTask}
+        onMouseDown={stopEventPropagation}
+        onPointerDown={stopEventPropagation}
         disabled={loading}
         aria-label={`Remove task ${task.taskId}`}
       >

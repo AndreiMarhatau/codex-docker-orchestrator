@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { fireEvent, render, screen, within } from './test-utils.jsx';
 import TaskList from '../src/app/tabs/tasks/TaskList.jsx';
+import { DesktopTaskRow } from '../src/app/tabs/tasks/TaskListRow.jsx';
 
 const useMediaQueryMock = vi.fn();
 
@@ -100,6 +101,32 @@ describe('TaskList', () => {
 
     await user.click(within(deleteDialog).getByRole('button', { name: 'Delete' }));
     expect(handleDeleteTask).toHaveBeenCalledWith('task-running');
+  });
+
+  it('keeps delete clicks from bubbling to surrounding task selection handlers', async () => {
+    const user = userEvent.setup();
+    const task = createTask('task-delete');
+    const handleDeleteTask = vi.fn();
+    const handleAncestorClick = vi.fn();
+
+    render(
+      <div onClick={handleAncestorClick}>
+        <DesktopTaskRow
+          handleDeleteTask={handleDeleteTask}
+          handleStopTask={vi.fn()}
+          loading={false}
+          now={60_000}
+          selectedTaskId=""
+          setSelectedTaskId={vi.fn()}
+          task={task}
+        />
+      </div>
+    );
+
+    await user.click(screen.getByLabelText('Remove task task-delete'));
+
+    expect(handleDeleteTask).toHaveBeenCalledWith(task);
+    expect(handleAncestorClick).not.toHaveBeenCalled();
   });
 
   it('supports keyboard opening for running tasks without double-activating inline actions', async () => {

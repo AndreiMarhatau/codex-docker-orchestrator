@@ -1,6 +1,6 @@
 const crypto = require('node:crypto');
 const path = require('node:path');
-const { readJson, writeJson, pathExists } = require('./storage');
+const { readJson, writeJson, pathExists } = require('./shared/filesystem/storage');
 
 const AUTH_FILE = 'ui-auth.json';
 const HASH_ALGO = 'sha256';

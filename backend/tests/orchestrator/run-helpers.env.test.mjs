@@ -5,12 +5,12 @@ import path from 'node:path';
 import { createTempDir } from '../helpers.mjs';
 
 const require = createRequire(import.meta.url);
-const { buildRunEnv } = require('../../src/orchestrator/tasks/run-helpers');
+const { buildRunEnv } = require('../../src/shared/codex/run-env');
 const {
   DEFAULT_GIT_CONFIG_CONTAINER_PATH,
   DEFAULT_INNER_ARTIFACTS_DIR,
   DEFAULT_INNER_CODEX_HOME
-} = require('../../src/orchestrator/constants');
+} = require('../../src/shared/config/constants');
 
 function createOrchestrator(root) {
   return {

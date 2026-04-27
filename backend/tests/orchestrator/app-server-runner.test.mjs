@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { mapNotificationToLogEvent } = require('../../src/orchestrator/tasks/app-server-runner');
+const { mapNotificationToLogEvent } = require('../../src/shared/codex/app-server-events');
 
 describe('app-server runner notification mapping', () => {
   it('maps thread notifications with fallback ids', () => {

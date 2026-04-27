@@ -1,6 +1,6 @@
 const path = require('node:path');
 const fsp = require('node:fs/promises');
-const { pathExists } = require('../storage');
+const { pathExists } = require('../shared/filesystem/storage');
 
 async function listArtifacts(rootDir) {
   if (!(await pathExists(rootDir))) {

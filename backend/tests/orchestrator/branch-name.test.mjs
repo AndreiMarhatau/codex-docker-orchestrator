@@ -6,7 +6,7 @@ const {
   buildBranchPrompt,
   fallbackBranchName,
   validateBranchName
-} = require('../../src/orchestrator/tasks/branch-name');
+} = require('../../src/domains/tasks/operations/branch-name');
 
 function createGitExec(responses = []) {
   const calls = [];

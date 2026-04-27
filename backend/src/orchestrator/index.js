@@ -1,10 +1,10 @@
 const { Orchestrator } = require('./core');
 const { attachStateEventMethods } = require('./state-events');
 const { attachPathMethods } = require('./paths');
-const { attachEnvMethods } = require('./envs');
-const { attachTaskMethods } = require('./tasks');
-const { attachAccountMethods } = require('./accounts');
-const { attachSetupMethods } = require('./setup');
+const { attachEnvMethods } = require('../domains/environments/orchestrator-methods');
+const { attachTaskMethods } = require('../domains/tasks/operations');
+const { attachAccountMethods } = require('../domains/accounts/orchestrator-methods');
+const { attachSetupMethods } = require('../domains/setup/orchestrator-methods');
 const { parseThreadId, isUsageLimitError } = require('./logs');
 
 attachStateEventMethods(Orchestrator);

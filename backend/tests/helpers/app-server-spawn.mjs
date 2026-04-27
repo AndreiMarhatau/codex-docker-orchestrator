@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { createMockSpawn } from './spawn.mjs';
-import { isCodexAppServerArgs } from '../../src/orchestrator/app-server-args.js';
+import { isCodexAppServerArgs } from '../../src/shared/codex/app-server-args.js';
 
 function createChild(pid) {
   const child = new EventEmitter();

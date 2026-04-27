@@ -11,7 +11,7 @@ const { Orchestrator } = require('../../src/orchestrator');
 const {
   buildCodexAppServerArgs,
   isCodexAppServerArgs
-} = require('../../src/orchestrator/app-server-args');
+} = require('../../src/shared/codex/app-server-args');
 
 function resolveMountedPath(options, targetPath) {
   const mounts = String(options?.env?.CODEX_VOLUME_MOUNTS || '')

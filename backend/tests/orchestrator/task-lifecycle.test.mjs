@@ -28,8 +28,8 @@ describe('Orchestrator task lifecycle', () => {
       envId: env.envId,
       ref: 'main',
       prompt: 'Do work',
-      model: 'gpt-5.2-codex',
-      reasoningEffort: 'medium'
+      model: '  gpt-5.2-codex  ',
+      reasoningEffort: '  medium  '
     });
     expect(task.status).toBe('running');
     expect(task.branchName).toContain('codex/');

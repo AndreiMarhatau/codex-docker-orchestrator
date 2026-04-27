@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { normalizeLabel, parseAuthJson } = require('../src/accounts-helpers');
+const { normalizeLabel, parseAuthJson } = require('../src/domains/accounts/auth');
 
 describe('account helpers', () => {
   it('normalizes labels', () => {

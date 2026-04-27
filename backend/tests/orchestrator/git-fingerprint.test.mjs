@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { createTempDir } from '../helpers.mjs';
 
 const require = createRequire(import.meta.url);
-const { computeGitFingerprint } = require('../../src/orchestrator/tasks/git-fingerprint');
+const { computeGitFingerprint } = require('../../src/shared/git/fingerprint');
 
 function createFingerprintExec() {
   return async (command, args) => {

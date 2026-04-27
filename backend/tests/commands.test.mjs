@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { runCommand } = require('../src/commands');
+const { runCommand } = require('../src/shared/process/commands');
 
 describe('runCommand', () => {
   it('captures stdout and exit code', async () => {

@@ -1,5 +1,5 @@
 const path = require('node:path');
-const { ensureDir } = require('../storage');
+const { ensureDir } = require('../shared/filesystem/storage');
 const { repoNameFromUrl } = require('./utils');
 
 function attachPathMethods(Orchestrator) {

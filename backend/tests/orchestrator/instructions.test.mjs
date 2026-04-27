@@ -8,12 +8,8 @@ const require = createRequire(import.meta.url);
 const {
   buildDeveloperInstructions,
   buildOrchestratorInstructions
-} = require('../../src/orchestrator/tasks/instructions');
+} = require('../../src/domains/tasks/operations/instructions');
 const REPO_ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../..');
-const ORCHESTRATOR_DEVELOPER_INSTRUCTIONS_FILE = path.resolve(
-  path.dirname(new URL(import.meta.url).pathname),
-  '../../../ORCHESTRATOR_DEVELOPER_INSTRUCTIONS.md'
-);
 
 function buildInstructionOptions(overrides = {}) {
   return {
@@ -36,18 +32,13 @@ describe('task instruction roles', () => {
     await expect(fs.stat(path.join(REPO_ROOT, 'DEVELOPER_TASK_INSTRUCTIONS.md'))).rejects.toMatchObject({
       code: 'ENOENT'
     });
+    await expect(fs.stat(path.join(REPO_ROOT, 'ORCHESTRATOR_DEVELOPER_INSTRUCTIONS.md')))
+      .rejects.toMatchObject({ code: 'ENOENT' });
   });
 
   it('does not inject orchestrator or delegated developer workflows', async () => {
-    const rawOrchestratorInstructions = await fs.readFile(ORCHESTRATOR_DEVELOPER_INSTRUCTIONS_FILE, 'utf8');
     const orchestratorInstructions = buildOrchestratorInstructions.call({}, buildInstructionOptions());
     const delegatedInstructions = buildDeveloperInstructions.call({}, buildInstructionOptions());
-
-    expect(rawOrchestratorInstructions).toContain('top-level orchestrator');
-    expect(rawOrchestratorInstructions).toContain('coordinate, delegate, control');
-    expect(rawOrchestratorInstructions).toContain('Keep working with the \'developer\' subagent until acceptance criteria are met fully and verified.');
-    expect(rawOrchestratorInstructions).toContain("delegate to the 'developer' subagent");
-    expect(rawOrchestratorInstructions).not.toContain('Fully address the request in the repository');
 
     expect(orchestratorInstructions).toContain('ephemeral Docker container');
     expect(orchestratorInstructions).not.toContain('top-level orchestrator');

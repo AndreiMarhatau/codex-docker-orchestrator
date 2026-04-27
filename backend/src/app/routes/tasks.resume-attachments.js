@@ -1,6 +1,6 @@
 const path = require('node:path');
 const fsp = require('node:fs/promises');
-const { ensureDir, readJson, removePath, writeJson } = require('../../storage');
+const { ensureDir, readJson, removePath, writeJson } = require('../../shared/filesystem/storage');
 
 async function moveFile(sourcePath, targetPath) {
   try {

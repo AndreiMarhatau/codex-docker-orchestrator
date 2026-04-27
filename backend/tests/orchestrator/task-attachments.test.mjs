@@ -7,7 +7,7 @@ import { waitForTaskIdle, waitForTaskStatus } from '../helpers/wait.mjs';
 
 const require = createRequire(import.meta.url);
 const { Orchestrator } = require('../../src/orchestrator');
-const { MAX_TASK_FILES } = require('../../src/orchestrator/tasks/attachments');
+const { MAX_TASK_FILES } = require('../../src/domains/tasks/operations/attachments');
 
 function extractAppServerDeveloperInstructions(call) {
   return call?.messages?.find((message) => message.method === 'thread/start')

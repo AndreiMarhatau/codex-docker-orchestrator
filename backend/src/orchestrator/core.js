@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { AccountStore } = require('../accounts');
-const { DEFAULT_GIT_CONFIG_CONTAINER_PATH } = require('./constants');
+const { AccountStore } = require('../domains/accounts/store');
+const { DEFAULT_GIT_CONFIG_CONTAINER_PATH } = require('../shared/config/constants');
 const { resolveConfig } = require('./config');
 const { attachCoreMethods } = require('./core-methods');
 

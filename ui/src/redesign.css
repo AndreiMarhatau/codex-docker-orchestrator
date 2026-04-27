@@ -1139,7 +1139,7 @@ body::before {
   left: 50%;
   bottom: calc(24px + env(safe-area-inset-bottom));
   z-index: 35;
-  transform: translateX(-50%);
+  transform: translate(-50%, 12px) scale(0.94);
   width: 46px;
   height: 46px;
   border: 1px solid var(--ui-border);
@@ -1151,6 +1151,19 @@ body::before {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+.floating-scroll-button.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0) scale(1);
 }
 
 :root[data-theme='dark'] .floating-scroll-button {

@@ -1,8 +1,9 @@
+/* eslint-disable max-lines */
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createMockExec, createMockSpawn } from '../helpers.mjs';
-import { waitForTaskStatus } from '../helpers/wait.mjs';
+import { waitForTaskIdle, waitForTaskStatus } from '../helpers/wait.mjs';
 import { createCompletedTaskContext } from './task-fixture-helpers.mjs';
 import { buildCodexAppServerArgs } from '../../src/orchestrator/app-server-args.js';
 
@@ -17,6 +18,23 @@ function createDeferred() {
 function expectAppServerCancellation(result) {
   expect(result.error).toEqual(expect.any(Error));
   expect(result.error.message).toMatch(/Codex app-server exited before/);
+}
+
+function countReviewStarts(spawn) {
+  return spawn.calls.filter((call) =>
+    call.messages.some((message) => message.method === 'review/start')
+  ).length;
+}
+
+async function waitForReviewStartCount(spawn, count) {
+  const deadline = Date.now() + 2000;
+  while (Date.now() < deadline) {
+    if (countReviewStarts(spawn) >= count) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error(`Timed out waiting for ${count} review starts`);
 }
 
 describe('task async manual review runs', () => {
@@ -81,6 +99,77 @@ describe('task auto review runs', () => {
     expect(result).toEqual({ review: 'No findings.', resumed: false });
     expect(completed.status).toBe('completed');
     expect(reviewCall?.args).toEqual(buildCodexAppServerArgs());
+  });
+
+  it('runs a follow-up review after auto-review fixes change files', async () => {
+    const execState = {
+      statusPorcelain: ' M README.md',
+      diffText: `diff --git a/README.md b/README.md
+index 0000000..1111111 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,2 @@
+-Old line
++New line`
+    };
+    const baseExec = createMockExec({ branches: ['main'] });
+    const exec = async (command, args, options = {}) => {
+      const gitCIndex = command === 'git' ? args.indexOf('-C') : -1;
+      const gitCommand = gitCIndex === -1 ? null : args[gitCIndex + 2];
+      const gitCommandArgs = gitCIndex === -1 ? [] : args.slice(gitCIndex + 3);
+      if (gitCommand === 'status') {
+        return { stdout: execState.statusPorcelain, stderr: '', code: 0 };
+      }
+      if (gitCommand === 'diff' && gitCommandArgs[0] === '--binary') {
+        return { stdout: execState.diffText, stderr: '', code: 0 };
+      }
+      if (
+        gitCommand === 'diff' &&
+        gitCommandArgs[0] === '--cached' &&
+        gitCommandArgs[1] === '--binary'
+      ) {
+        return { stdout: '', stderr: '', code: 0 };
+      }
+      return baseExec(command, args, options);
+    };
+    exec.calls = baseExec.calls;
+    exec.threadId = baseExec.threadId;
+    const spawn = createMockSpawn({
+      reviewTexts: ['Please fix the README regression.', 'Please fix the follow-up issue.'],
+      onBeforeTurnComplete: async ({ message }) => {
+        if (message?.method === 'turn/start') {
+          execState.diffText = `diff --git a/README.md b/README.md
+index 0000000..2222222 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,3 @@
+-Old line
++New line
++Follow-up fix`;
+        }
+      }
+    });
+    const { orchestrator, taskId } = await createCompletedTaskContext({ exec, spawn });
+    const meta = JSON.parse(await fs.readFile(orchestrator.taskMetaPath(taskId), 'utf8'));
+    await fs.writeFile(
+      orchestrator.taskMetaPath(taskId),
+      JSON.stringify({ ...meta, autoReview: true }, null, 2)
+    );
+
+    const resumed = await orchestrator.runAutoReviewForTask(taskId, 'run-001');
+
+    expect(resumed.status).toBe('running');
+    expect(resumed.runs.at(-1).autoReviewRemaining).toBe(1);
+    await waitForReviewStartCount(spawn, 2);
+    await waitForTaskIdle(orchestrator, taskId);
+    const completed = JSON.parse(await fs.readFile(orchestrator.taskMetaPath(taskId), 'utf8'));
+
+    expect(countReviewStarts(spawn)).toBe(2);
+    expect(completed.runs).toHaveLength(3);
+    expect(completed.runs[0].reviews).toHaveLength(1);
+    expect(completed.runs[0].reviews[0].review).toContain('Please fix the README');
+    expect(completed.runs[1].reviews).toHaveLength(1);
+    expect(completed.runs[1].reviews[0].review).toContain('Please fix the follow-up');
   });
 });
 

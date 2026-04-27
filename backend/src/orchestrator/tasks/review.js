@@ -495,8 +495,7 @@ async function executeAutoReviewContext(orchestrator, {
   assertTaskMutationNotStopped(transitionClaim);
   const fixPrompt = `${AUTO_REVIEW_FIX_PROMPT}\n\n${review}`;
   return orchestrator.resumeTask(taskId, fixPrompt, {
-    transitionClaim: releaseTaskRunTransition,
-    autoReviewRemaining: 0
+    transitionClaim: releaseTaskRunTransition
   });
 }
 

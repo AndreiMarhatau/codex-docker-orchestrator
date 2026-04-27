@@ -89,7 +89,7 @@ function TaskRowActions({ handleDeleteTask, handleStopTask, loading, task }) {
 
   const deleteTask = (event) => {
     stopEventPropagation(event);
-    handleDeleteTask(task.taskId);
+    handleDeleteTask(task);
   };
 
   return (

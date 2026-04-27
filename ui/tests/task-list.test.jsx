@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
-import { fireEvent, render, screen } from './test-utils.jsx';
+import { fireEvent, render, screen, within } from './test-utils.jsx';
 import TaskList from '../src/app/tabs/tasks/TaskList.jsx';
 import { DesktopTaskRow } from '../src/app/tabs/tasks/TaskListRow.jsx';
 
@@ -95,6 +95,11 @@ describe('TaskList', () => {
     expect(setSelectedTaskId).toHaveBeenCalledWith('task-stopped');
 
     await user.click(screen.getByLabelText('Remove task task-running'));
+    const deleteDialog = screen.getByRole('dialog', { name: 'Delete task?' });
+    expect(within(deleteDialog).getByText(/branch-task-running/)).toBeInTheDocument();
+    expect(handleDeleteTask).not.toHaveBeenCalled();
+
+    await user.click(within(deleteDialog).getByRole('button', { name: 'Delete' }));
     expect(handleDeleteTask).toHaveBeenCalledWith('task-running');
   });
 
@@ -120,7 +125,7 @@ describe('TaskList', () => {
 
     await user.click(screen.getByLabelText('Remove task task-delete'));
 
-    expect(handleDeleteTask).toHaveBeenCalledWith('task-delete');
+    expect(handleDeleteTask).toHaveBeenCalledWith(task);
     expect(handleAncestorClick).not.toHaveBeenCalled();
   });
 

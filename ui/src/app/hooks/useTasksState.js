@@ -10,7 +10,7 @@ import useTaskFormState from './useTaskFormState.js';
 import useTaskFiles from './useTaskFiles.js';
 import useTaskSelection from './useTaskSelection.js';
 
-const ACTIVE_TASK_STATUSES = new Set(['running', 'reviewing', 'stopping']);
+const ACTIVE_TASK_STATUSES = new Set(['running', 'reviewing', 'pushing', 'stopping']);
 
 function isActiveTaskStatus(status) {
   return ACTIVE_TASK_STATUSES.has(status);

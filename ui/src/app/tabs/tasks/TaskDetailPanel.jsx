@@ -117,7 +117,12 @@ function TaskDetailPanel({ data, tasksState }) {
 
   const isRunning = useMemo(() => {
     const status = detail.taskDetail?.status;
-    return status === 'running' || status === 'reviewing' || status === 'stopping';
+    return (
+      status === 'running' ||
+      status === 'reviewing' ||
+      status === 'pushing' ||
+      status === 'stopping'
+    );
   }, [detail.taskDetail?.status]);
 
   useEffect(() => {

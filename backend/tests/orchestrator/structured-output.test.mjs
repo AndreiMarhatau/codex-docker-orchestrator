@@ -13,6 +13,7 @@ describe('structured output parsing', () => {
   it('returns null for empty or malformed structured output', () => {
     expect(parseJsonObject('')).toBeNull();
     expect(parseJsonObject(null)).toBeNull();
+    expect(parseJsonObject({ message: 'ok' })).toBeNull();
     expect(parseJsonObject('plain text')).toBeNull();
     expect(parseJsonObject('prefix {bad json} suffix')).toBeNull();
   });

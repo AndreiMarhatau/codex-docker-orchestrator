@@ -11,6 +11,21 @@ describe('runCommand', () => {
     expect(result.stdout.trim()).toBe('ok');
   });
 
+  it('passes explicit environment variables', async () => {
+    const result = await runCommand('node', [
+      '-e',
+      "process.stdout.write(process.env.ORCH_TEST_COMMAND || '')"
+    ], {
+      env: {
+        ...process.env,
+        ORCH_TEST_COMMAND: 'from-env'
+      }
+    });
+
+    expect(result.code).toBe(0);
+    expect(result.stdout).toBe('from-env');
+  });
+
   it('captures stderr on failure', async () => {
     const result = await runCommand('node', [
       '-e',
@@ -27,5 +42,19 @@ describe('runCommand', () => {
     });
     setTimeout(() => controller.abort(), 20);
     await expect(commandPromise).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
+  it('rejects immediately when already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(runCommand('node', ['-e', "console.log('unused')"], {
+      signal: controller.signal
+    })).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
+  it('rejects spawn failures', async () => {
+    await expect(runCommand('definitely-not-a-real-command', []))
+      .rejects.toMatchObject({ code: 'ENOENT' });
   });
 });

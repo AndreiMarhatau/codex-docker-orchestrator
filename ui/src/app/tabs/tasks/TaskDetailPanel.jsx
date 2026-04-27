@@ -8,8 +8,10 @@ import TaskDetailSummaryCard from './detail/TaskDetailSummaryCard.jsx';
 import TaskDiff from './detail/TaskDiff.jsx';
 import TaskRuns from './detail/TaskRuns.jsx';
 import TaskDeleteConfirmationDialog from './TaskDeleteConfirmationDialog.jsx';
+import TaskStopConfirmationDialog from './TaskStopConfirmationDialog.jsx';
 import { readDetailTabQuery, writeDetailTabQuery } from '../../query-state.js';
 import useTaskDeleteConfirmation from './useTaskDeleteConfirmation.js';
+import useTaskStopConfirmation from './useTaskStopConfirmation.js';
 
 const DETAIL_TABS = [
   { label: 'Overview', panelId: 'task-detail-panel-overview', tabId: 'task-detail-tab-overview' },
@@ -59,6 +61,10 @@ function TaskDetailPanel({ data, tasksState }) {
   const hasTaskDetail = Boolean(detail.taskDetail);
   const taskDelete = useTaskDeleteConfirmation({
     handleDeleteTask: tasksState.actions.handleDeleteTask,
+    loading: data.loading
+  });
+  const taskStop = useTaskStopConfirmation({
+    handleStopTask: tasksState.actions.handleStopTask,
     loading: data.loading
   });
   const [activeTab, setActiveTabState] = useState(readDetailTabQuery);
@@ -201,6 +207,7 @@ function TaskDetailPanel({ data, tasksState }) {
           <TaskDetailHeader
             now={now}
             onRequestDeleteTask={taskDelete.requestDeleteTask}
+            onRequestStopTask={taskStop.requestStopTask}
             tasksState={tasksState}
             loading={data.loading}
           />
@@ -236,6 +243,7 @@ function TaskDetailPanel({ data, tasksState }) {
           <TaskDetailHeader
             now={now}
             onRequestDeleteTask={taskDelete.requestDeleteTask}
+            onRequestStopTask={taskStop.requestStopTask}
             tasksState={tasksState}
             loading={data.loading}
           />
@@ -261,6 +269,7 @@ function TaskDetailPanel({ data, tasksState }) {
           <TaskDetailHeader
             now={now}
             onRequestDeleteTask={taskDelete.requestDeleteTask}
+            onRequestStopTask={taskStop.requestStopTask}
             tasksState={tasksState}
             loading={data.loading}
           />
@@ -286,10 +295,12 @@ function TaskDetailPanel({ data, tasksState }) {
         hasTaskDetail={hasTaskDetail}
         isRunning={isRunning}
         onRequestDeleteTask={taskDelete.requestDeleteTask}
+        onRequestStopTask={taskStop.requestStopTask}
         showCommitPush={showCommitPush}
         tasksState={tasksState}
       />
       <TaskDeleteConfirmationDialog {...taskDelete.deleteDialogProps} />
+      <TaskStopConfirmationDialog {...taskStop.stopDialogProps} />
     </Box>
   );
 }

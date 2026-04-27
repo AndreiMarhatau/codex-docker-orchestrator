@@ -18,7 +18,7 @@ import StopOutlinedIcon from '@mui/icons-material/StopOutlined';
 import { useTheme } from '@mui/material/styles';
 import { formatDuration } from '../../../formatters.js';
 import { formatRepoDisplay } from '../../../repo-helpers.js';
-import { getTaskRuntimeMs } from '../../../task-helpers.js';
+import { getTaskRuntimeMs, isTaskStoppableStatus } from '../../../task-helpers.js';
 import { StatusPill } from '../TaskStatusPrimitives.jsx';
 
 function TaskErrorAlert({ taskDetail }) {
@@ -64,12 +64,18 @@ function RuntimePill({ runtimeMs }) {
   );
 }
 
-function TaskDetailHeader({ loading = false, now, onRequestDeleteTask, tasksState }) {
+function TaskDetailHeader({
+  loading = false,
+  now,
+  onRequestDeleteTask,
+  onRequestStopTask,
+  tasksState
+}) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { actions, detail, selection } = tasksState;
   const taskDetail = detail.taskDetail;
-  const canStop = taskDetail.status === 'running' || taskDetail.status === 'reviewing';
+  const canStop = isTaskStoppableStatus(taskDetail.status);
   const showRuntime = taskDetail.status === 'running' || taskDetail.status === 'stopping';
   const runtimeMs = getTaskRuntimeMs(taskDetail, now);
   const [actionsMenuAnchor, setActionsMenuAnchor] = useState(null);
@@ -81,6 +87,10 @@ function TaskDetailHeader({ loading = false, now, onRequestDeleteTask, tasksStat
 
   function handleStopTask() {
     closeActionsMenu();
+    if (onRequestStopTask) {
+      onRequestStopTask(taskDetail);
+      return;
+    }
     actions.handleStopTask(taskDetail.taskId);
   }
 

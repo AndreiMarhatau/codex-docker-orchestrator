@@ -27,7 +27,7 @@ function createTaskDetail(overrides = {}) {
 
 function renderHeader(
   taskDetail = createTaskDetail(),
-  { loading = false, now = 60_000, onRequestDeleteTask } = {}
+  { loading = false, now = 60_000, onRequestDeleteTask, onRequestStopTask } = {}
 ) {
   const handleBackToTasks = vi.fn();
   const handleDeleteTask = vi.fn();
@@ -38,6 +38,7 @@ function renderHeader(
       loading={loading}
       now={now}
       onRequestDeleteTask={onRequestDeleteTask}
+      onRequestStopTask={onRequestStopTask}
       tasksState={{
         actions: { handleDeleteTask, handleStopTask },
         detail: { taskDetail },
@@ -52,8 +53,10 @@ function renderHeader(
 describe('TaskDetailHeader', () => {
   it('renders running tasks with header actions', async () => {
     const user = userEvent.setup();
+    const onRequestStopTask = vi.fn();
     const { handleBackToTasks, handleDeleteTask, handleStopTask } = renderHeader(
-      createTaskDetail({ status: 'running' })
+      createTaskDetail({ status: 'running' }),
+      { onRequestStopTask }
     );
 
     expect(screen.getAllByText('codex/ui-refresh').length).toBeGreaterThan(0);
@@ -65,7 +68,10 @@ describe('TaskDetailHeader', () => {
     expect(handleBackToTasks).toHaveBeenCalled();
 
     await user.click(screen.getByRole('button', { name: 'Stop' }));
-    expect(handleStopTask).toHaveBeenCalledWith('task-1');
+    expect(onRequestStopTask).toHaveBeenCalledWith(
+      expect.objectContaining({ taskId: 'task-1' })
+    );
+    expect(handleStopTask).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole('button', { name: 'Delete' }));
     expect(handleDeleteTask).toHaveBeenCalledWith('task-1');
@@ -114,6 +120,15 @@ describe('TaskDetailHeader', () => {
       expect.objectContaining({ taskId: 'task-1' })
     );
     expect(handleDeleteTask).not.toHaveBeenCalled();
+  });
+
+  it('falls back to direct stop when no confirmation requester is provided', async () => {
+    const user = userEvent.setup();
+    const { handleStopTask } = renderHeader(createTaskDetail({ status: 'running' }));
+
+    await user.click(screen.getByRole('button', { name: 'Stop' }));
+
+    expect(handleStopTask).toHaveBeenCalledWith('task-1');
   });
 
   it('does not render stop for stopping tasks', () => {

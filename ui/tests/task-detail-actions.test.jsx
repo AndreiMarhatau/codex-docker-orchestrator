@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import { render, screen } from './test-utils.jsx';
 import TaskDetailActions from '../src/app/tabs/tasks/detail/TaskDetailActions.jsx';
 
@@ -11,22 +12,28 @@ function renderActions({
   hasTaskDetail = true,
   isRunning = false,
   loading = false,
+  onRequestDeleteTask = vi.fn(),
   showCommitPush = true,
   status = 'completed'
 } = {}) {
+  const handleDeleteTask = vi.fn();
+
   render(
     <TaskDetailActions
       data={{ envs: [], loading }}
       hasTaskDetail={hasTaskDetail}
       isRunning={isRunning}
+      onRequestDeleteTask={onRequestDeleteTask}
       showCommitPush={showCommitPush}
       tasksState={{
-        actions: { handleCommitPushTask: vi.fn(), handleReviewTask: vi.fn() },
-        detail: { taskDetail: { status } },
+        actions: { handleCommitPushTask: vi.fn(), handleDeleteTask, handleReviewTask: vi.fn() },
+        detail: { taskDetail: { branchName: 'feature/refactor', status, taskId: 'task-1' } },
         handleResumeModelChoiceChange: vi.fn()
       }}
     />
   );
+
+  return { handleDeleteTask, onRequestDeleteTask };
 }
 
 describe('TaskDetailActions', () => {
@@ -48,5 +55,17 @@ describe('TaskDetailActions', () => {
 
     expect(screen.getByRole('button', { name: 'Pushing' })).toBeDisabled();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('routes delete through the confirmation requester', async () => {
+    const user = userEvent.setup();
+    const onRequestDeleteTask = vi.fn();
+    renderActions({ onRequestDeleteTask });
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(onRequestDeleteTask).toHaveBeenCalledWith(
+      expect.objectContaining({ taskId: 'task-1' })
+    );
   });
 });

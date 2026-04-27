@@ -25,7 +25,10 @@ function createTaskDetail(overrides = {}) {
   };
 }
 
-function renderHeader(taskDetail = createTaskDetail(), { loading = false, now = 60_000 } = {}) {
+function renderHeader(
+  taskDetail = createTaskDetail(),
+  { loading = false, now = 60_000, onRequestDeleteTask } = {}
+) {
   const handleBackToTasks = vi.fn();
   const handleDeleteTask = vi.fn();
   const handleStopTask = vi.fn();
@@ -34,6 +37,7 @@ function renderHeader(taskDetail = createTaskDetail(), { loading = false, now = 
     <TaskDetailHeader
       loading={loading}
       now={now}
+      onRequestDeleteTask={onRequestDeleteTask}
       tasksState={{
         actions: { handleDeleteTask, handleStopTask },
         detail: { taskDetail },
@@ -97,6 +101,19 @@ describe('TaskDetailHeader', () => {
 
     expect(screen.getByRole('button', { name: 'Stop' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+  });
+
+  it('routes header delete through the confirmation requester when provided', async () => {
+    const user = userEvent.setup();
+    const onRequestDeleteTask = vi.fn();
+    const { handleDeleteTask } = renderHeader(createTaskDetail(), { onRequestDeleteTask });
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(onRequestDeleteTask).toHaveBeenCalledWith(
+      expect.objectContaining({ taskId: 'task-1' })
+    );
+    expect(handleDeleteTask).not.toHaveBeenCalled();
   });
 
   it('does not render stop for stopping tasks', () => {

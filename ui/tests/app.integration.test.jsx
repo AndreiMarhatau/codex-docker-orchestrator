@@ -120,6 +120,11 @@ async function exerciseTaskDetail(user) {
   await user.click(screen.getByLabelText('Back to tasks'));
   const removeTaskButtons = screen.getAllByLabelText(/Remove task/);
   await user.click(removeTaskButtons[removeTaskButtons.length - 1]);
+  const deleteDialog = await screen.findByRole('dialog', { name: 'Delete task?' });
+  await user.click(within(deleteDialog).getByRole('button', { name: 'Delete' }));
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog', { name: 'Delete task?' })).not.toBeInTheDocument()
+  );
 }
 
 it(

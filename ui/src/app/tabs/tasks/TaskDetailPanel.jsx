@@ -7,7 +7,9 @@ import TaskDetailHeader from './detail/TaskDetailHeader.jsx';
 import TaskDetailSummaryCard from './detail/TaskDetailSummaryCard.jsx';
 import TaskDiff from './detail/TaskDiff.jsx';
 import TaskRuns from './detail/TaskRuns.jsx';
+import TaskDeleteConfirmationDialog from './TaskDeleteConfirmationDialog.jsx';
 import { readDetailTabQuery, writeDetailTabQuery } from '../../query-state.js';
+import useTaskDeleteConfirmation from './useTaskDeleteConfirmation.js';
 
 const DETAIL_TABS = [
   { label: 'Overview', panelId: 'task-detail-panel-overview', tabId: 'task-detail-tab-overview' },
@@ -55,6 +57,10 @@ function TaskDetailPanel({ data, tasksState }) {
   const { detail, selection } = tasksState;
   const { now } = tasksState;
   const hasTaskDetail = Boolean(detail.taskDetail);
+  const taskDelete = useTaskDeleteConfirmation({
+    handleDeleteTask: tasksState.actions.handleDeleteTask,
+    loading: data.loading
+  });
   const [activeTab, setActiveTabState] = useState(readDetailTabQuery);
   const overviewPaneRef = useRef(null);
   const stickToBottomRef = useRef(false);
@@ -192,7 +198,12 @@ function TaskDetailPanel({ data, tasksState }) {
 
       {hasTaskDetail && activeTab === 0 && (
         <>
-          <TaskDetailHeader now={now} tasksState={tasksState} loading={data.loading} />
+          <TaskDetailHeader
+            now={now}
+            onRequestDeleteTask={taskDelete.requestDeleteTask}
+            tasksState={tasksState}
+            loading={data.loading}
+          />
           <DetailModeBar
             activeTab={activeTab}
             onKeyDown={handleDetailTabKeyDown}
@@ -222,7 +233,12 @@ function TaskDetailPanel({ data, tasksState }) {
 
       {hasTaskDetail && activeTab === 1 && (
         <>
-          <TaskDetailHeader now={now} tasksState={tasksState} loading={data.loading} />
+          <TaskDetailHeader
+            now={now}
+            onRequestDeleteTask={taskDelete.requestDeleteTask}
+            tasksState={tasksState}
+            loading={data.loading}
+          />
           <DetailModeBar
             activeTab={activeTab}
             onKeyDown={handleDetailTabKeyDown}
@@ -242,7 +258,12 @@ function TaskDetailPanel({ data, tasksState }) {
 
       {hasTaskDetail && activeTab === 2 && (
         <>
-          <TaskDetailHeader now={now} tasksState={tasksState} loading={data.loading} />
+          <TaskDetailHeader
+            now={now}
+            onRequestDeleteTask={taskDelete.requestDeleteTask}
+            tasksState={tasksState}
+            loading={data.loading}
+          />
           <DetailModeBar
             activeTab={activeTab}
             onKeyDown={handleDetailTabKeyDown}
@@ -264,9 +285,11 @@ function TaskDetailPanel({ data, tasksState }) {
         data={data}
         hasTaskDetail={hasTaskDetail}
         isRunning={isRunning}
+        onRequestDeleteTask={taskDelete.requestDeleteTask}
         showCommitPush={showCommitPush}
         tasksState={tasksState}
       />
+      <TaskDeleteConfirmationDialog {...taskDelete.deleteDialogProps} />
     </Box>
   );
 }

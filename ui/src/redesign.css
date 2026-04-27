@@ -1110,6 +1110,37 @@ body::before {
   min-width: 128px;
 }
 
+.task-detail-action-tooltip {
+  display: inline-flex;
+}
+
+.task-detail-action-button.MuiIconButton-root {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: var(--ui-surface-subtle);
+  color: var(--ui-accent);
+}
+
+.task-detail-action-button.MuiIconButton-root:hover {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface-strong);
+}
+
+.task-detail-action-button.MuiIconButton-colorError {
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--ui-danger);
+}
+
+.task-detail-action-button.MuiIconButton-colorError:hover {
+  background: var(--ui-danger-soft);
+}
+
+.task-detail-action-button.Mui-disabled {
+  opacity: 0.55;
+}
+
 .task-detail-pane--diff .diff-root,
 .task-detail-pane--diff .log-entry--diff {
   border: 1px solid var(--ui-border) !important;
@@ -1260,6 +1291,12 @@ pre {
     gap: 12px !important;
   }
 
+  .tasks-workspace.fade-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
   .page-title,
   .section-title,
   .workspace-title,
@@ -1294,6 +1331,7 @@ pre {
 
   .task-detail-shell {
     padding: 12px !important;
+    padding-bottom: calc(82px + env(safe-area-inset-bottom)) !important;
   }
 
   .task-detail-modebar {
@@ -1308,11 +1346,37 @@ pre {
   .task-detail-actions .MuiStack-root {
     flex-direction: row !important;
     width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    justify-content: center;
   }
 
-  .task-detail-actions .MuiButton-root {
-    flex: 1;
-    min-width: 0;
+  .task-detail-actions {
+    position: fixed !important;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 30;
+    margin: 0 !important;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) !important;
+    border-top: 1px solid var(--ui-border);
+    background: var(--ui-surface) !important;
+    box-shadow: 0 -14px 32px rgba(15, 23, 42, 0.12);
+  }
+
+  :root[data-theme='dark'] .task-detail-actions {
+    box-shadow: 0 -18px 38px rgba(0, 0, 0, 0.38);
+  }
+
+  .task-detail-action-tooltip {
+    flex: 1 1 0;
+    max-width: 64px;
+    justify-content: center;
+  }
+
+  .task-detail-action-button.MuiIconButton-root {
+    width: 48px;
+    height: 48px;
   }
 }
 

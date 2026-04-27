@@ -64,7 +64,7 @@ function RuntimePill({ runtimeMs }) {
   );
 }
 
-function TaskDetailHeader({ loading = false, now, tasksState }) {
+function TaskDetailHeader({ loading = false, now, onRequestDeleteTask, tasksState }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { actions, detail, selection } = tasksState;
@@ -86,6 +86,10 @@ function TaskDetailHeader({ loading = false, now, tasksState }) {
 
   function handleDeleteTask() {
     closeActionsMenu();
+    if (onRequestDeleteTask) {
+      onRequestDeleteTask(taskDetail);
+      return;
+    }
     actions.handleDeleteTask(taskDetail.taskId);
   }
 

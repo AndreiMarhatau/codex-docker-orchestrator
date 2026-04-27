@@ -8,10 +8,16 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   MenuItem,
   Stack,
-  TextField
+  TextField,
+  Tooltip
 } from '@mui/material';
+import AddCommentOutlinedIcon from '@mui/icons-material/AddCommentOutlined';
+import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import RateReviewOutlinedIcon from '@mui/icons-material/RateReviewOutlined';
 import TaskResumeDialog from './TaskResumeDialog.jsx';
 import { readComposeQuery, writeComposeQuery } from '../../../query-state.js';
 
@@ -22,7 +28,32 @@ const REVIEW_TARGETS = [
   { value: 'custom', label: 'Custom prompt' }
 ];
 
-function TaskDetailActions({ data, hasTaskDetail, isRunning = false, showCommitPush, tasksState }) {
+function DetailActionIconButton({ children, color = 'primary', disabled, label, onClick }) {
+  return (
+    <Tooltip title={label}>
+      <span className="task-detail-action-tooltip">
+        <IconButton
+          aria-label={label}
+          className="task-detail-action-button"
+          color={color}
+          disabled={disabled}
+          onClick={onClick}
+        >
+          {children}
+        </IconButton>
+      </span>
+    </Tooltip>
+  );
+}
+
+function TaskDetailActions({
+  data,
+  hasTaskDetail,
+  isRunning = false,
+  onRequestDeleteTask,
+  showCommitPush,
+  tasksState
+}) {
   const { actions, detail, handleResumeModelChoiceChange } = tasksState;
   const [resumeDialogOpen, setResumeDialogOpen] = useState(() => readComposeQuery() === 'resume');
   const [commitDialogOpen, setCommitDialogOpen] = useState(false);
@@ -32,6 +63,7 @@ function TaskDetailActions({ data, hasTaskDetail, isRunning = false, showCommitP
   const isPushing = detail.taskDetail?.status === 'pushing';
   const actionBusy = data.loading || isRunning || isPushing;
   const commitBusy = data.loading || commitSubmitting || isPushing;
+  const deleteDisabled = data.loading || !detail.taskDetail;
   const [reviewForm, setReviewForm] = useState({
     type: 'uncommittedChanges',
     branch: detail.taskDetail?.ref || 'main',
@@ -83,37 +115,59 @@ function TaskDetailActions({ data, hasTaskDetail, isRunning = false, showCommitP
     }
   }
 
+  function handleDeleteTask() {
+    if (!detail.taskDetail) {
+      return;
+    }
+    if (onRequestDeleteTask) {
+      onRequestDeleteTask(detail.taskDetail);
+      return;
+    }
+    actions.handleDeleteTask?.(detail.taskDetail.taskId);
+  }
+
   return (
     <>
       <Box className="task-detail-actions">
         <Stack direction="row" spacing={1.5}>
           {hasTaskDetail && (
-            <Button
-              variant="outlined"
+            <DetailActionIconButton
+              label="Ask for changes"
               onClick={openResumeDialog}
               disabled={actionBusy}
             >
-              Ask for changes
-            </Button>
+              <AddCommentOutlinedIcon fontSize="small" />
+            </DetailActionIconButton>
           )}
           {hasTaskDetail && (
-            <Button
-              variant="outlined"
+            <DetailActionIconButton
+              label="Review"
               onClick={() => setReviewDialogOpen(true)}
               disabled={actionBusy}
             >
-              Review
-            </Button>
+              <RateReviewOutlinedIcon fontSize="small" />
+            </DetailActionIconButton>
           )}
           {hasTaskDetail && showCommitPush && (
-            <Button
-              variant="contained"
+            <DetailActionIconButton
+              label={isPushing ? 'Pushing' : 'Commit & Push'}
               onClick={() => setCommitDialogOpen(true)}
               disabled={actionBusy}
-              startIcon={isPushing ? <CircularProgress size={16} color="inherit" /> : null}
             >
-              {isPushing ? 'Pushing' : 'Commit & Push'}
-            </Button>
+              {isPushing
+                ? <CircularProgress size={18} color="inherit" />
+                : <CloudUploadOutlinedIcon fontSize="small" />}
+            </DetailActionIconButton>
+          )}
+          {hasTaskDetail && (
+            <DetailActionIconButton
+              color="error"
+              label="Delete"
+              onClick={handleDeleteTask}
+              disabled={deleteDisabled}
+            >
+              <DeleteOutlineIcon fontSize="small" />
+            </DetailActionIconButton>
           )}
         </Stack>
       </Box>

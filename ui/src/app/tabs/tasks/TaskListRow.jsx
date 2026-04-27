@@ -89,7 +89,7 @@ function TaskRowActions({ handleDeleteTask, handleStopTask, loading, task }) {
       <IconButton
         className="task-delete-button"
         size="small"
-        onClick={() => handleDeleteTask(task.taskId)}
+        onClick={() => handleDeleteTask(task)}
         disabled={loading}
         aria-label={`Remove task ${task.taskId}`}
       >

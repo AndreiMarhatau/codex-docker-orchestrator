@@ -2,6 +2,8 @@ import { memo, useEffect, useMemo, useState } from 'react';
 import { Box, Typography, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { DesktopTaskRow, MobileTaskCard } from './TaskListRow.jsx';
+import TaskDeleteConfirmationDialog from './TaskDeleteConfirmationDialog.jsx';
+import useTaskDeleteConfirmation from './useTaskDeleteConfirmation.js';
 
 const MOBILE_TASK_LIMIT = 4;
 
@@ -111,35 +113,39 @@ function TaskList({
   const theme = useTheme();
   const mobileLayout = useMediaQuery(theme.breakpoints.down('md'));
   const { loading } = data;
+  const taskDelete = useTaskDeleteConfirmation({ handleDeleteTask, loading });
 
   if (visibleTasks.length === 0) {
     return <EmptyTaskList />;
   }
 
   return (
-    <Box className="task-table-shell">
-      {mobileLayout ? (
-        <MobileTaskTable
-          handleDeleteTask={handleDeleteTask}
-          handleStopTask={handleStopTask}
-          loading={loading}
-          now={now}
-          selectedTaskId={selectedTaskId}
-          setSelectedTaskId={setSelectedTaskId}
-          tasks={visibleTasks}
-        />
-      ) : (
-        <DesktopTaskTable
-          handleDeleteTask={handleDeleteTask}
-          handleStopTask={handleStopTask}
-          loading={loading}
-          now={now}
-          selectedTaskId={selectedTaskId}
-          setSelectedTaskId={setSelectedTaskId}
-          tasks={visibleTasks}
-        />
-      )}
-    </Box>
+    <>
+      <Box className="task-table-shell">
+        {mobileLayout ? (
+          <MobileTaskTable
+            handleDeleteTask={taskDelete.requestDeleteTask}
+            handleStopTask={handleStopTask}
+            loading={loading}
+            now={now}
+            selectedTaskId={selectedTaskId}
+            setSelectedTaskId={setSelectedTaskId}
+            tasks={visibleTasks}
+          />
+        ) : (
+          <DesktopTaskTable
+            handleDeleteTask={taskDelete.requestDeleteTask}
+            handleStopTask={handleStopTask}
+            loading={loading}
+            now={now}
+            selectedTaskId={selectedTaskId}
+            setSelectedTaskId={setSelectedTaskId}
+            tasks={visibleTasks}
+          />
+        )}
+      </Box>
+      <TaskDeleteConfirmationDialog {...taskDelete.deleteDialogProps} />
+    </>
   );
 }
 

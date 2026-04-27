@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createMockExec, createMockSpawn } from '../helpers.mjs';
+import { waitForTaskStatus } from '../helpers/wait.mjs';
 import { createCompletedTaskContext } from './task-fixture-helpers.mjs';
 
 function createDeferred() {
@@ -16,6 +17,35 @@ function expectAppServerCancellation(result) {
   expect(result.error).toEqual(expect.any(Error));
   expect(result.error.message).toMatch(/Codex app-server exited before/);
 }
+
+describe('task async manual review runs', () => {
+  it('starts manual reviews asynchronously and restores task status', async () => {
+    const spawn = createMockSpawn({ turnCompletionDelayMs: 50 });
+    const exec = createMockExec({ branches: ['main'] });
+    const { orchestrator, taskId } = await createCompletedTaskContext({ exec, spawn });
+
+    const result = await orchestrator.startTaskReview(taskId, { type: 'uncommittedChanges' });
+    const reviewing = await orchestrator.getTask(taskId);
+
+    expect(result).toEqual({
+      started: true,
+      target: { type: 'uncommittedChanges' }
+    });
+    expect(reviewing.status).toBe('reviewing');
+    expect(orchestrator.taskRunClaims.has(taskId)).toBe(true);
+
+    const completed = await waitForTaskStatus(orchestrator, taskId, 'completed');
+    const log = await fs.readFile(
+      path.join(orchestrator.taskLogsDir(taskId), 'run-001.jsonl'),
+      'utf8'
+    );
+
+    expect(orchestrator.taskRunClaims.has(taskId)).toBe(false);
+    expect(completed.runs[0].reviews).toHaveLength(1);
+    expect(log).toContain('Review started: uncommitted changes');
+    expect(log).toContain('Review: uncommitted changes');
+  });
+});
 
 describe('task manual review runs', () => {
   it('escalates stuck manual review runs and releases the claim', async () => {

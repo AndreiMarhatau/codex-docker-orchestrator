@@ -17,6 +17,12 @@ function createDeferred() {
   return { promise, resolve };
 }
 
+function rejectAfter(ms) {
+  return new Promise((_resolve, reject) => {
+    setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms);
+  });
+}
+
 async function waitForTaskStatus(orchestrator, taskId, status) {
   const deadline = Date.now() + 2000;
   while (Date.now() < deadline) {
@@ -70,6 +76,34 @@ async function writeUploadFile(orchestrator) {
 }
 
 describe('task startup mutation locking', () => {
+  it('returns from task creation before deferred branch startup finishes', async () => {
+    const { app, env, orchestrator } = await createTestContext();
+    const branchStarted = createDeferred();
+    const releaseBranch = createDeferred();
+    orchestrator.generateTaskBranchName = async () => {
+      branchStarted.resolve();
+      await releaseBranch.promise;
+      return 'codex/deferred-branch';
+    };
+
+    const responsePromise = request(app)
+      .post('/api/tasks')
+      .send({ envId: env.envId, ref: 'main', prompt: 'Do work' })
+      .expect(201);
+
+    const response = await Promise.race([responsePromise, rejectAfter(200)]);
+    await branchStarted.promise;
+
+    expect(response.body.status).toBe('running');
+    expect(response.body.branchName).toMatch(/^codex\//);
+    expect(response.body.branchName).not.toBe('codex/deferred-branch');
+    expect(orchestrator.taskRunClaims.has(response.body.taskId)).toBe(true);
+
+    releaseBranch.resolve();
+    const completed = await waitForTaskStatus(orchestrator, response.body.taskId, 'completed');
+    expect(completed.branchName).toBe('codex/deferred-branch');
+  });
+
   it('rejects task mutations while create startup is active', async () => {
     const { app, env, orchestrator } = await createTestContext();
     const { createPromise, releaseAuth, taskId } = await createPausedTask({ orchestrator, env });

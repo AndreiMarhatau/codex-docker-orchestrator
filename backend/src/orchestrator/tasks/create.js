@@ -83,8 +83,7 @@ function buildTaskMeta({
       reasoningEffort,
       now,
       account,
-      useHostDockerSocket,
-      autoReviewRemaining: autoReview ? 1 : 0
+      useHostDockerSocket
     })]
   };
 }

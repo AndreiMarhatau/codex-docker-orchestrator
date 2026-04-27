@@ -18,8 +18,7 @@ function applyResumeMetaUpdates({
   activeAccount,
   runLabel,
   runModel,
-  runReasoningEffort,
-  autoReviewRemaining = 0
+  runReasoningEffort
 }) {
   const hasPrompt = typeof prompt === 'string' && prompt.length > 0;
   meta.updatedAt = now();
@@ -39,8 +38,7 @@ function applyResumeMetaUpdates({
       reasoningEffort: runReasoningEffort,
       now: now(),
       account: activeAccount,
-      useHostDockerSocket: shouldUseHostDockerSocket,
-      autoReviewRemaining
+      useHostDockerSocket: shouldUseHostDockerSocket
     })
   );
 }

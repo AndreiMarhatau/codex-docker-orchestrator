@@ -26,6 +26,14 @@ function countReviewStarts(spawn) {
   ).length;
 }
 
+function parseLogItems(log) {
+  return log
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => JSON.parse(line).item)
+    .filter(Boolean);
+}
+
 async function waitForReviewStartCount(spawn, count) {
   const deadline = Date.now() + 2000;
   while (Date.now() < deadline) {
@@ -63,6 +71,10 @@ describe('task async manual review runs', () => {
     expect(completed.runs[0].reviews).toHaveLength(1);
     expect(log).toContain('Review started: uncommitted changes');
     expect(log).toContain('Review: uncommitted changes');
+    expect(parseLogItems(log).filter((item) => item.type === 'review')).toHaveLength(2);
+    expect(parseLogItems(log).some((item) =>
+      item.type === 'agent_message' && /^Review/.test(item.text || '')
+    )).toBe(false);
   });
 });
 
@@ -71,6 +83,7 @@ describe('task auto review runs', () => {
     const reviewPaused = createDeferred();
     const releaseReview = createDeferred();
     const spawn = createMockSpawn({
+      reviewTexts: ['Please fix the issue.'],
       onBeforeTurnComplete: async ({ message }) => {
         if (message?.method === 'review/start') {
           reviewPaused.resolve();
@@ -91,14 +104,32 @@ describe('task auto review runs', () => {
 
     releaseReview.resolve();
     const result = await reviewPromise;
-    const completed = await orchestrator.getTask(taskId);
     const reviewCall = spawn.calls.find((call) =>
       call.messages.some((message) => message.method === 'review/start')
     );
 
-    expect(result).toEqual({ review: 'No findings.', resumed: false });
+    expect(result.status).toBe('running');
+    expect(result.runs).toHaveLength(2);
+    expect(result.runs.at(-1).prompt).toContain('Please fix the issue.');
+    await waitForTaskIdle(orchestrator, taskId);
+    const completed = await orchestrator.getTask(taskId);
     expect(completed.status).toBe('completed');
+    expect(completed.runs).toHaveLength(2);
     expect(reviewCall?.args).toEqual(buildCodexAppServerArgs());
+  });
+
+  it('skips follow-up runs when auto review returns empty output', async () => {
+    const spawn = createMockSpawn({ reviewTexts: [''] });
+    const exec = createMockExec({ branches: ['main'], statusPorcelain: ' M README.md' });
+    const { orchestrator, taskId } = await createCompletedTaskContext({ exec, spawn });
+
+    const result = await orchestrator.runAutoReviewForTask(taskId, 'run-001');
+    const completed = await orchestrator.getTask(taskId);
+
+    expect(result).toEqual({ review: '', resumed: false });
+    expect(completed.status).toBe('completed');
+    expect(completed.runs).toHaveLength(1);
+    expect(countReviewStarts(spawn)).toBe(1);
   });
 
   it('runs a follow-up review after auto-review fixes change files', async () => {
@@ -159,7 +190,6 @@ index 0000000..2222222 100644
     const resumed = await orchestrator.runAutoReviewForTask(taskId, 'run-001');
 
     expect(resumed.status).toBe('running');
-    expect(resumed.runs.at(-1).autoReviewRemaining).toBe(1);
     await waitForReviewStartCount(spawn, 2);
     await waitForTaskIdle(orchestrator, taskId);
     const completed = JSON.parse(await fs.readFile(orchestrator.taskMetaPath(taskId), 'utf8'));

@@ -16,6 +16,17 @@ function RunAgentMessages({ runId, timeline }) {
           );
         }
 
+        if (item.type === 'review') {
+          return (
+            <Box key={`${runId}-review-message-${index}`} className="run-message run-message--review">
+              <Typography className="run-message-author">{item.label || 'Review'}</Typography>
+              <Typography className="run-message-text" component="div">
+                {item.text}
+              </Typography>
+            </Box>
+          );
+        }
+
         const title =
           item.summaries.length === 1
             ? item.summaries[0].label

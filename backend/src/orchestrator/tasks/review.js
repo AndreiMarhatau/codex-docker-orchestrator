@@ -12,14 +12,7 @@ const { createBoundedChildShutdown } = require('./process-shutdown');
 
 const REVIEW_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 const REVIEW_REQUEST_TIMEOUT_MS = 60_000;
-const AUTO_REVIEW_FIX_PROMPT = [
-  'Reviewer left a message.',
-  'If it flagged any issues, decide whether they need to be addressed.',
-  'Ignore an issue if fixing it would require touching a larger scope or would conflict with the user request.',
-  "If there are no issues to address, don't do anything.",
-  '',
-  'Message:'
-].join('\n');
+const AUTO_REVIEW_FIX_PROMPT_PATH = path.join(__dirname, 'auto-review-fix-prompt.txt');
 
 function normalizeReviewTarget(input = {}) {
   const type = input.type || input.targetType || 'uncommittedChanges';
@@ -62,25 +55,6 @@ function reviewTargetLabel(target) {
     return `commit ${target.sha}`;
   }
   return 'custom review';
-}
-
-function hasActionableReviewFeedback(reviewText) {
-  const text = String(reviewText || '').trim();
-  if (!text) {
-    return false;
-  }
-  const lower = text.toLowerCase();
-  const noFindingPatterns = [
-    /^no findings\.?$/,
-    /^no issues found\.?$/,
-    /^looks good\.?$/,
-    /^looks solid\.?$/,
-    /^nothing to fix\.?$/
-  ];
-  if (text.length < 500 && noFindingPatterns.some((pattern) => pattern.test(lower))) {
-    return false;
-  }
-  return true;
 }
 
 function createTaskMutationStoppedError() {
@@ -234,17 +208,37 @@ async function restoreTaskAfterReview(orchestrator, taskId, reviewState, claim) 
   orchestrator.notifyTasksChanged(taskId);
 }
 
-async function appendRunAgentMessage(orchestrator, taskId, runLabel, text) {
+async function appendRunItem(orchestrator, taskId, runLabel, item) {
   const logPath = path.join(orchestrator.taskLogsDir(taskId), `${runLabel}.jsonl`);
   const payload = {
     type: 'item.completed',
-    item: {
-      id: `review-${crypto.randomUUID()}`,
-      type: 'agent_message',
-      text
-    }
+    item
   };
   await fs.appendFile(logPath, `${JSON.stringify(payload)}\n`);
+}
+
+async function appendRunAgentMessage(orchestrator, taskId, runLabel, text) {
+  await appendRunItem(orchestrator, taskId, runLabel, {
+    id: `message-${crypto.randomUUID()}`,
+    type: 'agent_message',
+    text
+  });
+}
+
+async function appendRunReviewMessage(orchestrator, taskId, runLabel, {
+  text,
+  phase,
+  target,
+  automatic
+}) {
+  await appendRunItem(orchestrator, taskId, runLabel, {
+    id: `review-${crypto.randomUUID()}`,
+    type: 'review',
+    phase,
+    target,
+    automatic: automatic === true,
+    text
+  });
 }
 
 async function beginTaskReview(orchestrator, {
@@ -266,12 +260,12 @@ async function beginTaskReview(orchestrator, {
   });
   try {
     const prefix = automatic ? 'Auto review started' : 'Review started';
-    await appendRunAgentMessage(
-      orchestrator,
-      taskId,
-      latestRun.runId,
-      `${prefix}: ${reviewTargetLabel(target)}`
-    );
+    await appendRunReviewMessage(orchestrator, taskId, latestRun.runId, {
+      phase: 'started',
+      target,
+      automatic,
+      text: `${prefix}: ${reviewTargetLabel(target)}`
+    });
   } catch (error) {
     await restoreTaskAfterReview(orchestrator, taskId, reviewState);
     throw error;
@@ -296,7 +290,12 @@ async function recordTaskReview(orchestrator, {
   };
   const prefix = automatic ? 'Auto review' : 'Review';
   const text = `${prefix}: ${reviewTargetLabel(target)}\n\n${review || 'No review output.'}`;
-  await appendRunAgentMessage(orchestrator, taskId, runLabel, text);
+  await appendRunReviewMessage(orchestrator, taskId, runLabel, {
+    phase: 'completed',
+    target,
+    automatic,
+    text
+  });
   const meta = await readJson(orchestrator.taskMetaPath(taskId));
   const runIndex = meta.runs.findIndex((run) => run.runId === runLabel);
   if (runIndex !== -1) {
@@ -316,8 +315,18 @@ async function appendReviewFailure(orchestrator, {
 }) {
   const prefix = automatic ? 'Auto review failed' : 'Review failed';
   const message = error?.message || 'Unknown error';
-  await appendRunAgentMessage(orchestrator, taskId, runLabel, `${prefix}: ${message}`);
+  await appendRunReviewMessage(orchestrator, taskId, runLabel, {
+    phase: 'failed',
+    target: null,
+    automatic,
+    text: `${prefix}: ${message}`
+  });
   orchestrator.notifyTasksChanged(taskId);
+}
+
+async function buildAutoReviewFixPrompt(review) {
+  const template = await fs.readFile(AUTO_REVIEW_FIX_PROMPT_PATH, 'utf8');
+  return `${template.trimEnd()}\n\n${review || ''}`.trim();
 }
 
 async function prepareReviewRuntime(orchestrator, taskId, meta) {
@@ -489,11 +498,11 @@ async function executeAutoReviewContext(orchestrator, {
     await restoreTaskAfterReview(orchestrator, taskId, reviewState, transitionClaim);
   }
   const review = result?.review || '';
-  if (!hasActionableReviewFeedback(review)) {
+  if (!review.trim()) {
     return { review, resumed: false };
   }
   assertTaskMutationNotStopped(transitionClaim);
-  const fixPrompt = `${AUTO_REVIEW_FIX_PROMPT}\n\n${review}`;
+  const fixPrompt = await buildAutoReviewFixPrompt(review);
   return orchestrator.resumeTask(taskId, fixPrompt, {
     transitionClaim: releaseTaskRunTransition
   });
@@ -506,6 +515,14 @@ function attachTaskReviewMethods(Orchestrator) {
     text
   ) {
     await appendRunAgentMessage(this, taskId, runLabel, text);
+  };
+
+  Orchestrator.prototype.appendRunReviewMessage = async function appendRunReviewMessageMethod(
+    taskId,
+    runLabel,
+    options
+  ) {
+    await appendRunReviewMessage(this, taskId, runLabel, options);
   };
 
   Orchestrator.prototype.runTaskReview = async function runTaskReview(
@@ -581,6 +598,5 @@ function attachTaskReviewMethods(Orchestrator) {
 
 module.exports = {
   attachTaskReviewMethods,
-  hasActionableReviewFeedback,
   normalizeReviewTarget
 };

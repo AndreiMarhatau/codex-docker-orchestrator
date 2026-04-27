@@ -87,7 +87,9 @@ function createAppServerResponder({
           if (message?.method === 'review/start' && message.id !== undefined) {
             turnCount += 1;
             const turnId = `turn-${turnCount}`;
-            const review = reviewTexts?.[Math.min(reviewCount++, reviewTexts.length - 1)] || 'No findings.';
+            const review = Array.isArray(reviewTexts)
+              ? reviewTexts[Math.min(reviewCount++, reviewTexts.length - 1)]
+              : 'No findings.';
             const item = { id: `review-${turnCount}`, type: 'exitedReviewMode', review };
             write({
               id: message.id,

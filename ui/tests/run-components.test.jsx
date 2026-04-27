@@ -4,6 +4,7 @@ import TaskRuns from '../src/app/tabs/tasks/detail/TaskRuns.jsx';
 import RunAgentMessages from '../src/app/tabs/tasks/detail/runs/RunAgentMessages.jsx';
 import RunEntries from '../src/app/tabs/tasks/detail/runs/RunEntries.jsx';
 import RunRequest from '../src/app/tabs/tasks/detail/runs/RunRequest.jsx';
+import { buildTimeline } from '../src/app/log-helpers.js';
 
 describe('run detail components', () => {
   it('renders the no-run empty state', () => {
@@ -71,6 +72,7 @@ describe('run detail components', () => {
         runId="run-1"
         timeline={[
           { type: 'message', text: 'Agent update' },
+          { type: 'review', label: 'Review', text: 'Review started: uncommitted changes' },
           {
             type: 'events',
             entries: [{ id: 'evt-1' }, { id: 'evt-2', type: 'command' }],
@@ -84,12 +86,28 @@ describe('run detail components', () => {
     );
 
     expect(screen.getByText('Agent update')).toBeInTheDocument();
+    expect(screen.getByText('Review')).toBeInTheDocument();
+    expect(screen.getByText('Review started: uncommitted changes')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '2 actions' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '2 actions' }));
     expect(screen.getByText('npm test')).toBeInTheDocument();
     expect(screen.getByText('Updated task detail layout')).toBeInTheDocument();
     expect(screen.getByText('1. Command')).toBeInTheDocument();
     expect(screen.getByText('2. File edit')).toBeInTheDocument();
+  });
+
+  it('builds dedicated review timeline entries from review log items', () => {
+    const reviewEntry = {
+      parsed: { item: { type: 'review', automatic: true, text: 'Auto review started: uncommitted changes' } }
+    };
+    const agentEntry = {
+      parsed: { item: { type: 'agent_message', text: 'Review started: uncommitted changes' } }
+    };
+
+    expect(buildTimeline([reviewEntry, agentEntry])).toEqual([
+      { type: 'review', entry: reviewEntry, text: 'Auto review started: uncommitted changes', label: 'Auto review' },
+      { type: 'message', entry: agentEntry, text: 'Review started: uncommitted changes' }
+    ]);
   });
 
   it('renders empty and populated raw event logs', async () => {

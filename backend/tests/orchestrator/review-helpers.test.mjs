@@ -2,10 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const {
-  hasActionableReviewFeedback,
-  normalizeReviewTarget
-} = require('../../src/orchestrator/tasks/review');
+const { normalizeReviewTarget } = require('../../src/orchestrator/tasks/review');
 
 describe('review helpers', () => {
   it('normalizes supported review targets', () => {
@@ -28,13 +25,5 @@ describe('review helpers', () => {
     expect(() => normalizeReviewTarget({ type: 'commit' })).toThrow(/commit sha/);
     expect(() => normalizeReviewTarget({ type: 'custom' })).toThrow(/custom review/);
     expect(() => normalizeReviewTarget({ type: 'unknown' })).toThrow(/Unknown/);
-  });
-
-  it('detects actionable review feedback', () => {
-    expect(hasActionableReviewFeedback('')).toBe(false);
-    expect(hasActionableReviewFeedback('No findings.')).toBe(false);
-    expect(hasActionableReviewFeedback('Looks good')).toBe(false);
-    expect(hasActionableReviewFeedback('Please add a regression test.')).toBe(true);
-    expect(hasActionableReviewFeedback(`No findings. ${'details '.repeat(100)}`)).toBe(true);
   });
 });

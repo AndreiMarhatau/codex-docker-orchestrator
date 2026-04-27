@@ -47,6 +47,38 @@ describe('task async manual review runs', () => {
   });
 });
 
+describe('task auto review runs', () => {
+  it('keeps reviewing tasks active while auto review is in progress', async () => {
+    const reviewPaused = createDeferred();
+    const releaseReview = createDeferred();
+    const spawn = createMockSpawn({
+      onBeforeTurnComplete: async ({ message }) => {
+        if (message?.method === 'review/start') {
+          reviewPaused.resolve();
+          await releaseReview.promise;
+        }
+      }
+    });
+    const exec = createMockExec({ branches: ['main'], statusPorcelain: ' M README.md' });
+    const { orchestrator, taskId } = await createCompletedTaskContext({ exec, spawn });
+
+    const reviewPromise = orchestrator.runAutoReviewForTask(taskId, 'run-001');
+    await reviewPaused.promise;
+    const reviewing = await orchestrator.getTask(taskId);
+
+    expect(reviewing.status).toBe('reviewing');
+    expect(reviewing.error).toBeNull();
+    expect(orchestrator.taskRunClaims.has(taskId)).toBe(true);
+
+    releaseReview.resolve();
+    const result = await reviewPromise;
+    const completed = await orchestrator.getTask(taskId);
+
+    expect(result).toEqual({ review: 'No findings.', resumed: false });
+    expect(completed.status).toBe('completed');
+  });
+});
+
 describe('task manual review runs', () => {
   it('escalates stuck manual review runs and releases the claim', async () => {
     const reviewPaused = createDeferred();

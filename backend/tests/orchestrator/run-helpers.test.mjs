@@ -136,4 +136,29 @@ describe('run helpers meta updates', () => {
     expect(updated.meta.status).toBe('failed');
     expect(updated.meta.error).toBe('Usage limit reached.');
   });
+
+  it('preserves existing goal when no goal event was observed', async () => {
+    const root = await createTempDir();
+    const taskId = 'task-4';
+    const runLabel = 'run-004';
+    const taskDir = path.join(root, 'tasks', taskId);
+    const goal = { objective: 'Keep going', status: 'active' };
+    await fs.mkdir(taskDir, { recursive: true });
+    await fs.writeFile(
+      path.join(taskDir, 'meta.json'),
+      JSON.stringify({ taskId, threadId: 'thread-4', goal, runs: [] })
+    );
+
+    const updated = await updateRunMeta({
+      taskId,
+      runLabel,
+      result: { stdout: '', stderr: '', code: 1, goal: null },
+      prompt: null,
+      now: () => '2025-01-04T00:00:00.000Z',
+      taskMetaPath: (id) => path.join(root, 'tasks', id, 'meta.json'),
+      runArtifactsDir: () => path.join(root, 'artifacts', taskId, runLabel)
+    });
+
+    expect(updated.meta.goal).toEqual(goal);
+  });
 });

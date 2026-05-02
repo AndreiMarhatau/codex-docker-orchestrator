@@ -1,48 +1,14 @@
 const { AppServerClient } = require('./app-server-client');
 const { mapNotificationToLogEvent, writeLogEvent } = require('./app-server-events');
+const {
+  createTurnCompletionBuffer,
+  waitForGoalAwareCompletion
+} = require('./app-server-goals');
+const { applyRequestedGoalState } = require('./app-server-goal-requests');
 const { buildThreadParams, buildTurnParams } = require('./app-server-requests');
 
 const TURN_COMPLETION_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 const APP_SERVER_REQUEST_TIMEOUT_MS = 60_000;
-
-function waitForTurnCompletion({ client, turnId, collectNotification, timeoutMs }) {
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      cleanup();
-      reject(new Error('Timed out waiting for Codex turn to complete.'));
-    }, timeoutMs);
-
-    const cleanup = () => {
-      clearTimeout(timeout);
-      client.off('notification', handleNotification);
-      client.off('close', handleClose);
-    };
-
-    const handleNotification = (message) => {
-      collectNotification?.(message);
-      if (message.method !== 'turn/completed') {
-        return;
-      }
-      const turn = message.params?.turn || null;
-      if (turnId && turn?.id && turn.id !== turnId) {
-        return;
-      }
-      cleanup();
-      resolve(turn);
-    };
-
-    const handleClose = (code, signal) => {
-      cleanup();
-      const error = new Error(`Codex app-server exited before turn completed (${signal || code}).`);
-      error.code = code;
-      error.signal = signal;
-      reject(error);
-    };
-
-    client.on('notification', handleNotification);
-    client.on('close', handleClose);
-  });
-}
 
 async function startOrResumeThread({ client, appServerConfig, workspaceDir }) {
   const threadParams = buildThreadParams({
@@ -81,10 +47,20 @@ async function runAppServerTurn({
   });
   const agentMessages = [];
   let threadId = appServerConfig.resumeThreadId || null;
+  let latestGoal = null;
+  let goalObserved = false;
 
   const collectNotification = (message) => {
     const logEvent = mapNotificationToLogEvent(message);
     writeLogEvent(tracker, logEvent);
+    if (message.method === 'thread/goal/updated') {
+      goalObserved = true;
+      latestGoal = message.params?.goal || null;
+    }
+    if (message.method === 'thread/goal/cleared') {
+      goalObserved = true;
+      latestGoal = null;
+    }
     const item = message.params?.item;
     if (item?.type === 'agentMessage' && item.text) {
       agentMessages.push(item.text);
@@ -101,13 +77,18 @@ async function runAppServerTurn({
   if (threadId) {
     writeLogEvent(tracker, { type: 'thread.started', thread_id: threadId, thread });
   }
-
-  const completionPromise = waitForTurnCompletion({
-    client,
-    turnId: null,
-    timeoutMs: TURN_COMPLETION_TIMEOUT_MS
-  });
+  const turnCompletions = createTurnCompletionBuffer(client);
   try {
+    if (appServerConfig.clearGoal === true) {
+      await applyRequestedGoalState({
+        client,
+        threadId,
+        goalObjective: '',
+        clearGoal: true
+      });
+      goalObserved = true;
+      latestGoal = null;
+    }
     await client.request(
       'turn/start',
       buildTurnParams({
@@ -120,15 +101,36 @@ async function runAppServerTurn({
       }),
       { timeoutMs: APP_SERVER_REQUEST_TIMEOUT_MS }
     );
+    const goalResponse = await applyRequestedGoalState({
+      client,
+      threadId,
+      goalObjective: appServerConfig.goalObjective,
+      clearGoal: false
+    });
+    if (goalResponse?.goal && !latestGoal) {
+      goalObserved = true;
+      latestGoal = goalResponse.goal;
+    }
   } catch (error) {
-    completionPromise.catch(() => {});
+    turnCompletions.close();
     throw error;
   }
-  const completedTurn = await completionPromise;
+  let completedTurn = null;
+  try {
+    completedTurn = await waitForGoalAwareCompletion({
+      turnCompletions,
+      getLatestGoal: () => latestGoal,
+      timeoutMs: TURN_COMPLETION_TIMEOUT_MS
+    });
+  } finally {
+    turnCompletions.close();
+  }
   const status = completedTurn?.status || 'completed';
   return {
     code: status === 'completed' ? 0 : 1,
     threadId,
+    goal: latestGoal,
+    goalObserved,
     agentMessages,
     turn: completedTurn
   };

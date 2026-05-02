@@ -103,6 +103,8 @@ async function runCodexTurn({ orchestrator, options, processInfo, tracker, final
     });
     runState.resultOverrides = {
       threadId: turnResult.threadId,
+      goal: turnResult.goal,
+      goalObserved: turnResult.goalObserved,
       gitFingerprintBefore: runState.gitFingerprintBefore,
       gitFingerprintAfter: await computeGitFingerprint(orchestrator.exec, options.cwd)
     };

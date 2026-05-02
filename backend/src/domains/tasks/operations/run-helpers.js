@@ -7,6 +7,8 @@ function createOutputTracker({ logStream, stderrStream }) {
   let stdoutFull = '';
   let stderrFull = '';
   let detectedThreadId = null;
+  let latestGoal = null;
+  let goalObserved = false;
 
   const onStdout = (chunk) => {
     const text = chunk.toString();
@@ -22,6 +24,14 @@ function createOutputTracker({ logStream, stderrStream }) {
         if (payload?.type === 'thread.started' && payload.thread_id) {
           detectedThreadId = payload.thread_id;
         }
+        if (payload?.type === 'thread.goal.updated') {
+          goalObserved = true;
+          latestGoal = payload.goal || null;
+        }
+        if (payload?.type === 'thread.goal.cleared') {
+          goalObserved = true;
+          latestGoal = null;
+        }
       }
       index = stdoutBuffer.indexOf('\n');
     }
@@ -36,7 +46,9 @@ function createOutputTracker({ logStream, stderrStream }) {
   const getResult = () => ({
     stdout: stdoutFull,
     stderr: stderrFull,
-    threadId: detectedThreadId
+    threadId: detectedThreadId,
+    goal: latestGoal,
+    goalObserved
   });
 
   return { onStdout, onStderr, getResult };
@@ -93,6 +105,9 @@ async function updateRunMeta({
   const state = resolveRunMetaState({ result, resolvedThreadId, usageLimit, stopped });
 
   meta.threadId = resolvedThreadId;
+  if (result.goalObserved === true) {
+    meta.goal = result.goal || null;
+  }
   meta.error = state.error;
   meta.status = state.status;
   meta.updatedAt = currentTime;

@@ -77,10 +77,47 @@ describe('Orchestrator task lifecycle', () => {
     const task = await orchestrator.createTask({ envId: env.envId, ref: 'main', prompt: 'Do work' });
     await waitForTaskStatus(orchestrator, task.taskId, 'completed');
 
-    const runCall = spawn.calls.find((call) => call.command === 'codex-docker');
+    const runCall = spawn.calls.find((call) =>
+      call.command === 'codex-docker' &&
+      call.messages.some((message) => message.method === 'turn/start')
+    );
     expect(runCall).toBeTruthy();
     const volumeMounts = (runCall.options?.env?.CODEX_VOLUME_MOUNTS || '').split(',');
     expect(volumeMounts.some((entry) => entry.endsWith(`=${orchestrator.mirrorDir(env.envId)}`))).toBe(true);
+  });
+
+  it('sets and persists a task goal when requested', async () => {
+    const orchHome = await createTempDir();
+    const exec = createMockExec({ branches: ['main'] });
+    const spawn = createMockSpawn({ goalStatus: 'complete' });
+    const orchestrator = new Orchestrator({
+      orchHome,
+      codexHome: path.join(orchHome, 'codex-home'),
+      exec,
+      spawn
+    });
+
+    const env = await orchestrator.createEnv({ repoUrl: 'git@example.com:repo.git', defaultBranch: 'main' });
+    const task = await orchestrator.createTask({
+      envId: env.envId,
+      ref: 'main',
+      prompt: 'Do work',
+      goalObjective: 'Do work until complete'
+    });
+    const completed = await waitForTaskStatus(orchestrator, task.taskId, 'completed');
+
+    const runCall = spawn.calls.find((call) =>
+      call.command === 'codex-docker' &&
+      call.messages.some((message) => message.method === 'turn/start')
+    );
+    expect(runCall.args).toContain('goals=true');
+    expect(runCall.messages.some((message) => message.method === 'thread/goal/set')).toBe(true);
+    expect(runCall.messages.findIndex((message) => message.method === 'thread/goal/set'))
+      .toBeGreaterThan(runCall.messages.findIndex((message) => message.method === 'turn/start'));
+    expect(completed.goal).toMatchObject({
+      objective: 'Do work until complete',
+      status: 'complete'
+    });
   });
 
   it('syncs branch name from worktree after run finishes', async () => {

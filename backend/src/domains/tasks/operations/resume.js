@@ -131,6 +131,8 @@ function attachTaskResumeMethods(Orchestrator) {
             resumeThreadId: meta.threadId,
             model: runModel,
             reasoningEffort: runReasoningEffort,
+            goalObjective: options.goalObjective,
+            clearGoal: options.clearGoal === true,
             developerInstructions: orchestratorInstructions
           },
           workspaceDir,

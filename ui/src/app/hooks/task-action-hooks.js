@@ -111,6 +111,8 @@ function useResumeTaskHandler({
   resumeContextRepos,
   resumeContextTouched,
   resumeFiles,
+  resumeGoalObjective,
+  initialResumeGoalObjective,
   resumePrompt,
   resumeUseHostDockerSocket,
   selectedTaskId,
@@ -121,6 +123,8 @@ function useResumeTaskHandler({
   setResumeContextRepos,
   setResumeContextTouched,
   setResumeDockerTouched,
+  setResumeGoalObjective,
+  setInitialResumeGoalObjective,
   setResumePrompt
 }) {
   return useMemo(
@@ -133,6 +137,8 @@ function useResumeTaskHandler({
         resumeContextRepos,
         resumeContextTouched,
         resumeFiles,
+        resumeGoalObjective,
+        initialResumeGoalObjective,
         resumePrompt,
         resumeUseHostDockerSocket,
         selectedTaskId,
@@ -143,6 +149,8 @@ function useResumeTaskHandler({
         setResumeContextRepos,
         setResumeContextTouched,
         setResumeDockerTouched,
+        setResumeGoalObjective,
+        setInitialResumeGoalObjective,
         setResumePrompt
       }),
     [
@@ -153,6 +161,8 @@ function useResumeTaskHandler({
       resumeContextRepos,
       resumeContextTouched,
       resumeFiles,
+      resumeGoalObjective,
+      initialResumeGoalObjective,
       resumePrompt,
       resumeUseHostDockerSocket,
       selectedTaskId,
@@ -163,6 +173,8 @@ function useResumeTaskHandler({
       setResumeContextRepos,
       setResumeContextTouched,
       setResumeDockerTouched,
+      setResumeGoalObjective,
+      setInitialResumeGoalObjective,
       setResumePrompt
     ]
   );
@@ -181,11 +193,5 @@ function useStopTaskHandler({ refreshTaskDetail, selectedTaskId, setError, setLo
   );
 }
 
-export {
-  useCommitPushTaskHandler,
-  useCreateTaskHandler,
-  useDeleteTaskHandler,
-  useReviewTaskHandler,
-  useResumeTaskHandler,
-  useStopTaskHandler
-};
+export { useCommitPushTaskHandler, useCreateTaskHandler, useDeleteTaskHandler };
+export { useReviewTaskHandler, useResumeTaskHandler, useStopTaskHandler };

@@ -36,6 +36,18 @@ function mapNotificationToLogEvent(message) {
         thread_id: params.thread?.id || params.threadId || null,
         thread: params.thread || null
       };
+    case 'thread/goal/updated':
+      return {
+        type: 'thread.goal.updated',
+        thread_id: params.threadId || params.goal?.threadId || null,
+        turn_id: params.turnId || null,
+        goal: params.goal || null
+      };
+    case 'thread/goal/cleared':
+      return {
+        type: 'thread.goal.cleared',
+        thread_id: params.threadId || null
+      };
     case 'turn/started':
       return { type: 'turn.started', turn: params.turn || null };
     case 'turn/completed':

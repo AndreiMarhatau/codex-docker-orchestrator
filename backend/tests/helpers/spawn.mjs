@@ -60,6 +60,7 @@ export function createMockSpawn({
     planType: null
   },
   defaultAgentMessageText = 'OK',
+  goalStatus = null,
   reviewTexts = null,
   onBeforeTurnComplete = null,
   turnCompletionDelayMs = 0,
@@ -71,6 +72,7 @@ export function createMockSpawn({
   const appServerResponder = createAppServerResponder({
     rateLimits,
     defaultAgentMessageText,
+    goalStatus,
     reviewTexts,
     onBeforeTurnComplete,
     turnCompletionDelayMs

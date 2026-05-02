@@ -33,14 +33,19 @@ function createManualServer({ threadId, pid, call }) {
   let activeThreadId = threadId;
   let turnCount = 0;
   let latestTurnId = null;
+  let latestTurnStarted = false;
+  let goalSetSettled = false;
   const turnWaiters = [];
+  const goalSetWaiters = [];
   const server = {
     child,
     call,
     completeTurn({ status = 'completed', text = 'OK', error = null } = {}) {
       const turnId = latestTurnId || `turn-${turnCount + 1}`;
       const item = { id: `item-${turnCount || 1}`, type: 'agentMessage', text };
-      write(child, { method: 'turn/started', params: { turn: { id: turnId, status: 'inProgress', items: [] } } });
+      if (!latestTurnStarted) {
+        write(child, { method: 'turn/started', params: { turn: { id: turnId, status: 'inProgress', items: [] } } });
+      }
       if (status === 'completed') {
         write(child, { method: 'item/completed', params: { item } });
       }
@@ -48,6 +53,27 @@ function createManualServer({ threadId, pid, call }) {
         method: 'turn/completed',
         params: { turn: { id: turnId, status, items: status === 'completed' ? [item] : [], error } }
       });
+      latestTurnStarted = false;
+    },
+    startContinuationTurn({ turnId = `turn-${turnCount + 1}` } = {}) {
+      turnCount += 1;
+      latestTurnId = turnId;
+      latestTurnStarted = true;
+      write(child, { method: 'turn/started', params: { turn: { id: latestTurnId, status: 'inProgress', items: [] } } });
+    },
+    updateGoal({ status = 'active', objective = 'Mock goal' } = {}) {
+      const goal = {
+        threadId: activeThreadId,
+        objective,
+        status,
+        tokenBudget: null,
+        tokensUsed: 0,
+        timeUsedSeconds: 0,
+        createdAt: 1,
+        updatedAt: 1
+      };
+      write(child, { method: 'thread/goal/updated', params: { threadId: activeThreadId, turnId: latestTurnId, goal } });
+      return goal;
     },
     close(code = 0, signal = null) {
       child.stdout.end();
@@ -58,6 +84,12 @@ function createManualServer({ threadId, pid, call }) {
         return Promise.resolve(server);
       }
       return new Promise((resolve) => turnWaiters.push(resolve));
+    },
+    waitForGoalSet() {
+      if (goalSetSettled) {
+        return Promise.resolve(server);
+      }
+      return new Promise((resolve) => goalSetWaiters.push(resolve));
     }
   };
 
@@ -87,11 +119,29 @@ function createManualServer({ threadId, pid, call }) {
         if (message.method === 'turn/start' && message.id !== undefined) {
           turnCount += 1;
           latestTurnId = `turn-${turnCount}`;
-          write(child, {
-            id: message.id,
-            result: { turn: { id: latestTurnId, status: 'inProgress', items: [], error: null } }
-          });
+          latestTurnStarted = false;
+          write(child, { id: message.id, result: { turn: { id: latestTurnId, status: 'inProgress', items: [], error: null } } });
           resolveWaiters(turnWaiters, server);
+        }
+        if (message.method === 'thread/goal/set' && message.id !== undefined) {
+          const goal = {
+            threadId: message.params?.threadId || activeThreadId,
+            objective: message.params?.objective || 'Mock goal',
+            status: message.params?.status || 'active',
+            tokenBudget: null,
+            tokensUsed: 0,
+            timeUsedSeconds: 0,
+            createdAt: 1,
+            updatedAt: 1
+          };
+          write(child, { id: message.id, result: { goal } });
+          write(child, { method: 'thread/goal/updated', params: { threadId: goal.threadId, turnId: null, goal } });
+          goalSetSettled = true;
+          resolveWaiters(goalSetWaiters, server);
+        }
+        if (message.method === 'thread/goal/clear' && message.id !== undefined) {
+          write(child, { id: message.id, result: {} });
+          write(child, { method: 'thread/goal/cleared', params: { threadId: message.params?.threadId || activeThreadId } });
         }
       }
       newlineIndex = buffer.indexOf('\n');

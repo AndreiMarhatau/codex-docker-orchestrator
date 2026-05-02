@@ -6,7 +6,7 @@ const { handleTaskMutationError, normalizeResumeInput } = require('./tasks.resum
 
 function createTaskHandler(orchestrator) {
   return asyncHandler(async (req, res) => {
-    const { envId, ref, prompt, fileUploads, model, reasoningEffort, useHostDockerSocket, autoReview, contextRepos } = req.body;
+    const { envId, ref, prompt, fileUploads, model, reasoningEffort, useHostDockerSocket, autoReview, contextRepos, goalObjective } = req.body;
     if (!envId || !prompt) {
       return res.status(400).send('envId and prompt are required');
     }
@@ -34,6 +34,7 @@ function createTaskHandler(orchestrator) {
         reasoningEffort,
         useHostDockerSocket,
         autoReview,
+        goalObjective,
         contextRepos: normalizedContextRepos,
         deferStartup: true
       });
@@ -133,6 +134,8 @@ function createResumeTaskHandler(orchestrator) {
         const options = {
           model: input.model,
           reasoningEffort: input.reasoningEffort,
+          goalObjective: input.goalObjective,
+          clearGoal: input.clearGoal,
           useHostDockerSocket: input.useHostDockerSocket
         };
         if (input.hasContextOverride) {

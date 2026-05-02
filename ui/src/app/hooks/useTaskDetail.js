@@ -5,20 +5,8 @@ import useResumeContextRepos from './useResumeContextRepos.js';
 import useTaskFiles from './useTaskFiles.js';
 import useTaskLogStream from './useTaskLogStream.js';
 
-function useTaskDetail({ enabled, envs, tasks, selectedTaskId, setError, setSelectedTaskId }) {
-  const [taskDetail, setTaskDetail] = useState(null);
-  const [taskDiff, setTaskDiff] = useState(null);
-  const [revealedDiffs, setRevealedDiffs] = useState({});
-  const [resumePrompt, setResumePrompt] = useState('');
-  const [resumeConfig, setResumeConfig] = useState(emptyResumeConfig);
-  const [resumeUseHostDockerSocket, setResumeUseHostDockerSocket] = useState(false);
-  const [resumeDockerTouched, setResumeDockerTouched] = useState(false);
-  const resumeFiles = useTaskFiles();
-  const [resumeAttachmentRemovals, setResumeAttachmentRemovals] = useState([]);
-  const resumeDefaultsTaskIdRef = useRef('');
-  const resumeContextState = useResumeContextRepos({ envs, selectedTaskId, taskDetail });
-
-  const refreshTaskDetail = useCallback(
+function useTaskDetailRefresh({ setSelectedTaskId, setTaskDetail, setTaskDiff }) {
+  return useCallback(
     async (taskId) => {
       if (!taskId) {
         return;
@@ -45,8 +33,31 @@ function useTaskDetail({ enabled, envs, tasks, selectedTaskId, setError, setSele
         throw err;
       }
     },
-    [setSelectedTaskId]
+    [setSelectedTaskId, setTaskDetail, setTaskDiff]
   );
+}
+
+function useTaskDetail({ enabled, envs, tasks, selectedTaskId, setError, setSelectedTaskId }) {
+  const [taskDetail, setTaskDetail] = useState(null);
+  const [taskDiff, setTaskDiff] = useState(null);
+  const [revealedDiffs, setRevealedDiffs] = useState({});
+  const [resumePrompt, setResumePrompt] = useState('');
+  const [resumeConfig, setResumeConfig] = useState(emptyResumeConfig);
+  const [resumeGoalObjective, setResumeGoalObjective] = useState('');
+  const [initialResumeGoalObjective, setInitialResumeGoalObjective] = useState('');
+  const [resumeUseHostDockerSocket, setResumeUseHostDockerSocket] = useState(false);
+  const [resumeDockerTouched, setResumeDockerTouched] = useState(false);
+  const resumeFiles = useTaskFiles();
+  const [resumeAttachmentRemovals, setResumeAttachmentRemovals] = useState([]);
+  const resumeDefaultsTaskIdRef = useRef('');
+  const resumeGoalDefaultsTaskIdRef = useRef('');
+  const resumeContextState = useResumeContextRepos({ envs, selectedTaskId, taskDetail });
+
+  const refreshTaskDetail = useTaskDetailRefresh({
+    setSelectedTaskId,
+    setTaskDetail,
+    setTaskDiff
+  });
 
   useEffect(() => {
     if (!selectedTaskId) {
@@ -54,6 +65,9 @@ function useTaskDetail({ enabled, envs, tasks, selectedTaskId, setError, setSele
       setTaskDiff(null);
       setRevealedDiffs({});
       setResumeConfig(emptyResumeConfig);
+      setResumeGoalObjective('');
+      setInitialResumeGoalObjective('');
+      resumeGoalDefaultsTaskIdRef.current = '';
       resumeFiles.handleClearTaskFiles();
       setResumeAttachmentRemovals([]);
       return;
@@ -83,6 +97,9 @@ function useTaskDetail({ enabled, envs, tasks, selectedTaskId, setError, setSele
       return;
     }
     resumeDefaultsTaskIdRef.current = selectedTaskId;
+    resumeGoalDefaultsTaskIdRef.current = '';
+    setResumeGoalObjective('');
+    setInitialResumeGoalObjective('');
     setResumeUseHostDockerSocket(selectedTask.useHostDockerSocket === true);
     setResumeDockerTouched(false);
   }, [selectedTaskId, tasks]);
@@ -96,6 +113,27 @@ function useTaskDetail({ enabled, envs, tasks, selectedTaskId, setError, setSele
     }
     setResumeUseHostDockerSocket(taskDetail.useHostDockerSocket === true);
   }, [taskDetail, resumeDockerTouched]);
+
+  useEffect(() => {
+    if (!taskDetail || resumeDefaultsTaskIdRef.current !== taskDetail.taskId) {
+      return;
+    }
+    const goal = taskDetail.goal;
+    if (resumeGoalDefaultsTaskIdRef.current === taskDetail.taskId && goal?.status === 'complete') {
+      if (resumeGoalObjective === initialResumeGoalObjective) {
+        setResumeGoalObjective('');
+        setInitialResumeGoalObjective('');
+      }
+      return;
+    }
+    if (resumeGoalDefaultsTaskIdRef.current === taskDetail.taskId) {
+      return;
+    }
+    const objective = goal && goal.status !== 'complete' ? goal.objective || '' : '';
+    resumeGoalDefaultsTaskIdRef.current = taskDetail.taskId;
+    setResumeGoalObjective(objective);
+    setInitialResumeGoalObjective(objective);
+  }, [initialResumeGoalObjective, resumeGoalObjective, taskDetail]);
 
   useTaskLogStream({ selectedTaskId, setTaskDetail, taskDetail });
 
@@ -120,11 +158,15 @@ function useTaskDetail({ enabled, envs, tasks, selectedTaskId, setError, setSele
     resumeConfig,
     resumeDockerTouched,
     resumeFiles,
+    resumeGoalObjective,
+    initialResumeGoalObjective,
     resumePrompt,
     resumeUseHostDockerSocket,
     setResumeAttachmentRemovals,
     setResumeConfig,
     setResumeDockerTouched,
+    setResumeGoalObjective,
+    setInitialResumeGoalObjective,
     setResumePrompt,
     setResumeUseHostDockerSocket,
     setTaskDetail,

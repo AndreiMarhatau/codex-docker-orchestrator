@@ -55,6 +55,7 @@ function createHandleCreateTask({
           fileUploads,
           model: modelValue || undefined,
           reasoningEffort: reasoningEffortValue || undefined,
+          goalObjective: taskForm.goalObjective.trim() || undefined,
           useHostDockerSocket: taskForm.useHostDockerSocket,
           autoReview: taskForm.autoReview,
           contextRepos: contextRepos.length > 0 ? contextRepos : undefined
@@ -85,6 +86,8 @@ function createHandleResumeTask({
   resumeContextRepos,
   resumeContextTouched,
   resumeFiles,
+  resumeGoalObjective,
+  initialResumeGoalObjective,
   resumePrompt,
   resumeUseHostDockerSocket,
   selectedTaskId,
@@ -95,6 +98,8 @@ function createHandleResumeTask({
   setResumeContextRepos,
   setResumeContextTouched,
   setResumeDockerTouched,
+  setResumeGoalObjective,
+  setInitialResumeGoalObjective,
   setResumePrompt
 }) {
   return async function handleResumeTask() {
@@ -112,6 +117,8 @@ function createHandleResumeTask({
       const modelValue = resolveModelValue(resumeConfig.modelChoice, resumeConfig.customModel);
       const reasoningEffortValue = resolveReasoningEffortValue(resumeConfig);
       const contextRepos = buildContextRepos(resumeContextRepos);
+      const trimmedGoalObjective = resumeGoalObjective.trim();
+      const shouldClearGoal = Boolean(initialResumeGoalObjective.trim()) && !trimmedGoalObjective;
       await apiRequest(`/api/tasks/${selectedTaskId}/resume`, {
         method: 'POST',
         body: JSON.stringify({
@@ -120,6 +127,8 @@ function createHandleResumeTask({
           prompt: resumePrompt,
           model: modelValue || undefined,
           reasoningEffort: reasoningEffortValue || undefined,
+          goalObjective: trimmedGoalObjective || undefined,
+          clearGoal: shouldClearGoal || undefined,
           useHostDockerSocket: resumeUseHostDockerSocket,
           contextRepos: resumeContextTouched ? contextRepos : undefined
         })
@@ -127,6 +136,8 @@ function createHandleResumeTask({
       resumeFiles.handleClearTaskFiles();
       setResumeAttachmentRemovals([]);
       setResumePrompt('');
+      setResumeGoalObjective('');
+      setInitialResumeGoalObjective('');
       setResumeConfig(emptyResumeConfig);
       setResumeContextRepos([]);
       setResumeContextTouched(false);

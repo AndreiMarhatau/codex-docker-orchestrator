@@ -5,8 +5,8 @@ import { MAX_TASK_FILES } from '../../../constants.js';
 import { formatBytes } from '../../../formatters.js';
 import TaskFormBasics from './TaskFormBasics.jsx';
 import TaskFormContextRepos from './TaskFormContextRepos.jsx';
-import TaskDockerToggle from './TaskDockerToggle.jsx';
 import TaskFormModel from './TaskFormModel.jsx';
+import TaskDockerToggle from './TaskDockerToggle.jsx';
 
 function TaskFileList({ files }) {
   if (files.taskFiles.length === 0) {
@@ -108,6 +108,7 @@ function TaskCreateBody({ envs, files, formState, loading, selectedEnv }) {
             }))
           }
         />
+
       </Stack>
 
       <Stack spacing={2.25} className="task-compose-column">

@@ -3,6 +3,8 @@ const CODEX_APP_SERVER_ARGS = [
   'sandbox_mode="danger-full-access"',
   '-c',
   'approval_policy="never"',
+  '-c',
+  'goals=true',
   'app-server'
 ];
 

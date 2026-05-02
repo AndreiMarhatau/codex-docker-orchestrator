@@ -57,6 +57,33 @@ describe('app-server runner notification mapping', () => {
     });
   });
 
+  it('maps thread goal notifications', () => {
+    const goal = {
+      threadId: 'thread-1',
+      objective: 'Ship it',
+      status: 'active',
+      tokensUsed: 12,
+      timeUsedSeconds: 3
+    };
+    expect(mapNotificationToLogEvent({
+      method: 'thread/goal/updated',
+      params: { threadId: 'thread-1', turnId: 'turn-1', goal }
+    })).toEqual({
+      type: 'thread.goal.updated',
+      thread_id: 'thread-1',
+      turn_id: 'turn-1',
+      goal
+    });
+
+    expect(mapNotificationToLogEvent({
+      method: 'thread/goal/cleared',
+      params: { threadId: 'thread-1' }
+    })).toEqual({
+      type: 'thread.goal.cleared',
+      thread_id: 'thread-1'
+    });
+  });
+
   it('maps completed, failed, and unknown turn notifications', () => {
     expect(mapNotificationToLogEvent({ method: 'turn/started' }))
       .toEqual({ type: 'turn.started', turn: null });

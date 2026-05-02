@@ -80,6 +80,32 @@ function handleTurnStart(context, message) {
   context.emitTurn({ turnId, item, message });
 }
 
+function handleThreadGoalSet(context, message) {
+  const goal = {
+    threadId: message.params?.threadId || context.lastThreadId,
+    objective: message.params?.objective || 'Mock goal',
+    status: context.goalStatus || message.params?.status || 'active',
+    tokenBudget: null,
+    tokensUsed: 0,
+    timeUsedSeconds: 0,
+    createdAt: 1,
+    updatedAt: 1
+  };
+  context.write({ id: message.id, result: { goal } });
+  context.write({
+    method: 'thread/goal/updated',
+    params: { threadId: goal.threadId, turnId: null, goal }
+  });
+}
+
+function handleThreadGoalClear(context, message) {
+  context.write({ id: message.id, result: {} });
+  context.write({
+    method: 'thread/goal/cleared',
+    params: { threadId: message.params?.threadId || context.lastThreadId }
+  });
+}
+
 function handleReviewStart(context, message) {
   context.turnCount += 1;
   const turnId = `turn-${context.turnCount}`;
@@ -114,6 +140,10 @@ function handleAppServerMessage(context, message) {
     handleThreadResume(context, message);
   } else if (message?.method === 'turn/start' && message.id !== undefined) {
     handleTurnStart(context, message);
+  } else if (message?.method === 'thread/goal/set' && message.id !== undefined) {
+    handleThreadGoalSet(context, message);
+  } else if (message?.method === 'thread/goal/clear' && message.id !== undefined) {
+    handleThreadGoalClear(context, message);
   } else if (message?.method === 'review/start' && message.id !== undefined) {
     handleReviewStart(context, message);
   }

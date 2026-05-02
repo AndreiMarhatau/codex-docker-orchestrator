@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import {
-  Alert,
-  AlertTitle,
   Button,
   IconButton,
   Menu,
@@ -20,34 +18,8 @@ import { formatDuration } from '../../../formatters.js';
 import { formatRepoDisplay } from '../../../repo-helpers.js';
 import { getTaskRuntimeMs, isTaskStoppableStatus } from '../../../task-helpers.js';
 import { StatusPill } from '../TaskStatusPrimitives.jsx';
-
-function TaskErrorAlert({ taskDetail }) {
-  const runLogs = Array.isArray(taskDetail.runLogs) ? taskDetail.runLogs : [];
-  const latestRunLog = runLogs[runLogs.length - 1] || null;
-  const latestRunFailedBeforeSpawn = latestRunLog?.failedBeforeSpawn === true;
-  const hasTaskError = Boolean(taskDetail.error);
-  const isPreSpawnFailure =
-    taskDetail.status === 'failed' && hasTaskError && latestRunFailedBeforeSpawn;
-  const showTaskError =
-    hasTaskError && (taskDetail.status === 'failed' || taskDetail.status === 'stopped');
-
-  if (!showTaskError) {
-    return null;
-  }
-
-  return (
-    <Alert severity={taskDetail.status === 'stopped' ? 'info' : 'error'} variant="outlined">
-      <AlertTitle>
-        {isPreSpawnFailure
-          ? 'Startup failed before codex-docker spawned'
-          : taskDetail.status === 'stopped'
-            ? 'Task stopped'
-            : 'Task failed'}
-      </AlertTitle>
-      {taskDetail.error}
-    </Alert>
-  );
-}
+import TaskErrorAlert from './TaskErrorAlert.jsx';
+import TaskGoalAlert from './TaskGoalAlert.jsx';
 
 function RuntimePill({ runtimeMs }) {
   if (!runtimeMs) {
@@ -197,6 +169,7 @@ function TaskDetailHeader({
       </Stack>
 
       <TaskErrorAlert taskDetail={taskDetail} />
+      <TaskGoalAlert taskDetail={taskDetail} />
     </Stack>
   );
 }

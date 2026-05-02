@@ -28,3 +28,4 @@
 - Do not add defensive fallback behavior unless a current production flow requires it.
 - Update tests with the same architectural boundaries as production code.
 - New shared infrastructure contracts must be generic enough that implementation details can change locally without changing domain modules.
+- Prefer loose coupling to Codex internals. Use stable public app-server surfaces where possible, and avoid depending on implementation details so Codex changes are less likely to break the orchestrator.

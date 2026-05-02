@@ -17,6 +17,7 @@ function buildTaskMeta(options) {
     reasoningEffort: options.reasoningEffort,
     useHostDockerSocket: options.useHostDockerSocket,
     autoReview: Boolean(options.autoReview),
+    goal: null,
     threadId: null,
     error: null,
     status: 'running',

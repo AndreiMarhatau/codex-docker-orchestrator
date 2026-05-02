@@ -1,5 +1,6 @@
 import { MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { formatRepoDisplay } from '../../../repo-helpers.js';
+import TaskGoalField from './TaskGoalField.jsx';
 
 function TaskFormBasics({ envs, selectedEnv, setTaskForm, taskForm }) {
   return (
@@ -34,7 +35,7 @@ function TaskFormBasics({ envs, selectedEnv, setTaskForm, taskForm }) {
         />
       </BoxField>
 
-      <BoxField helperText="Be specific and include context, goals, and constraints.">
+      <BoxField helperText="Be specific and include context and constraints.">
         <TextField
           label="Prompt"
           fullWidth
@@ -44,6 +45,13 @@ function TaskFormBasics({ envs, selectedEnv, setTaskForm, taskForm }) {
           onChange={(event) => setTaskForm((prev) => ({ ...prev, prompt: event.target.value }))}
           placeholder="Describe what the agent should do..."
           className="task-compose-field"
+        />
+      </BoxField>
+
+      <BoxField helperText="Optional. Codex will keep working while this goal remains active.">
+        <TaskGoalField
+          value={taskForm.goalObjective}
+          onChange={(goalObjective) => setTaskForm((prev) => ({ ...prev, goalObjective }))}
         />
       </BoxField>
     </Stack>

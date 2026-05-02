@@ -5,12 +5,25 @@ const {
 } = require('../validators');
 
 function normalizeResumeInput(body) {
-  const { attachmentRemovals, fileUploads, prompt, model, reasoningEffort, useHostDockerSocket, contextRepos } = body;
+  const {
+    attachmentRemovals,
+    clearGoal,
+    contextRepos,
+    fileUploads,
+    goalObjective,
+    model,
+    prompt,
+    reasoningEffort,
+    useHostDockerSocket
+  } = body;
   if (!prompt) {
     return { error: 'prompt is required' };
   }
   if (useHostDockerSocket !== undefined && typeof useHostDockerSocket !== 'boolean') {
     return { error: 'useHostDockerSocket must be a boolean' };
+  }
+  if (clearGoal !== undefined && typeof clearGoal !== 'boolean') {
+    return { error: 'clearGoal must be a boolean' };
   }
   const hasContextOverride = Object.prototype.hasOwnProperty.call(body, 'contextRepos');
   const hasFileUploads = Object.prototype.hasOwnProperty.call(body, 'fileUploads');
@@ -26,6 +39,8 @@ function normalizeResumeInput(body) {
       hasFileUploads,
       model,
       prompt,
+      goalObjective,
+      clearGoal: clearGoal === true,
       reasoningEffort,
       contextRepos: hasContextOverride ? normalizeContextReposInput(contextRepos) : null,
       useHostDockerSocket

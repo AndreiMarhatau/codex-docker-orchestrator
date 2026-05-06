@@ -159,6 +159,7 @@ export function createMockExec({
   diffHasChanges = true
 } = {}) {
   const calls = [];
+  let hasDockerImage = dockerImageExists;
   const threadId = '019b341f-04d9-73b3-8263-2c05ca63d690';
   const exec = async (command, args, options = {}) => {
     calls.push({ command, args, options });
@@ -180,9 +181,10 @@ export function createMockExec({
       return codexDockerResult(args, threadId);
     }
     if (command === 'docker') {
+      hasDockerImage = args[0] === 'pull' || hasDockerImage;
       const result = handleDockerCommand({
         args,
-        dockerImageExists,
+        dockerImageExists: hasDockerImage,
         dockerImageId,
         dockerCreatedAt
       });

@@ -5,7 +5,10 @@ import path from 'node:path';
 import { createTempDir } from '../helpers.mjs';
 
 const require = createRequire(import.meta.url);
-const { buildRunEnv } = require('../../src/shared/codex/run-env');
+const {
+  buildRunEnv,
+  resolveCodexRunImageName
+} = require('../../src/shared/codex/run-env');
 const {
   DEFAULT_GIT_CONFIG_CONTAINER_PATH,
   DEFAULT_INNER_ARTIFACTS_DIR,
@@ -110,6 +113,25 @@ describe('run helpers env', () => {
       expect.arrayContaining(['EXISTING_VAR', 'GIT_CONFIG_GLOBAL', 'GH_TOKEN', 'SAMPLE_FLAG', 'PATH'])
     );
     delete process.env.CODEX_PASSTHROUGH_ENV;
+  });
+
+  it('uses IMAGE_NAME overrides as the effective Codex image', async () => {
+    const root = await createTempDir();
+    const orchestrator = { ...createOrchestrator(root), imageName: 'global-image:latest' };
+    const artifactsDir = path.join(root, 'artifacts');
+    const envOverrides = { IMAGE_NAME: ' env-image:latest ' };
+    await fs.mkdir(orchestrator.codexHome, { recursive: true });
+    await fs.mkdir(artifactsDir, { recursive: true });
+
+    const env = buildRunEnv({
+      orchestrator,
+      workspaceDir: '/workspace/repo',
+      artifactsDir,
+      envOverrides
+    });
+
+    expect(resolveCodexRunImageName(orchestrator, envOverrides)).toBe('env-image:latest');
+    expect(env.IMAGE_NAME).toBe('env-image:latest');
   });
 
   it('keeps CODEX_CONTAINER_ENV overrides out of passthrough forwarding', async () => {

@@ -16,19 +16,13 @@ class MockEventSource {
     listeners.push(listener);
     this.listeners.set(event, listeners);
   }
-
   removeEventListener(event, listener) {
     const listeners = this.listeners.get(event) || [];
-    this.listeners.set(
-      event,
-      listeners.filter((entry) => entry !== listener)
-    );
+    this.listeners.set(event, listeners.filter((entry) => entry !== listener));
   }
-
   close() {
     this.closed = true;
   }
-
   emit(event, data) {
     const listeners = this.listeners.get(event) || [];
     for (const listener of listeners) {
@@ -38,10 +32,23 @@ class MockEventSource {
 }
 
 MockEventSource.instances = [];
-
 function StreamHarness(props) {
   useStateStream(props);
   return null;
+}
+
+function renderStream(props = {}) {
+  const defaults = {
+    enabled: true,
+    refreshAll: vi.fn(async () => {}),
+    refreshTaskDetail: vi.fn(async () => {}),
+    selectedTaskId: '',
+    setAccountState: vi.fn(),
+    setEnvs: vi.fn(),
+    setError: vi.fn(),
+    setTasks: vi.fn()
+  };
+  return render(<StreamHarness {...defaults} {...props} />);
 }
 
 describe('useStateStream', () => {
@@ -52,22 +59,21 @@ describe('useStateStream', () => {
     const setEnvs = vi.fn();
     const setTasks = vi.fn();
     const setAccountState = vi.fn();
+    const setCodexImage = vi.fn();
     const setError = vi.fn();
     const refreshAll = vi.fn(async () => {});
     const refreshTaskDetail = vi.fn(async () => {});
 
-    render(
-      <StreamHarness
-        enabled
-        refreshAll={refreshAll}
-        refreshTaskDetail={refreshTaskDetail}
-        selectedTaskId="task-1"
-        setAccountState={setAccountState}
-        setEnvs={setEnvs}
-        setError={setError}
-        setTasks={setTasks}
-      />
-    );
+    renderStream({
+      refreshAll,
+      refreshTaskDetail,
+      selectedTaskId: 'task-1',
+      setAccountState,
+      setCodexImage,
+      setEnvs,
+      setError,
+      setTasks
+    });
 
     const stream = MockEventSource.instances[0];
     stream.emit(
@@ -75,7 +81,8 @@ describe('useStateStream', () => {
       JSON.stringify({
         envs: [{ envId: 'env-1' }],
         tasks: [{ taskId: 'task-1' }],
-        accounts: { accounts: [], activeAccountId: null }
+        accounts: { accounts: [], activeAccountId: null },
+        codexImage: { status: 'pulling', imageName: 'ghcr.io/example/codex-docker:latest' }
       })
     );
 
@@ -83,8 +90,20 @@ describe('useStateStream', () => {
       expect(setEnvs).toHaveBeenCalledWith([{ envId: 'env-1' }]);
       expect(setTasks).toHaveBeenCalledWith([{ taskId: 'task-1' }]);
       expect(setAccountState).toHaveBeenCalledWith({ accounts: [], activeAccountId: null });
+      expect(setCodexImage).toHaveBeenCalledWith({
+        status: 'pulling',
+        imageName: 'ghcr.io/example/codex-docker:latest'
+      });
       expect(refreshTaskDetail).toHaveBeenCalledWith('task-1');
       expect(setError).not.toHaveBeenCalled();
+    });
+    stream.emit(
+      'codex_image_changed',
+      JSON.stringify({ codexImage: { status: 'ready', ready: true } })
+    );
+    await waitFor(() => {
+      expect(setCodexImage).toHaveBeenCalledWith({ status: 'ready', ready: true });
+      expect(refreshAll).not.toHaveBeenCalled();
     });
   });
 
@@ -94,18 +113,7 @@ describe('useStateStream', () => {
 
     const refreshAll = vi.fn(async () => {});
     const refreshTaskDetail = vi.fn(async () => {});
-    const { unmount } = render(
-      <StreamHarness
-        enabled
-        refreshAll={refreshAll}
-        refreshTaskDetail={refreshTaskDetail}
-        selectedTaskId="task-2"
-        setAccountState={vi.fn()}
-        setEnvs={vi.fn()}
-        setError={vi.fn()}
-        setTasks={vi.fn()}
-      />
-    );
+    const { unmount } = renderStream({ refreshAll, refreshTaskDetail, selectedTaskId: 'task-2' });
 
     const stream = MockEventSource.instances[0];
     stream.emit('tasks_changed', JSON.stringify({ taskId: 'task-2' }));
@@ -128,19 +136,12 @@ describe('useStateStream', () => {
     const nowSpy = vi.spyOn(Date, 'now');
     nowSpy.mockReturnValue(61000);
 
-    render(
-      <StreamHarness
-        enabled
-        reconnectRefreshMs={60000}
-        refreshAll={refreshAll}
-        refreshTaskDetail={refreshTaskDetail}
-        selectedTaskId="task-3"
-        setAccountState={vi.fn()}
-        setEnvs={vi.fn()}
-        setError={vi.fn()}
-        setTasks={vi.fn()}
-      />
-    );
+    renderStream({
+      reconnectRefreshMs: 60000,
+      refreshAll,
+      refreshTaskDetail,
+      selectedTaskId: 'task-3'
+    });
 
     const stream = MockEventSource.instances[0];
     stream.emit('error');
@@ -176,19 +177,12 @@ describe('useStateStream', () => {
     const clearIntervalSpy = vi
       .spyOn(globalThis, 'clearInterval')
       .mockImplementation(() => {});
-    render(
-      <StreamHarness
-        enabled
-        reconnectRefreshMs={1000}
-        refreshAll={refreshAll}
-        refreshTaskDetail={refreshTaskDetail}
-        selectedTaskId="task-4"
-        setAccountState={vi.fn()}
-        setEnvs={vi.fn()}
-        setError={vi.fn()}
-        setTasks={vi.fn()}
-      />
-    );
+    renderStream({
+      reconnectRefreshMs: 1000,
+      refreshAll,
+      refreshTaskDetail,
+      selectedTaskId: 'task-4'
+    });
 
     await waitFor(() => {
       expect(refreshAll).toHaveBeenCalledTimes(1);

@@ -80,6 +80,7 @@ function attachAccountMethods(Orchestrator) {
       throw noActiveAccountError('No active account. Add or activate an account first.');
     }
     await this.ensureActiveAuth();
+    await this.ensureCodexImageReady?.();
     await runAccountUsageTrigger({
       spawn: this.spawn,
       env: this.buildCodexDockerEnv()
@@ -107,6 +108,7 @@ function attachAccountMethods(Orchestrator) {
   Orchestrator.prototype.fetchAccountRateLimitsForHome = async function fetchAccountRateLimitsForHome(
     codexHome
   ) {
+    await this.ensureCodexImageReady?.();
     return readAccountRateLimits({
       spawn: this.spawn,
       env: this.buildCodexDockerEnv({ codexHomePath: codexHome })

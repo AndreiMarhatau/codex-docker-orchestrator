@@ -4,7 +4,12 @@ async function buildStateSnapshot(orchestrator) {
     orchestrator.listTasks(),
     orchestrator.listAccounts()
   ]);
-  return { envs, tasks, accounts };
+  return {
+    envs,
+    tasks,
+    accounts,
+    codexImage: orchestrator.getCodexImageStatus?.() || null
+  };
 }
 
 module.exports = {

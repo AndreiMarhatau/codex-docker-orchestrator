@@ -6,6 +6,7 @@ function useAppData({ enabled = true } = {}) {
   const [envs, setEnvs] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [accountState, setAccountState] = useState({ accounts: [], activeAccountId: null });
+  const [codexImage, setCodexImage] = useState(null);
   const [setupState, setSetupState] = useState({
     ready: false,
     gitTokenConfigured: false,
@@ -54,12 +55,14 @@ function useAppData({ enabled = true } = {}) {
 
   return {
     accountState,
+    codexImage,
     envs,
     error,
     loading,
     refreshAll,
     setupState,
     setAccountState,
+    setCodexImage,
     setEnvs,
     setError,
     setSetupState,

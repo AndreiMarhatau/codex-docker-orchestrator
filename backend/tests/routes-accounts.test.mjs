@@ -118,14 +118,17 @@ describe('accounts routes', () => {
   it('triggers usage for the active account', async () => {
     const orchHome = await createTempDir();
     const codexHome = `${orchHome}/codex-home`;
-    const exec = createMockExec({ branches: ['main'] });
+    const exec = createMockExec({ branches: ['main'], dockerImageExists: false });
     const spawn = createMockSpawn();
     const orchestrator = new Orchestrator({ orchHome, codexHome, exec, spawn });
+    orchestrator.warmCodexImage = () => {};
     const created = await prepareOrchestratorSetup(orchestrator);
     const app = await createApp({ orchestrator });
 
     const triggerRes = await request(app).post('/api/accounts/trigger-usage').expect(200);
     expect(triggerRes.body.account.id).toBe(created.id);
     expect(triggerRes.body.triggeredAt).toBeTruthy();
+    expect(exec.calls.some((call) => call.command === 'docker' && call.args[0] === 'pull')).toBe(true);
+    expect(orchestrator.getCodexImageStatus()).toMatchObject({ ready: true, status: 'ready' });
   });
 });

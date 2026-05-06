@@ -1,4 +1,4 @@
-const { buildRunEnv } = require('./run-env');
+const { buildRunEnv, resolveCodexRunImageName } = require('./run-env');
 const { runAppServerTurn } = require('./app-server-turn');
 const { createBoundedChildShutdown } = require('../process/shutdown');
 const { buildCodexAppServerArgs } = require('./app-server-args');
@@ -52,31 +52,40 @@ async function runStructuredCodex({
   developerInstructions,
   outputSchema
 }) {
-  const env = buildRunEnv({
-    orchestrator,
-    workspaceDir,
-    artifactsDir,
-    volumeMounts,
-    envOverrides
-  });
-  env.ORCH_STRUCTURED_CODEX = '1';
-  const useProcessGroup = process.platform !== 'win32';
-  const child = orchestrator.spawn('codex-docker', buildCodexAppServerArgs(), {
-    cwd,
-    env,
-    stdio: ['pipe', 'pipe', 'pipe'],
-    detached: useProcessGroup
-  });
-  const shutdown = createBoundedChildShutdown({
-    child,
-    useProcessGroup,
-    stopTimeoutMs: orchestrator.appServerShutdownTimeoutMs
-  });
+  const imageReadyController = new AbortController();
+  let shutdown = null;
   const unregisterCancel = taskId
-    ? orchestrator.registerTaskRunTransitionCancel?.(taskId, shutdown.stop) || (() => {})
+    ? orchestrator.registerTaskRunTransitionCancel?.(taskId, () => {
+      imageReadyController.abort();
+      shutdown?.stop('SIGTERM');
+    }) || (() => {})
     : () => {};
   const tracker = createMemoryTracker();
   try {
+    await orchestrator.ensureCodexImageReady?.({
+      imageName: resolveCodexRunImageName(orchestrator, envOverrides),
+      signal: imageReadyController.signal
+    });
+    const env = buildRunEnv({
+      orchestrator,
+      workspaceDir,
+      artifactsDir,
+      volumeMounts,
+      envOverrides
+    });
+    env.ORCH_STRUCTURED_CODEX = '1';
+    const useProcessGroup = process.platform !== 'win32';
+    const child = orchestrator.spawn('codex-docker', buildCodexAppServerArgs(), {
+      cwd,
+      env,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      detached: useProcessGroup
+    });
+    shutdown = createBoundedChildShutdown({
+      child,
+      useProcessGroup,
+      stopTimeoutMs: orchestrator.appServerShutdownTimeoutMs
+    });
     const result = await runAppServerTurn({
       child,
       tracker,
@@ -101,7 +110,7 @@ async function runStructuredCodex({
     return parsed;
   } finally {
     unregisterCancel();
-    shutdown.stop('SIGTERM');
+    shutdown?.stop('SIGTERM');
   }
 }
 

@@ -12,6 +12,7 @@ const {
   DEFAULT_TASK_DOCKER_READY_INTERVAL_MS,
   DEFAULT_TASK_DOCKER_COMMAND_TIMEOUT_MS
 } = require('../shared/config/constants');
+const { resolveCodexDockerDefaultImage } = require('./codex-image-default');
 
 function isPresent(value) {
   return value !== undefined && value !== null && value !== '';
@@ -51,7 +52,12 @@ function resolveConfig(options) {
     spawn: options.spawn || spawn,
     now: options.now || (() => new Date().toISOString()),
     fetch: options.fetch || global.fetch,
-    imageName: resolveOptional(options, 'imageName', 'IMAGE_NAME', DEFAULT_IMAGE_NAME),
+    imageName: resolveOptional(
+      options,
+      'imageName',
+      'IMAGE_NAME',
+      resolveCodexDockerDefaultImage(DEFAULT_IMAGE_NAME)
+    ),
     getUid: options.getUid || (() => (typeof process.getuid === 'function' ? process.getuid() : null)),
     getGid: options.getGid || (() => (typeof process.getgid === 'function' ? process.getgid() : null)),
     accountStore: options.accountStore,

@@ -13,11 +13,12 @@ const { createEventsRouter } = require('./app/routes/events');
 const { createSetupMiddleware } = require('./app/middleware/setup');
 
 async function createApp({ orchestrator = new Orchestrator() } = {}) {
-  await orchestrator.initializeAppStartup();
-  const app = express();
   const stateEventBus = createStateEventBus();
   orchestrator.emitStateEvent = stateEventBus.emit;
   orchestrator.subscribeStateEvents = stateEventBus.subscribe;
+  await orchestrator.initializeAppStartup();
+  orchestrator.warmCodexImage?.();
+  const app = express();
 
   app.use(
     cors({

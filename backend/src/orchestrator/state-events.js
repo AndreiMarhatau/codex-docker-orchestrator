@@ -27,6 +27,12 @@ function attachStateEventMethods(Orchestrator) {
   Orchestrator.prototype.notifySetupChanged = function notifySetupChanged() {
     this.emitStateEventSafe(STATE_EVENT_TYPES.setupChanged, {});
   };
+
+  Orchestrator.prototype.notifyCodexImageChanged = function notifyCodexImageChanged() {
+    this.emitStateEventSafe(STATE_EVENT_TYPES.codexImageChanged, {
+      codexImage: this.getCodexImageStatus?.() || null
+    });
+  };
 }
 
 module.exports = {

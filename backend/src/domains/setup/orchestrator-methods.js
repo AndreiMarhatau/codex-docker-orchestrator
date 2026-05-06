@@ -113,6 +113,9 @@ function attachSetupMethods(Orchestrator) {
       this.gitConfigVolumeMount(),
       ...volumeMounts
     ].join(',');
+    if (this.imageName) {
+      env.IMAGE_NAME = this.imageName;
+    }
     env.GIT_CONFIG_GLOBAL = DEFAULT_GIT_CONFIG_CONTAINER_PATH;
     const passthroughKeys = ['GIT_CONFIG_GLOBAL', 'GH_TOKEN'];
     for (const [key, value] of Object.entries(envOverrides || {})) {

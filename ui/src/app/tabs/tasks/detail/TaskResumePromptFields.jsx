@@ -1,5 +1,5 @@
 import { Stack, Typography } from '@mui/material';
-import TaskGoalField from '../form/TaskGoalField.jsx';
+import TaskDockerToggle from '../form/TaskDockerToggle.jsx';
 
 function TaskResumePromptFields({ detail, dialogBusy }) {
   return (
@@ -22,16 +22,13 @@ function TaskResumePromptFields({ detail, dialogBusy }) {
         </Typography>
       </Stack>
 
-      <Stack spacing={0.7}>
-        <TaskGoalField
-          disabled={dialogBusy}
-          value={detail.resumeGoalObjective}
-          onChange={detail.setResumeGoalObjective}
-        />
-        <Typography className="task-compose-helper">
-          Optional. Clear this field to clear the current goal.
-        </Typography>
-      </Stack>
+      <TaskDockerToggle
+        checked={detail.resumeRunAsGoal}
+        disabled={dialogBusy}
+        helperText="Codex will use this prompt as the goal objective."
+        label="Run as goal"
+        onChange={(event) => detail.setResumeRunAsGoal(event.target.checked)}
+      />
     </Stack>
   );
 }

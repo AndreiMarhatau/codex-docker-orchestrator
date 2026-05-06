@@ -55,7 +55,7 @@ function createHandleCreateTask({
           fileUploads,
           model: modelValue || undefined,
           reasoningEffort: reasoningEffortValue || undefined,
-          goalObjective: taskForm.goalObjective.trim() || undefined,
+          runAsGoal: taskForm.runAsGoal,
           useHostDockerSocket: taskForm.useHostDockerSocket,
           autoReview: taskForm.autoReview,
           contextRepos: contextRepos.length > 0 ? contextRepos : undefined
@@ -86,9 +86,8 @@ function createHandleResumeTask({
   resumeContextRepos,
   resumeContextTouched,
   resumeFiles,
-  resumeGoalObjective,
-  initialResumeGoalObjective,
   resumePrompt,
+  resumeRunAsGoal,
   resumeUseHostDockerSocket,
   selectedTaskId,
   setError,
@@ -98,9 +97,9 @@ function createHandleResumeTask({
   setResumeContextRepos,
   setResumeContextTouched,
   setResumeDockerTouched,
-  setResumeGoalObjective,
-  setInitialResumeGoalObjective,
-  setResumePrompt
+  setResumePrompt,
+  setResumeRunAsGoal,
+  taskDetail
 }) {
   return async function handleResumeTask() {
     if (!selectedTaskId || !resumePrompt.trim()) {
@@ -117,8 +116,8 @@ function createHandleResumeTask({
       const modelValue = resolveModelValue(resumeConfig.modelChoice, resumeConfig.customModel);
       const reasoningEffortValue = resolveReasoningEffortValue(resumeConfig);
       const contextRepos = buildContextRepos(resumeContextRepos);
-      const trimmedGoalObjective = resumeGoalObjective.trim();
-      const shouldClearGoal = Boolean(initialResumeGoalObjective.trim()) && !trimmedGoalObjective;
+      const shouldClearGoal =
+        !resumeRunAsGoal && taskDetail?.goal && taskDetail.goal.status !== 'complete';
       await apiRequest(`/api/tasks/${selectedTaskId}/resume`, {
         method: 'POST',
         body: JSON.stringify({
@@ -127,7 +126,7 @@ function createHandleResumeTask({
           prompt: resumePrompt,
           model: modelValue || undefined,
           reasoningEffort: reasoningEffortValue || undefined,
-          goalObjective: trimmedGoalObjective || undefined,
+          runAsGoal: resumeRunAsGoal,
           clearGoal: shouldClearGoal || undefined,
           useHostDockerSocket: resumeUseHostDockerSocket,
           contextRepos: resumeContextTouched ? contextRepos : undefined
@@ -136,8 +135,7 @@ function createHandleResumeTask({
       resumeFiles.handleClearTaskFiles();
       setResumeAttachmentRemovals([]);
       setResumePrompt('');
-      setResumeGoalObjective('');
-      setInitialResumeGoalObjective('');
+      setResumeRunAsGoal(false);
       setResumeConfig(emptyResumeConfig);
       setResumeContextRepos([]);
       setResumeContextTouched(false);

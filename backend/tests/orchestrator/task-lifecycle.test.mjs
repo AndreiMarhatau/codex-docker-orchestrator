@@ -102,20 +102,19 @@ describe('Orchestrator task lifecycle', () => {
       envId: env.envId,
       ref: 'main',
       prompt: 'Do work',
-      goalObjective: 'Do work until complete'
+      runAsGoal: true
     });
     const completed = await waitForTaskStatus(orchestrator, task.taskId, 'completed');
 
     const runCall = spawn.calls.find((call) =>
       call.command === 'codex-docker' &&
-      call.messages.some((message) => message.method === 'turn/start')
+      call.messages.some((message) => message.method === 'thread/goal/set')
     );
     expect(runCall.args).toContain('goals=true');
     expect(runCall.messages.some((message) => message.method === 'thread/goal/set')).toBe(true);
-    expect(runCall.messages.findIndex((message) => message.method === 'thread/goal/set'))
-      .toBeGreaterThan(runCall.messages.findIndex((message) => message.method === 'turn/start'));
+    expect(runCall.messages.some((message) => message.method === 'turn/start')).toBe(false);
     expect(completed.goal).toMatchObject({
-      objective: 'Do work until complete',
+      objective: 'Do work',
       status: 'complete'
     });
   });

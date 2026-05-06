@@ -76,7 +76,7 @@ it('waits until the app is unlocked before requesting task detail', async () => 
   expect(setError).not.toHaveBeenCalled();
 });
 
-it('clears untouched resume goal defaults when the task goal completes', async () => {
+it('resets resume goal mode when switching tasks', async () => {
   const setError = vi.fn();
   const setSelectedTaskId = vi.fn();
   const tasks = [{ taskId: 'task-1', useHostDockerSocket: false }];
@@ -84,13 +84,12 @@ it('clears untouched resume goal defaults when the task goal completes', async (
   mockApiRequest
     .mockResolvedValueOnce({
       taskId: 'task-1',
-      goal: { objective: 'Finish everything', status: 'active' },
       runLogs: [],
       useHostDockerSocket: false
     })
     .mockResolvedValueOnce({ available: false, reason: 'no diff' });
 
-  render(
+  const { rerender } = render(
     <TaskDetailProbe
       enabled
       selectedTaskId="task-1"
@@ -100,21 +99,29 @@ it('clears untouched resume goal defaults when the task goal completes', async (
     />
   );
 
-  await waitFor(() => expect(latestDetail.resumeGoalObjective).toBe('Finish everything'));
+  await act(async () => {
+    latestDetail.setResumeRunAsGoal(true);
+  });
+  await waitFor(() => expect(latestDetail.resumeRunAsGoal).toBe(true));
 
   mockApiRequest
     .mockResolvedValueOnce({
-      taskId: 'task-1',
-      goal: { objective: 'Finish everything', status: 'complete' },
+      taskId: 'task-2',
       runLogs: [],
       useHostDockerSocket: false
     })
     .mockResolvedValueOnce({ available: false, reason: 'no diff' });
 
-  await act(async () => {
-    await latestDetail.refreshTaskDetail('task-1');
-  });
+  const nextTasks = [...tasks, { taskId: 'task-2', useHostDockerSocket: false }];
+  rerender(
+    <TaskDetailProbe
+      enabled
+      selectedTaskId="task-2"
+      setError={setError}
+      setSelectedTaskId={setSelectedTaskId}
+      tasks={nextTasks}
+    />
+  );
 
-  await waitFor(() => expect(latestDetail.resumeGoalObjective).toBe(''));
-  expect(latestDetail.initialResumeGoalObjective).toBe('');
+  await waitFor(() => expect(latestDetail.resumeRunAsGoal).toBe(false));
 });

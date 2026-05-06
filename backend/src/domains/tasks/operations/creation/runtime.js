@@ -64,7 +64,7 @@ async function startPreparedCodexRun(orch, options, meta, preparedRunContext) {
     appServerConfig: {
       model: options.normalizedModel,
       reasoningEffort: options.normalizedReasoningEffort,
-      goalObjective: options.goalObjective,
+      runAsGoal: options.runAsGoal === true,
       developerInstructions: preparedRunContext.orchestratorInstructions
     },
     workspaceDir: options.workspaceDir,

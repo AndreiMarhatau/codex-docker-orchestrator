@@ -78,7 +78,7 @@ function buildStartupOptions(base, preparedRunContext) {
     runLabel: base.runLabel,
     normalizedModel: base.normalizedModel,
     normalizedReasoningEffort: base.normalizedReasoningEffort,
-    goalObjective: base.goalObjective,
+    runAsGoal: base.runAsGoal === true,
     shouldUseHostDockerSocket: base.shouldUseHostDockerSocket,
     resolvedContextRepos: base.resolvedContextRepos,
     preparedRunContext,

@@ -3,6 +3,7 @@ const {
   createStoppedDuringStartupError,
   isAbortError
 } = require('../deferred-run-state');
+const { resolveCodexRunImageName } = require('../../../../shared/codex/run-env');
 const { beginTaskRunFinalization } = require('./transition');
 
 async function prepareDockerSidecar(orchestrator, taskId, pendingRun, useHostDockerSocket) {
@@ -73,6 +74,13 @@ function attachDeferredRunStartMethod(Orchestrator) {
     void (async () => {
       let hadExistingSidecar = null;
       try {
+        await this.ensureCodexImageReady({
+          imageName: resolveCodexRunImageName(this, options.envOverrides),
+          signal: pendingRun.startController.signal
+        });
+        if (pendingRun.stopRequested) {
+          throw createStoppedDuringStartupError();
+        }
         hadExistingSidecar = await prepareDockerSidecar(this, taskId, pendingRun, useHostDockerSocket);
         if (pendingRun.stopRequested) {
           throw createStoppedDuringStartupError();

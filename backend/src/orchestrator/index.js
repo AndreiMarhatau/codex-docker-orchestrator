@@ -1,4 +1,5 @@
 const { Orchestrator } = require('./core');
+const { attachCodexImageMethods } = require('./codex-image');
 const { attachStateEventMethods } = require('./state-events');
 const { attachPathMethods } = require('./paths');
 const { attachEnvMethods } = require('../domains/environments/orchestrator-methods');
@@ -8,6 +9,7 @@ const { attachSetupMethods } = require('../domains/setup/orchestrator-methods');
 const { parseThreadId, isUsageLimitError } = require('./logs');
 
 attachStateEventMethods(Orchestrator);
+attachCodexImageMethods(Orchestrator);
 attachPathMethods(Orchestrator);
 attachEnvMethods(Orchestrator);
 attachTaskMethods(Orchestrator);

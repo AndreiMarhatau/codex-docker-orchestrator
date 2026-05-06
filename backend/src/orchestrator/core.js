@@ -3,6 +3,7 @@ const path = require('node:path');
 const { AccountStore } = require('../domains/accounts/store');
 const { DEFAULT_GIT_CONFIG_CONTAINER_PATH } = require('../shared/config/constants');
 const { resolveConfig } = require('./config');
+const { createInitialCodexImageState } = require('./codex-image');
 const { attachCoreMethods } = require('./core-methods');
 
 class Orchestrator {
@@ -37,6 +38,9 @@ class Orchestrator {
     this.now = config.now;
     this.fetch = config.fetch;
     this.imageName = config.imageName;
+    this.codexImageState = createInitialCodexImageState(this.imageName, this.now);
+    this.codexImageStates = new Map([[this.imageName, this.codexImageState]]);
+    this.codexImagePullPromises = new Map();
     this.getUid = config.getUid;
     this.getGid = config.getGid;
     this.taskDockerSidecarImage = config.taskDockerSidecarImage;

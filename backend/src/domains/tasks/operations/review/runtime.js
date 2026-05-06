@@ -1,7 +1,10 @@
 const fs = require('node:fs/promises');
 const { AppServerClient } = require('../../../../shared/codex/app-server-client');
 const { buildCodexAppServerArgs } = require('../../../../shared/codex/app-server-args');
-const { buildRunEnv } = require('../../../../shared/codex/run-env');
+const {
+  buildRunEnv,
+  resolveCodexRunImageName
+} = require('../../../../shared/codex/run-env');
 const { createBoundedChildShutdown } = require('../../../../shared/process/shutdown');
 const { DEFAULT_AUTO_REVIEW_FIX_PROMPT_TEMPLATE_FILE } = require('../../../../shared/config/constants');
 const { renderTemplate } = require('../../../../orchestrator/context');
@@ -78,25 +81,34 @@ async function requestReview({ client, meta, workspaceDir, developerInstructions
 }
 
 async function runCodexReview(options) {
-  const env = buildRunEnv(options);
-  const useProcessGroup = process.platform !== 'win32';
-  const child = options.orchestrator.spawn('codex-docker', buildCodexAppServerArgs(), {
-    cwd: options.meta.worktreePath,
-    env,
-    stdio: ['pipe', 'pipe', 'pipe'],
-    detached: useProcessGroup
-  });
-  const shutdown = createBoundedChildShutdown({
-    child,
-    useProcessGroup,
-    stopTimeoutMs: options.orchestrator.appServerShutdownTimeoutMs
-  });
+  const imageReadyController = new AbortController();
+  let shutdown = null;
   const unregisterCancel =
-    options.orchestrator.registerTaskRunTransitionCancel?.(options.taskId, shutdown.stop) ||
+    options.orchestrator.registerTaskRunTransitionCancel?.(options.taskId, () => {
+      imageReadyController.abort();
+      shutdown?.stop('SIGTERM');
+    }) ||
     (() => {});
-  const client = new AppServerClient({ child, requestTimeoutMs: REVIEW_REQUEST_TIMEOUT_MS });
-  const output = collectReviewOutput(client);
   try {
+    await options.orchestrator.ensureCodexImageReady?.({
+      imageName: resolveCodexRunImageName(options.orchestrator, options.envOverrides),
+      signal: imageReadyController.signal
+    });
+    const env = buildRunEnv(options);
+    const useProcessGroup = process.platform !== 'win32';
+    const child = options.orchestrator.spawn('codex-docker', buildCodexAppServerArgs(), {
+      cwd: options.meta.worktreePath,
+      env,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      detached: useProcessGroup
+    });
+    shutdown = createBoundedChildShutdown({
+      child,
+      useProcessGroup,
+      stopTimeoutMs: options.orchestrator.appServerShutdownTimeoutMs
+    });
+    const client = new AppServerClient({ child, requestTimeoutMs: REVIEW_REQUEST_TIMEOUT_MS });
+    const output = collectReviewOutput(client);
     await requestReview({ client, ...options });
     if (!output.reviewText.trim() && output.stderr.trim()) {
       throw new Error(output.stderr.trim());
@@ -104,7 +116,7 @@ async function runCodexReview(options) {
     return output.reviewText.trim();
   } finally {
     unregisterCancel();
-    shutdown.stop('SIGTERM');
+    shutdown?.stop('SIGTERM');
   }
 }
 

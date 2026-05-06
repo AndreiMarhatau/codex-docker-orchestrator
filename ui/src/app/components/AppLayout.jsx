@@ -6,6 +6,7 @@ import SettingsTab from '../tabs/SettingsTab.jsx';
 import TasksTab from '../tabs/TasksTab.jsx';
 import AuthGate from './AuthGate.jsx';
 import { DesktopNavigation, MobileNavigation } from './AppNavigation.jsx';
+import CodexImageStatus from './CodexImageStatus.jsx';
 import FloatingScrollButton from './FloatingScrollButton.jsx';
 
 function AppTabPanel({ activeTab, children, tab }) {
@@ -25,7 +26,7 @@ function AppLayout({ accountsState, authState, data, envState, tabState, tasksSt
   const theme = useTheme();
   const mobileNav = useMediaQuery(theme.breakpoints.down('sm'));
   const { activeTab, setActiveTab } = tabState;
-  const { error, setupState } = data;
+  const { codexImage, error, setupState } = data;
   const { handleBackToTasks, selectedTaskId } = tasksState.selection;
   const locked = !authState.isUnlocked;
   const setupReady = Boolean(setupState?.ready);
@@ -57,6 +58,7 @@ function AppLayout({ accountsState, authState, data, envState, tabState, tasksSt
               isNavDisabled={isNavDisabled}
             />
           )}
+          <CodexImageStatus codexImage={codexImage} />
         </Box>
 
         <Box className="app-main">

@@ -8,6 +8,17 @@ import {
   writeTaskMeta
 } from './task-runtime-state-helpers.mjs';
 
+async function waitForCodexDockerSpawn(spawn) {
+  const deadline = Date.now() + 2000;
+  while (Date.now() < deadline) {
+    if (spawn.calls.some((call) => call.command === 'codex-docker')) {
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  return false;
+}
+
 describe('Orchestrator task runtime state mutation claims', () => {
   it('reconciles stale running state before direct resume despite the resume mutex claim', async () => {
     const orchHome = await createTempDir();
@@ -36,6 +47,6 @@ describe('Orchestrator task runtime state mutation claims', () => {
     expect(resumed.status).toBe('running');
     expect(resumed.runs).toHaveLength(2);
     expect(resumed.runs[0].status).toBe('stopped');
-    expect(spawn.calls.some((call) => call.command === 'codex-docker')).toBe(true);
+    expect(await waitForCodexDockerSpawn(spawn)).toBe(true);
   });
 });

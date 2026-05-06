@@ -10,6 +10,7 @@ function useStateStream({
   refreshTaskDetail,
   selectedTaskId,
   setAccountState,
+  setCodexImage,
   setEnvs,
   setError,
   setTasks
@@ -48,6 +49,7 @@ function useStateStream({
         setEnvs(Array.isArray(payload.envs) ? payload.envs : []);
         setTasks(Array.isArray(payload.tasks) ? payload.tasks : []);
         setAccountState(normalizeAccountState(payload.accounts));
+        setCodexImage?.(payload.codexImage || null);
         const taskId = selectedTaskIdRef.current;
         if (taskId) {
           await refreshTaskDetail(taskId);
@@ -66,10 +68,20 @@ function useStateStream({
       handleRefresh();
     };
 
+    const handleCodexImageChanged = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        setCodexImage?.(payload.codexImage || null);
+      } catch (error) {
+        setError(error?.message || 'Failed to parse Codex image status update.');
+      }
+    };
+
     eventSource.addEventListener(STATE_EVENT_TYPES.init, handleInit);
     eventSource.addEventListener(STATE_EVENT_TYPES.tasksChanged, handleRefresh);
     eventSource.addEventListener(STATE_EVENT_TYPES.envsChanged, handleRefresh);
     eventSource.addEventListener(STATE_EVENT_TYPES.accountsChanged, handleRefresh);
+    eventSource.addEventListener(STATE_EVENT_TYPES.codexImageChanged, handleCodexImageChanged);
     eventSource.addEventListener('error', handleError);
 
     return () => {
@@ -77,6 +89,7 @@ function useStateStream({
       eventSource.removeEventListener(STATE_EVENT_TYPES.tasksChanged, handleRefresh);
       eventSource.removeEventListener(STATE_EVENT_TYPES.envsChanged, handleRefresh);
       eventSource.removeEventListener(STATE_EVENT_TYPES.accountsChanged, handleRefresh);
+      eventSource.removeEventListener(STATE_EVENT_TYPES.codexImageChanged, handleCodexImageChanged);
       eventSource.removeEventListener('error', handleError);
       eventSource.close();
     };
@@ -86,6 +99,7 @@ function useStateStream({
     refreshAll,
     refreshTaskDetail,
     setAccountState,
+    setCodexImage,
     setEnvs,
     setError,
     setTasks

@@ -30,12 +30,24 @@ function applyEnvOverrides(env, envOverrides) {
     if (!key) {
       continue;
     }
-    env[key] = String(envOverrides[key]);
+    if (key === 'IMAGE_NAME' && !String(envOverrides[key] || '').trim()) {
+      continue;
+    }
+    env[key] = key === 'IMAGE_NAME'
+      ? String(envOverrides[key] || '').trim()
+      : String(envOverrides[key]);
     if (!key.startsWith('CODEX_CONTAINER_ENV_')) {
       passthroughKeys.push(key);
     }
   }
   mergePassthroughEnv(env, passthroughKeys);
+}
+
+function resolveCodexRunImageName(orchestrator, envOverrides) {
+  const override = envOverrides && Object.prototype.hasOwnProperty.call(envOverrides, 'IMAGE_NAME')
+    ? String(envOverrides.IMAGE_NAME || '').trim()
+    : '';
+  return override || orchestrator.imageName;
 }
 
 function buildRunEnv({ orchestrator, workspaceDir, artifactsDir, volumeMounts = [], envOverrides }) {
@@ -54,6 +66,10 @@ function buildRunEnv({ orchestrator, workspaceDir, artifactsDir, volumeMounts = 
   ];
   env.CODEX_VOLUME_MOUNTS = combinedVolumeMounts.join(',');
   env.CODEX_WORKSPACE_DIR = workspaceDir;
+  const imageName = resolveCodexRunImageName(orchestrator, envOverrides);
+  if (imageName) {
+    env.IMAGE_NAME = imageName;
+  }
   env.GIT_CONFIG_GLOBAL = DEFAULT_GIT_CONFIG_CONTAINER_PATH;
   mergePassthroughEnv(env, ['GIT_CONFIG_GLOBAL', 'GH_TOKEN']);
   applyEnvOverrides(env, envOverrides);
@@ -63,5 +79,6 @@ function buildRunEnv({ orchestrator, workspaceDir, artifactsDir, volumeMounts = 
 module.exports = {
   applyEnvOverrides,
   buildRunEnv,
-  mergePassthroughEnv
+  mergePassthroughEnv,
+  resolveCodexRunImageName
 };

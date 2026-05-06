@@ -44,6 +44,7 @@ function useAppState() {
     refreshTaskDetail: tasksState.detail.refreshTaskDetail,
     selectedTaskId: tasksState.selection.selectedTaskId,
     setAccountState: data.setAccountState,
+    setCodexImage: data.setCodexImage,
     setEnvs: data.setEnvs,
     setError: data.setError,
     setTasks: data.setTasks

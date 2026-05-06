@@ -150,6 +150,37 @@ body::before {
   background: var(--ui-accent);
 }
 
+.codex-image-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 24px 10px;
+  border-top: 1px solid var(--ui-border);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.codex-image-status--failed {
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.codex-image-status-label {
+  flex: 0 0 auto;
+  color: var(--ui-text);
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+}
+
+.codex-image-status-detail {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ui-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-size: 0.75rem !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .app-main {
   padding: 0 !important;
   display: block !important;
@@ -1324,6 +1355,17 @@ pre {
   .app-mobile-tab.is-active::after {
     left: 12px;
     right: 12px;
+  }
+
+  .codex-image-status {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 14px 10px;
+  }
+
+  .codex-image-status-detail {
+    max-width: 100%;
   }
 
   .section-shell,

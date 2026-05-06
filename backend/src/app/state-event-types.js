@@ -3,7 +3,8 @@ const STATE_EVENT_TYPES = Object.freeze({
   tasksChanged: 'tasks_changed',
   envsChanged: 'envs_changed',
   accountsChanged: 'accounts_changed',
-  setupChanged: 'setup_changed'
+  setupChanged: 'setup_changed',
+  codexImageChanged: 'codex_image_changed'
 });
 
 module.exports = {

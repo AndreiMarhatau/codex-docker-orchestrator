@@ -1,5 +1,6 @@
 const { readJson, listDirs, pathExists } = require('../../../shared/filesystem/storage');
 const { parseUnifiedDiff } = require('../../../shared/git/repository');
+const { readDiffStats, readFullTaskDiff } = require('./git-diff');
 
 async function readLocalHead(exec, worktreePath) {
   const headResult = await exec('git', ['-C', worktreePath, 'rev-parse', 'HEAD']);
@@ -32,37 +33,6 @@ async function readDirtyStatus(exec, worktreePath) {
     return null;
   }
   return dirtyResult.stdout.trim().length > 0;
-}
-
-async function readDiffStats(exec, worktreePath, baseSha) {
-  if (!baseSha) {
-    return null;
-  }
-  const diffResult = await exec('git', [
-    '-C',
-    worktreePath,
-    'diff',
-    '--numstat',
-    `${baseSha}...HEAD`
-  ]);
-  if (diffResult.code !== 0) {
-    return null;
-  }
-  const lines = diffResult.stdout.trim().split('\n').filter(Boolean);
-  let additions = 0;
-  let deletions = 0;
-  for (const line of lines) {
-    const [addRaw, delRaw] = line.split('\t');
-    const add = Number(addRaw);
-    const del = Number(delRaw);
-    if (!Number.isNaN(add)) {
-      additions += add;
-    }
-    if (!Number.isNaN(del)) {
-      deletions += del;
-    }
-  }
-  return { additions, deletions };
 }
 
 function attachTaskMetaMethods(Orchestrator) {
@@ -120,7 +90,8 @@ function attachTaskMetaMethods(Orchestrator) {
         meta.worktreePath,
         'diff',
         '--quiet',
-        `${meta.baseSha}...HEAD`
+        meta.baseSha,
+        '--'
       ]);
       if (diffResult.code === 0) {
         status.hasChanges = false;
@@ -156,14 +127,8 @@ function attachTaskMetaMethods(Orchestrator) {
       };
     }
     try {
-      const result = await this.execOrThrow('git', [
-        '-C',
-        meta.worktreePath,
-        'diff',
-        '--no-color',
-        `${meta.baseSha}...HEAD`
-      ]);
-      const files = parseUnifiedDiff(result.stdout);
+      const diffText = await readFullTaskDiff(this.exec, meta.worktreePath, meta.baseSha);
+      const files = parseUnifiedDiff(diffText);
       return {
         available: true,
         baseSha: meta.baseSha,

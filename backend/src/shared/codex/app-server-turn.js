@@ -9,13 +9,15 @@ const { buildThreadParams, buildTurnParams } = require('./app-server-requests');
 
 const TURN_COMPLETION_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 const APP_SERVER_REQUEST_TIMEOUT_MS = 60_000;
+const ACTIVE_GOAL_STATUS = 'active';
 
 async function startOrResumeThread({ client, appServerConfig, workspaceDir }) {
   const threadParams = buildThreadParams({
     appServerConfig,
     workspaceDir,
     developerInstructions: appServerConfig.developerInstructions,
-    model: appServerConfig.model
+    model: appServerConfig.model,
+    reasoningEffort: appServerConfig.reasoningEffort
   });
   if (appServerConfig.resumeThreadId) {
     const result = await client.request(
@@ -89,22 +91,24 @@ async function runAppServerTurn({
       goalObserved = true;
       latestGoal = null;
     }
-    await client.request(
-      'turn/start',
-      buildTurnParams({
-        threadId,
-        prompt,
-        workspaceDir,
-        model: appServerConfig.model,
-        reasoningEffort: appServerConfig.reasoningEffort,
-        outputSchema: appServerConfig.outputSchema
-      }),
-      { timeoutMs: APP_SERVER_REQUEST_TIMEOUT_MS }
-    );
+    if (appServerConfig.runAsGoal !== true) {
+      await client.request(
+        'turn/start',
+        buildTurnParams({
+          threadId,
+          prompt,
+          workspaceDir,
+          model: appServerConfig.model,
+          reasoningEffort: appServerConfig.reasoningEffort,
+          outputSchema: appServerConfig.outputSchema
+        }),
+        { timeoutMs: APP_SERVER_REQUEST_TIMEOUT_MS }
+      );
+    }
     const goalResponse = await applyRequestedGoalState({
       client,
       threadId,
-      goalObjective: appServerConfig.goalObjective,
+      goalObjective: appServerConfig.runAsGoal === true ? prompt : '',
       clearGoal: false
     });
     if (goalResponse?.goal && !latestGoal) {
@@ -114,6 +118,17 @@ async function runAppServerTurn({
   } catch (error) {
     turnCompletions.close();
     throw error;
+  }
+  if (appServerConfig.runAsGoal === true && latestGoal?.status !== ACTIVE_GOAL_STATUS) {
+    turnCompletions.close();
+    return {
+      code: 0,
+      threadId,
+      goal: latestGoal,
+      goalObserved,
+      agentMessages,
+      turn: null
+    };
   }
   let completedTurn = null;
   try {

@@ -231,7 +231,16 @@ function createTaskDetail(state, body) {
       dirty: false,
       diffStats: { additions: 0, deletions: 0 }
     },
-    useHostDockerSocket: body?.useHostDockerSocket === true
+    useHostDockerSocket: body?.useHostDockerSocket === true,
+    goal: body?.runAsGoal === true
+      ? {
+          objective: prompt,
+          status: 'complete',
+          tokenBudget: null,
+          tokensUsed: 0,
+          timeUsedSeconds: 0
+        }
+      : null
   };
   state.taskDetails[taskId] = detail;
   state.taskDiffs[taskId] = {
@@ -451,6 +460,15 @@ function handleApiRequest(state, url, method, body) {
       dirty: false,
       diffStats: { additions: 7, deletions: 1 }
     };
+    if (body?.runAsGoal === true) {
+      detail.goal = {
+        objective: String(body?.prompt || 'Follow-up request'),
+        status: 'complete',
+        tokenBudget: null,
+        tokensUsed: 0,
+        timeUsedSeconds: 0
+      };
+    }
     syncTaskSummary(state, taskId);
     return { status: 200, body: clone(detail) };
   }

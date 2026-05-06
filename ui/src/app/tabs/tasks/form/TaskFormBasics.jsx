@@ -1,6 +1,6 @@
 import { MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { formatRepoDisplay } from '../../../repo-helpers.js';
-import TaskGoalField from './TaskGoalField.jsx';
+import TaskDockerToggle from './TaskDockerToggle.jsx';
 
 function TaskFormBasics({ envs, selectedEnv, setTaskForm, taskForm }) {
   return (
@@ -48,12 +48,14 @@ function TaskFormBasics({ envs, selectedEnv, setTaskForm, taskForm }) {
         />
       </BoxField>
 
-      <BoxField helperText="Optional. Codex will keep working while this goal remains active.">
-        <TaskGoalField
-          value={taskForm.goalObjective}
-          onChange={(goalObjective) => setTaskForm((prev) => ({ ...prev, goalObjective }))}
-        />
-      </BoxField>
+      <TaskDockerToggle
+        checked={taskForm.runAsGoal}
+        helperText="Codex will use the prompt as the goal objective."
+        label="Run as goal"
+        onChange={(event) =>
+          setTaskForm((prev) => ({ ...prev, runAsGoal: event.target.checked }))
+        }
+      />
     </Stack>
   );
 }

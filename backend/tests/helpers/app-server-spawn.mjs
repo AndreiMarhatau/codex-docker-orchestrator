@@ -185,6 +185,8 @@ export function countAppServerTaskRuns(calls) {
       isCodexAppServerArgs(call.args) &&
       call.options?.env?.ORCH_STRUCTURED_CODEX !== '1' &&
       (!Array.isArray(call.messages) ||
-        call.messages.some((message) => ['turn/start', 'review/start'].includes(message.method)))
+        call.messages.some((message) =>
+          ['turn/start', 'review/start', 'thread/goal/set'].includes(message.method)
+        ))
   ).length;
 }

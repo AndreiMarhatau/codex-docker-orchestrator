@@ -31,7 +31,7 @@ function runGoalTurn(spawn, appServerConfig = {}) {
     prompt: 'Do work',
     workspaceDir: '/workspace/repo',
     appServerConfig: {
-      goalObjective: 'Do work',
+      runAsGoal: true,
       ...appServerConfig
     }
   });
@@ -43,6 +43,26 @@ function delay(ms) {
 }
 
 describe('app-server goal continuation waiting', () => {
+  it('sets the prompt as the goal objective without starting a user turn in goal mode', async () => {
+    const { runPromise, server } = runGoalTurn(createManualAppServerSpawn());
+
+    await server.waitForGoalSet();
+    await delay(0);
+    expect(server.call.messages.some((message) => message.method === 'turn/start')).toBe(false);
+    const goalSet = server.call.messages.find((message) => message.method === 'thread/goal/set');
+    expect(goalSet.params.objective).toBe('Do work');
+
+    server.startContinuationTurn({ turnId: 'turn-goal' });
+    server.completeTurn({ text: 'goal completed' });
+    await delay(0);
+    server.updateGoal({ status: 'complete', objective: 'Do work' });
+
+    const result = await runPromise;
+    expect(result.code).toBe(0);
+    expect(result.turn?.id).toBe('turn-goal');
+    expect(result.goal).toMatchObject({ objective: 'Do work', status: 'complete' });
+  });
+
   it('does not finalize while an observed continuation turn is still running', async () => {
     const { runPromise, server } = runGoalTurn(createManualAppServerSpawn());
     let settled = false;
@@ -51,9 +71,8 @@ describe('app-server goal continuation waiting', () => {
       return result;
     });
 
-    await server.waitForTurnStart();
     await server.waitForGoalSet();
-    server.completeTurn({ text: 'first turn' });
+    await delay(0);
     server.startContinuationTurn({ turnId: 'turn-continuation' });
     await delay(35);
     expect(settled).toBe(false);
@@ -68,9 +87,8 @@ describe('app-server goal continuation waiting', () => {
   it('does not collect continuation notifications twice', async () => {
     const { runPromise, server, tracker } = runGoalTurn(createManualAppServerSpawn());
 
-    await server.waitForTurnStart();
     await server.waitForGoalSet();
-    server.completeTurn({ text: 'first turn' });
+    await delay(0);
     server.startContinuationTurn({ turnId: 'turn-continuation' });
     server.updateGoal({ status: 'complete', objective: 'Do work' });
     await delay(0);
@@ -90,9 +108,8 @@ describe('app-server goal continuation waiting', () => {
   it('consumes fast continuation completions in order', async () => {
     const { runPromise, server } = runGoalTurn(createManualAppServerSpawn());
 
-    await server.waitForTurnStart();
     await server.waitForGoalSet();
-    server.completeTurn({ text: 'first turn' });
+    await delay(0);
     server.startContinuationTurn({ turnId: 'turn-continuation-1' });
     server.completeTurn({ text: 'second turn' });
     server.startContinuationTurn({ turnId: 'turn-continuation-2' });
@@ -107,8 +124,9 @@ describe('app-server goal continuation waiting', () => {
   it('waits for a trailing goal completion notification before continuing', async () => {
     const { runPromise, server } = runGoalTurn(createManualAppServerSpawn());
 
-    await server.waitForTurnStart();
     await server.waitForGoalSet();
+    await delay(0);
+    server.startContinuationTurn({ turnId: 'turn-continuation' });
     server.completeTurn({ text: 'done' });
     await delay(0);
     server.updateGoal({ status: 'complete', objective: 'Do work' });
@@ -122,7 +140,7 @@ describe('app-server goal continuation waiting', () => {
     const spawn = createManualAppServerSpawn();
     const { runPromise, server } = runGoalTurn(spawn, {
       clearGoal: true,
-      goalObjective: ''
+      runAsGoal: false
     });
 
     await server.waitForTurnStart();
@@ -143,8 +161,8 @@ describe('app-server goal continuation waiting', () => {
   it('returns a failed turn without waiting for goal continuation', async () => {
     const { runPromise, server } = runGoalTurn(createManualAppServerSpawn());
 
-    await server.waitForTurnStart();
     await server.waitForGoalSet();
+    await delay(0);
     server.completeTurn({
       status: 'failed',
       error: { message: 'usage limit' },
@@ -159,8 +177,8 @@ describe('app-server goal continuation waiting', () => {
   it('rejects immediately when the app-server closes before completion wait starts', async () => {
     const { runPromise, server } = runGoalTurn(createManualAppServerSpawn());
 
-    await server.waitForTurnStart();
     await server.waitForGoalSet();
+    await delay(0);
     server.close(1, null);
 
     await expect(runPromise).rejects.toThrow('Codex app-server exited before turn completed');

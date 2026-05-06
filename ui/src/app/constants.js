@@ -35,7 +35,7 @@ const emptyTaskForm = {
   reasoningEffort: '',
   customReasoningEffort: '',
   useHostDockerSocket: false,
-  goalObjective: '',
+  runAsGoal: false,
   autoReview: true
 };
 const emptyResumeConfig = {

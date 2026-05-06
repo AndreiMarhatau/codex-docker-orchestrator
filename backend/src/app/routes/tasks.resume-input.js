@@ -10,10 +10,10 @@ function normalizeResumeInput(body) {
     clearGoal,
     contextRepos,
     fileUploads,
-    goalObjective,
     model,
     prompt,
     reasoningEffort,
+    runAsGoal,
     useHostDockerSocket
   } = body;
   if (!prompt) {
@@ -24,6 +24,9 @@ function normalizeResumeInput(body) {
   }
   if (clearGoal !== undefined && typeof clearGoal !== 'boolean') {
     return { error: 'clearGoal must be a boolean' };
+  }
+  if (runAsGoal !== undefined && typeof runAsGoal !== 'boolean') {
+    return { error: 'runAsGoal must be a boolean' };
   }
   const hasContextOverride = Object.prototype.hasOwnProperty.call(body, 'contextRepos');
   const hasFileUploads = Object.prototype.hasOwnProperty.call(body, 'fileUploads');
@@ -39,7 +42,7 @@ function normalizeResumeInput(body) {
       hasFileUploads,
       model,
       prompt,
-      goalObjective,
+      runAsGoal: runAsGoal === true,
       clearGoal: clearGoal === true,
       reasoningEffort,
       contextRepos: hasContextOverride ? normalizeContextReposInput(contextRepos) : null,

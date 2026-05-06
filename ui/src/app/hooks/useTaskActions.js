@@ -15,9 +15,8 @@ function useTaskActions({
   resumeContextRepos,
   resumeContextTouched,
   resumeFiles,
-  resumeGoalObjective,
-  initialResumeGoalObjective,
   resumePrompt,
+  resumeRunAsGoal,
   resumeUseHostDockerSocket,
   selectedTaskId,
   setSelectedTaskId,
@@ -28,9 +27,8 @@ function useTaskActions({
   setResumeContextRepos,
   setResumeContextTouched,
   setResumeDockerTouched,
-  setResumeGoalObjective,
-  setInitialResumeGoalObjective,
   setResumePrompt,
+  setResumeRunAsGoal,
   setShowTaskForm,
   setTaskForm,
   setTaskDetail,
@@ -38,6 +36,7 @@ function useTaskActions({
   setTaskFileUploadProgress,
   setTaskFileUploading,
   setTaskFiles,
+  taskDetail,
   taskForm,
   taskFiles,
   taskFileInputRef
@@ -88,9 +87,8 @@ function useTaskActions({
     resumeContextRepos,
     resumeContextTouched,
     resumeFiles,
-    resumeGoalObjective,
-    initialResumeGoalObjective,
     resumePrompt,
+    resumeRunAsGoal,
     resumeUseHostDockerSocket,
     selectedTaskId,
     setError,
@@ -100,9 +98,9 @@ function useTaskActions({
     setResumeContextRepos,
     setResumeContextTouched,
     setResumeDockerTouched,
-    setResumeGoalObjective,
-    setInitialResumeGoalObjective,
     setResumePrompt,
+    setResumeRunAsGoal,
+    taskDetail
   });
 
   const handleStopTask = useStopTaskHandler({

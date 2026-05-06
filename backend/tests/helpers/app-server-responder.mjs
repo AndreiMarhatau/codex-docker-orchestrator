@@ -96,6 +96,16 @@ function handleThreadGoalSet(context, message) {
     method: 'thread/goal/updated',
     params: { threadId: goal.threadId, turnId: null, goal }
   });
+  if (context.turnCount === 0 && goal.status === 'active') {
+    context.turnCount += 1;
+    const turnId = `turn-${context.turnCount}`;
+    const item = {
+      id: `item-${context.turnCount}`,
+      type: 'agentMessage',
+      text: context.defaultAgentMessageText
+    };
+    context.emitTurn({ turnId, item, message });
+  }
 }
 
 function handleThreadGoalClear(context, message) {

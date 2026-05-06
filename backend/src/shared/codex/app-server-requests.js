@@ -1,4 +1,10 @@
-function buildThreadParams({ appServerConfig, workspaceDir, developerInstructions, model }) {
+function buildThreadParams({
+  appServerConfig,
+  workspaceDir,
+  developerInstructions,
+  model,
+  reasoningEffort
+}) {
   const params = {
     cwd: workspaceDir,
     approvalPolicy: 'never',
@@ -11,6 +17,9 @@ function buildThreadParams({ appServerConfig, workspaceDir, developerInstruction
   }
   if (developerInstructions) {
     params.developerInstructions = developerInstructions;
+  }
+  if (reasoningEffort) {
+    params.config = { model_reasoning_effort: reasoningEffort };
   }
   if (appServerConfig?.ephemeral === true) {
     params.ephemeral = true;

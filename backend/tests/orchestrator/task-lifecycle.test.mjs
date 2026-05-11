@@ -110,7 +110,7 @@ describe('Orchestrator task lifecycle', () => {
       call.command === 'codex-docker' &&
       call.messages.some((message) => message.method === 'thread/goal/set')
     );
-    expect(runCall.args).toContain('goals=true');
+    expect(runCall.args).toContain('features.goals=true');
     expect(runCall.messages.some((message) => message.method === 'thread/goal/set')).toBe(true);
     expect(runCall.messages.some((message) => message.method === 'turn/start')).toBe(false);
     expect(completed.goal).toMatchObject({

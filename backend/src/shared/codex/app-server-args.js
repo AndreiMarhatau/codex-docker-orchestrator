@@ -4,7 +4,7 @@ const CODEX_APP_SERVER_ARGS = [
   '-c',
   'approval_policy="never"',
   '-c',
-  'goals=true',
+  'features.goals=true',
   'app-server'
 ];
 
